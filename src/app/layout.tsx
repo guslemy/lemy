@@ -7,7 +7,7 @@ import "./globals.css";
 // descargado en el repo.
 
 export const metadata: Metadata = {
-  title: "Northstar — Encuentra a tu psicoterapeuta",
+  title: "Lemy — Encuentra a tu psicoterapeuta",
   description:
     "Plataforma para encontrar psicoterapeutas en Oaxaca, explicada en lenguaje claro y cercano.",
 };

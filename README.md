@@ -1,6 +1,6 @@
-# Northstar
+# Lemy
 
-Marketplace de psicoterapeutas para Oaxaca. Ver `INSTRUCCIONES_PROJECT_NORTHSTAR.md` (fuente de verdad del proyecto) y `SETUP.md` (cuentas pendientes: Supabase, Google Cloud, GitHub/Vercel).
+Marketplace de psicoterapeutas para Oaxaca (nombre en código del repo aún dice "Northstar" en algunas rutas de carpeta; el nombre oficial de marca es **Lemy**). Ver `INSTRUCCIONES_PROJECT_NORTHSTAR.md` (fuente de verdad del proyecto, escrita antes del naming) y `SETUP.md` (cuentas pendientes: Supabase, Google Cloud, GitHub/Vercel).
 
 ## Stack
 Next.js (App Router) + Supabase (DB/Auth/Storage) + Stripe (Connect + Billing) + Vercel. Login con Google.

@@ -9,7 +9,7 @@ export default async function HomePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-[#f5f1e8] p-8 text-center">
       <div className="space-y-3">
-        <h1 className="text-4xl font-bold text-[#0f3d3e]">Northstar</h1>
+        <h1 className="text-4xl font-bold text-[#0f3d3e]">Lemy</h1>
         <p className="max-w-md text-lg text-neutral-700">
           Encuentra al psicoterapeuta que se siente correcto para ti. Sin jerga
           complicada, en tu idioma de todos los días.
