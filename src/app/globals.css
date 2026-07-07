@@ -88,6 +88,22 @@
   animation: float-b 9s ease-in-out infinite;
 }
 
+/* Campos de formulario (dashboard de terapeuta) */
+.input-lemy {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--sage-white);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.92rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.input-lemy:focus {
+  border-color: var(--forest);
+}
+
 /* Reveal-on-scroll: arranca oculto, .in-view lo activa (ver ScrollReveal) */
 .reveal {
   opacity: 0;
