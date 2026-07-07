@@ -1,0 +1,50 @@
+import Link from "next/link";
+
+export function SiteFooter() {
+  return (
+    <footer className="bg-forest-deep py-16 text-sage-white/75">
+      <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
+        <div className="grid grid-cols-1 gap-10 border-b border-white/15 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-sage-white">
+              <span className="relative h-4 w-[22px] flex-none">
+                <span className="absolute left-0 top-0.5 h-3.5 w-3.5 rounded-full bg-forest/90" />
+                <span className="absolute left-[9px] top-0.5 h-3.5 w-3.5 rounded-full bg-rose mix-blend-multiply" />
+              </span>
+              Lemy
+            </Link>
+            <p className="mt-3.5 max-w-[260px] text-sm text-sage-white/60">
+              Un directorio pensado para que encontrar terapia se sienta claro, humano y accesible.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Pacientes</h4>
+            <a href="#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Buscar terapeuta</a>
+            <a href="#como-funciona" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Cómo funciona</a>
+            <a href="#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
+          </div>
+
+          <div>
+            <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Terapeutas</h4>
+            <a href="#terapeutas" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Crear perfil</a>
+            <a href="#perfil" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Ejemplo de perfil</a>
+            <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Preguntas frecuentes</a>
+          </div>
+
+          <div>
+            <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Contacto</h4>
+            <a href="mailto:hola@lemy.com" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">hola@lemy.com</a>
+            <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Instagram</a>
+            <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">LinkedIn</a>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-between gap-2.5 pt-6 text-[0.82rem] text-sage-white/50">
+          <span>© 2026 Lemy. Todos los derechos reservados.</span>
+          <span>Aviso de privacidad · Términos de uso</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
