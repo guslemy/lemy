@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { GoogleLoginButton } from "@/components/google-login-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -16,16 +15,12 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {user ? (
-        <Link
-          href="/buscar"
-          className="rounded-full bg-[#0f3d3e] px-8 py-3 font-medium text-white transition hover:opacity-90"
-        >
-          Ir al buscador
-        </Link>
-      ) : (
-        <GoogleLoginButton />
-      )}
+      <Link
+        href={user ? "/buscar" : "/login"}
+        className="rounded-full bg-[#0f3d3e] px-8 py-3 font-medium text-white transition hover:opacity-90"
+      >
+        {user ? "Ir al buscador" : "Comenzar"}
+      </Link>
     </main>
   );
 }

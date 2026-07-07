@@ -1,25 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
+import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Recibe el redirect de Google OAuth, intercambia el código por sesión
-// y crea el registro en `profiles` si es la primera vez que este usuario entra.
+// Recibe el link que Supabase manda por correo (confirmar cuenta nueva,
+// o "magic link" si algún día lo usamos) y crea la sesión + el perfil.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
+  const token_hash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard";
 
-  if (code) {
+  if (token_hash && type) {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash });
 
     if (!error && data.user) {
-      // TODO (cierre de Fase 1): guardar data.session.provider_refresh_token
-      // en la tabla del terapeuta para poder crear eventos en su Google Calendar
-      // sin pedirle que inicie sesión de nuevo.
-
       await ensureProfile(supabase, data.user);
-
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
