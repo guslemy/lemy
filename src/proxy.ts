@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Refresca la sesión de Supabase en cada request (necesario con @supabase/ssr)
-export async function middleware(request: NextRequest) {
+// Renombrado de middleware.ts a proxy.ts: Next.js 16 renombró esta
+// convención (https://nextjs.org/docs/messages/middleware-to-proxy).
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
