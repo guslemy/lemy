@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -24,6 +25,32 @@ type RawTherapist = {
 };
 
 type EducationalVideo = { id: string; title: string; platform: string; url: string };
+
+// Los videos ahora se relacionan con especialidades vía una tabla puente
+// (un video puede hablar de varios temas), así que la búsqueda va en dos
+// pasos: primero los content_id que tocan esta especialidad, luego los
+// videos en sí, ordenados por más recientes.
+async function getVideosForSpecialty(
+  supabase: SupabaseClient,
+  specialtyId: string
+): Promise<EducationalVideo[]> {
+  const { data: links } = await supabase
+    .from("educational_content_specialties")
+    .select("content_id")
+    .eq("specialty_id", specialtyId);
+
+  const contentIds = (links ?? []).map((l) => l.content_id as string);
+  if (!contentIds.length) return [];
+
+  const { data: rawVideos } = await supabase
+    .from("educational_content")
+    .select("id, title, platform, url")
+    .in("id", contentIds)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  return (rawVideos ?? []) as unknown as EducationalVideo[];
+}
 
 function pillHref(q: string, especialidad: string) {
   const params = new URLSearchParams();
@@ -54,16 +81,7 @@ export default async function BuscarPage({
   const specialties = (rawSpecialties ?? []) as unknown as SpecialtyCatalogEntry[];
   const activeSpecialty = specialties.find((s) => s.slug === especialidad) ?? null;
 
-  const { data: rawVideos } = activeSpecialty
-    ? await supabase
-        .from("educational_content")
-        .select("id, title, platform, url")
-        .eq("specialty_id", activeSpecialty.id)
-        .order("created_at", { ascending: false })
-        .limit(3)
-    : { data: null };
-
-  const videos = (rawVideos ?? null) as unknown as EducationalVideo[] | null;
+  const videos = activeSpecialty ? await getVideosForSpecialty(supabase, activeSpecialty.id) : null;
 
   const therapists = ((rawTherapists ?? []) as unknown as RawTherapist[]).map((t) => {
     const specs = (t.therapist_specialties ?? [])

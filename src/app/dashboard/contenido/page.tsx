@@ -22,7 +22,7 @@ type VideoRow = {
   title: string;
   platform: string;
   url: string;
-  specialty: { nombre_coloquial: string } | null;
+  educational_content_specialties: { specialty: { nombre_coloquial: string } | null }[] | null;
 };
 
 export default async function ContenidoAdminPage({
@@ -49,7 +49,9 @@ export default async function ContenidoAdminPage({
     supabase.from("specialties").select("id, nombre_coloquial").order("nombre_coloquial"),
     supabase
       .from("educational_content")
-      .select("id, title, platform, url, created_at, specialty:specialties(nombre_coloquial)")
+      .select(
+        "id, title, platform, url, created_at, educational_content_specialties ( specialty:specialties ( nombre_coloquial ) )"
+      )
       .order("created_at", { ascending: false }),
   ]);
 
@@ -65,16 +67,16 @@ export default async function ContenidoAdminPage({
             Panel de contenido
           </p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
-            Videos educativos por especialidad
+            Videos educativos por palabra clave
           </h1>
           <p className="mt-3 text-[0.95rem] text-[#3E4B44]">
-            Aparecen en el buscador cuando alguien filtra por esa especialidad, para que llegue más
-            preparad@ a su consulta.
+            Cada video puede tener una o varias palabras clave. Aparecen en el buscador cuando alguien
+            filtra por alguna de ellas, para que llegue más preparad@ a su consulta.
           </p>
 
           {guardado === "1" && <Banner>Video agregado.</Banner>}
           {eliminado === "1" && <Banner>Video eliminado.</Banner>}
-          {error === "1" && <Banner tone="error">Falta título, link o especialidad.</Banner>}
+          {error === "1" && <Banner tone="error">Falta título, link o al menos una palabra clave.</Banner>}
 
           <form
             action={addEducationalContent}
@@ -93,18 +95,24 @@ export default async function ContenidoAdminPage({
               />
             </Field>
 
-            <Field label="Especialidad">
-              <select name="specialty_id" required defaultValue="" className="input-lemy">
-                <option value="" disabled>
-                  Elige una especialidad…
-                </option>
+            <div>
+              <span className="mb-2 block text-[0.85rem] font-medium text-forest">
+                Palabras clave (elige todas las que apliquen)
+              </span>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {(specialties ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <label key={s.id} className="flex items-center gap-2.5 text-[0.88rem] text-[#3E4B44]">
+                    <input
+                      type="checkbox"
+                      name="specialties"
+                      value={s.id}
+                      className="h-4 w-4 accent-forest"
+                    />
                     {s.nombre_coloquial}
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </Field>
+              </div>
+            </div>
 
             <Field label="Plataforma">
               <select name="platform" defaultValue="youtube" className="input-lemy">
@@ -143,8 +151,12 @@ export default async function ContenidoAdminPage({
               >
                 <div className="min-w-0">
                   <p className="truncate text-[0.95rem] font-medium text-forest">{v.title}</p>
-                  <p className="mt-0.5 text-[0.8rem] text-[#5A665F]">
-                    {v.specialty?.nombre_coloquial ?? "—"} · {v.platform}
+                  <p className="mt-0.5 truncate text-[0.8rem] text-[#5A665F]">
+                    {(v.educational_content_specialties ?? [])
+                      .map((es) => es.specialty?.nombre_coloquial)
+                      .filter(Boolean)
+                      .join(", ") || "—"}{" "}
+                    · {v.platform}
                   </p>
                 </div>
                 <div className="flex flex-none items-center gap-4">

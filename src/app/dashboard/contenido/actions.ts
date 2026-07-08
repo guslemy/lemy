@@ -28,13 +28,25 @@ export async function addEducationalContent(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const platform = String(formData.get("platform") || "youtube");
   const url = String(formData.get("url") || "").trim();
-  const specialty_id = String(formData.get("specialty_id") || "");
+  const specialtyIds = formData.getAll("specialties").map(String);
 
-  if (!title || !url || !specialty_id) {
+  if (!title || !url || specialtyIds.length === 0) {
     redirect("/dashboard/contenido?error=1");
   }
 
-  await supabase.from("educational_content").insert({ title, platform, url, specialty_id });
+  const { data: inserted, error: insertError } = await supabase
+    .from("educational_content")
+    .insert({ title, platform, url })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    redirect("/dashboard/contenido?error=1");
+  }
+
+  await supabase
+    .from("educational_content_specialties")
+    .insert(specialtyIds.map((specialty_id) => ({ content_id: inserted.id, specialty_id })));
 
   revalidatePath("/dashboard/contenido");
   revalidatePath("/buscar");

@@ -27,6 +27,7 @@ export default async function DashboardPage({
     .maybeSingle();
 
   const isTherapist = profile?.role === "therapist";
+  const isAdmin = profile?.role === "admin";
 
   const { data: therapist } = isTherapist
     ? await supabase
@@ -53,7 +54,22 @@ export default async function DashboardPage({
             </p>
           )}
 
-          {isTherapist ? (
+          {isAdmin ? (
+            <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
+              <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
+                Cuenta de administrador
+              </p>
+              <h2 className="mt-2 text-[1.2rem] text-forest">Panel de contenido</h2>
+              <p className="mt-2 text-[0.92rem] text-[#42504A]">
+                Agrega o quita los videos educativos que aparecen en el buscador según palabra clave.
+              </p>
+              <div className="mt-5">
+                <Button href="/dashboard/contenido" variant="primary">
+                  Ir al panel de contenido
+                </Button>
+              </div>
+            </div>
+          ) : isTherapist ? (
             <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
                 Perfil de terapeuta
