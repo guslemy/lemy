@@ -10,6 +10,7 @@ import { TherapistCard, type TherapistCardData } from "@/components/therapist-ca
 // resultado siempre es enlazable y funciona sin JavaScript en el cliente.
 
 type Specialty = { slug: string; nombre_coloquial: string };
+type SpecialtyCatalogEntry = { id: string; slug: string; nombre_coloquial: string };
 
 type RawTherapist = {
   slug: string;
@@ -21,6 +22,8 @@ type RawTherapist = {
   is_online_available: boolean;
   therapist_specialties: { specialty: Specialty | null }[] | null;
 };
+
+type EducationalVideo = { id: string; title: string; platform: string; url: string };
 
 function pillHref(q: string, especialidad: string) {
   const params = new URLSearchParams();
@@ -38,8 +41,8 @@ export default async function BuscarPage({
   const { q = "", especialidad = "" } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: specialties }, { data: rawTherapists }] = await Promise.all([
-    supabase.from("specialties").select("slug, nombre_coloquial").order("nombre_coloquial"),
+  const [{ data: rawSpecialties }, { data: rawTherapists }] = await Promise.all([
+    supabase.from("specialties").select("id, slug, nombre_coloquial").order("nombre_coloquial"),
     supabase
       .from("therapists")
       .select(
@@ -47,6 +50,20 @@ export default async function BuscarPage({
       )
       .eq("is_published", true),
   ]);
+
+  const specialties = (rawSpecialties ?? []) as unknown as SpecialtyCatalogEntry[];
+  const activeSpecialty = specialties.find((s) => s.slug === especialidad) ?? null;
+
+  const { data: rawVideos } = activeSpecialty
+    ? await supabase
+        .from("educational_content")
+        .select("id, title, platform, url")
+        .eq("specialty_id", activeSpecialty.id)
+        .order("created_at", { ascending: false })
+        .limit(3)
+    : { data: null };
+
+  const videos = (rawVideos ?? null) as unknown as EducationalVideo[] | null;
 
   const therapists = ((rawTherapists ?? []) as unknown as RawTherapist[]).map((t) => {
     const specs = (t.therapist_specialties ?? [])
@@ -126,6 +143,34 @@ export default async function BuscarPage({
 
         <section className="py-12 md:py-16">
           <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
+            {activeSpecialty && videos && videos.length > 0 && (
+              <div className="mb-11">
+                <p className="mb-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
+                  Antes de agendar
+                </p>
+                <h2 className="mb-5 font-display text-[1.3rem] text-forest">
+                  Entiende mejor cómo te sientes
+                </h2>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {videos.map((v) => (
+                    <a
+                      key={v.id}
+                      href={v.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="signature-corner rounded-[20px] border border-line bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
+                    >
+                      <span className="font-mono text-[0.7rem] uppercase tracking-[0.08em] text-rose-deep">
+                        {v.platform}
+                      </span>
+                      <p className="mt-2 text-[0.92rem] text-forest">{v.title}</p>
+                      <p className="mt-3 text-[0.82rem] font-semibold text-forest">Ver video ↗</p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className="mb-6 text-[0.9rem] text-[#5A665F]">
               {filtered.length} {filtered.length === 1 ? "terapeuta encontrado" : "terapeutas encontrados"}
             </p>
