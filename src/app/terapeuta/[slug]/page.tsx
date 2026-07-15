@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
+import { getAvailableSlots } from "@/lib/availability";
+import { requestAppointment } from "./actions";
 
 // Perfil público de un terapeuta. Solo visible si is_published = true
 // (lo aplica la RLS "therapists_public_read" además del filtro explícito aquí).
@@ -14,11 +16,15 @@ import { Tag } from "@/components/ui/pill";
 // visitante anónimo nunca vería esas filas de todos modos. El badge de
 // "verificado" sale directo del campo verification_status en therapists.
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ solicitado?: string; ocupado?: string; error?: string }>;
+};
 
 type CatalogItem = { slug: string; nombre_coloquial: string; descripcion_coloquial: string | null };
 
 type TherapistDetail = {
+  id: string;
   slug: string;
   display_name: string;
   city: string | null;
@@ -40,7 +46,7 @@ async function getTherapist(slug: string) {
   const { data } = await supabase
     .from("therapists")
     .select(
-      `slug, display_name, city, zona, tagline, bio, languages, client_niches,
+      `id, slug, display_name, city, zona, tagline, bio, languages, client_niches,
        is_online_available, price_min, price_max, verification_status,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_coloquial, descripcion_coloquial ) )`
@@ -77,10 +83,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function TherapistProfilePage({ params }: Props) {
+const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+function formatSlotDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  // Fecha "de calendario" sin componente de hora, para no arrastrar
+  // corrimientos de zona horaria al mostrarla.
+  const weekday = WEEKDAY_LABELS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${weekday} ${d}/${m}`;
+}
+
+export default async function TherapistProfilePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { solicitado, ocupado, error } = await searchParams;
   const therapist = await getTherapist(slug);
   if (!therapist) notFound();
+
+  const supabase = await createClient();
+  const slots = await getAvailableSlots(supabase, therapist.id);
+  const slotsByDate = new Map<string, typeof slots>();
+  for (const slot of slots) {
+    const list = slotsByDate.get(slot.date) ?? [];
+    list.push(slot);
+    slotsByDate.set(slot.date, list);
+  }
 
   const specialties = (therapist.therapist_specialties ?? [])
     .map((s) => s.specialty)
@@ -155,7 +181,7 @@ export default async function TherapistProfilePage({ params }: Props) {
                     </div>
                   </div>
 
-                  <Button href="/login" variant="primary" className="mt-6 w-full">
+                  <Button href="#agenda" variant="primary" className="mt-6 w-full">
                     Agendar consulta
                   </Button>
                 </div>
@@ -192,6 +218,65 @@ export default async function TherapistProfilePage({ params }: Props) {
                     </>
                   )}
                 </div>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal className="mt-10">
+              <div id="agenda" className="signature-corner rounded-[36px] border border-line bg-card p-8 md:p-13">
+                <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
+                  Agenda tu sesión
+                </p>
+                <h2 className="mt-2.5 font-display text-[1.4rem] text-forest">
+                  Elige un horario disponible
+                </h2>
+
+                {solicitado === "1" && (
+                  <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+                    Listo, tu solicitud quedó registrada. {therapist.display_name.split(" ")[0]} la va a
+                    confirmar y te llegará el enlace de la sesión.
+                  </p>
+                )}
+                {ocupado === "1" && (
+                  <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+                    Justo se ocupó ese horario. Elige otro de la lista.
+                  </p>
+                )}
+                {error === "1" && (
+                  <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+                    Algo no salió bien, intenta de nuevo.
+                  </p>
+                )}
+
+                {slotsByDate.size === 0 ? (
+                  <p className="mt-5 text-[0.92rem] text-[#42504A]">
+                    {therapist.display_name.split(" ")[0]} todavía no tiene horarios disponibles
+                    cargados. Vuelve a revisar en unos días.
+                  </p>
+                ) : (
+                  <div className="mt-6 space-y-5">
+                    {Array.from(slotsByDate.entries()).map(([date, daySlots]) => (
+                      <div key={date}>
+                        <p className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-[#5A665F]">
+                          {formatSlotDate(date)}
+                        </p>
+                        <div className="flex flex-wrap gap-2.5">
+                          {daySlots.map((slot) => (
+                            <form key={slot.scheduledAtUtc} action={requestAppointment}>
+                              <input type="hidden" name="therapist_slug" value={therapist.slug} />
+                              <input type="hidden" name="scheduled_at" value={slot.scheduledAtUtc} />
+                              <button
+                                type="submit"
+                                className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 hover:border-forest hover:bg-forest hover:text-sage-white"
+                              >
+                                {slot.startTime}
+                              </button>
+                            </form>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </ScrollReveal>
           </div>

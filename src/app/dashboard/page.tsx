@@ -84,6 +84,9 @@ export default async function DashboardPage({
                 <Button href="/dashboard/perfil" variant="primary">
                   Editar mi perfil
                 </Button>
+                <Button href="/dashboard/disponibilidad" variant="ghost">
+                  Mi disponibilidad
+                </Button>
                 {therapist?.is_published && therapist?.slug && (
                   <Button href={`/terapeuta/${therapist.slug}`} variant="ghost">
                     Ver mi perfil público

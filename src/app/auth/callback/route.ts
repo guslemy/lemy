@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -14,11 +15,24 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // TODO (cierre de Fase 1): guardar data.session.provider_refresh_token
-      // en la tabla del terapeuta para poder crear eventos en su Google Calendar
-      // sin pedirle que inicie sesión de nuevo.
-
       await ensureProfile(supabase, data.user);
+
+      // Si Google mandó un refresh token (pedimos access_type=offline +
+      // prompt=consent en el login), lo guardamos cifrado en Vault para
+      // poder crear eventos en su Google Calendar más adelante sin pedirle
+      // que inicie sesión de nuevo. Con service_role porque la tabla/función
+      // están bloqueadas incluso para el propio usuario.
+      const refreshToken = data.session?.provider_refresh_token;
+      if (refreshToken) {
+        const serviceClient = createServiceClient();
+        const { error: tokenError } = await serviceClient.rpc("save_google_refresh_token", {
+          p_user_id: data.user.id,
+          p_refresh_token: refreshToken,
+        });
+        if (tokenError) {
+          console.error("No se pudo guardar el refresh token de Google:", tokenError.message);
+        }
+      }
 
       return NextResponse.redirect(`${origin}${next}`);
     }
