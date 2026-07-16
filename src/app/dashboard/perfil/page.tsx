@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
@@ -9,7 +10,12 @@ import { saveTherapistProfile } from "../actions";
 
 // Formulario de edición de perfil. Server component puro: el botón
 // "Guardar cambios" dispara el server action directo, sin JS de cliente.
-export default async function EditarPerfilPage() {
+export default async function EditarPerfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,6 +69,17 @@ export default async function EditarPerfilPage() {
             Esto es lo que va a ver quien te busque. Puedes guardar como borrador y publicarlo cuando
             estés list@.
           </p>
+
+          {error === "suscripcion" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Guardamos tus cambios, pero no pudimos publicar tu perfil: tu prueba gratis terminó y no
+              tienes una suscripción activa.{" "}
+              <Link href="/dashboard/suscripcion" className="underline">
+                Suscríbete aquí
+              </Link>
+              .
+            </p>
+          )}
 
           <form action={saveTherapistProfile} className="mt-9 space-y-8">
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
