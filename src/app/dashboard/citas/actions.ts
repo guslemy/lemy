@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, createCalendarEvent, GoogleCalendarError } from "@/lib/google-calendar";
+import { cancelAppointmentAsParticipant } from "@/lib/appointments";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -113,4 +114,25 @@ export async function confirmAppointment(formData: FormData) {
   revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
   redirect("/dashboard/citas?confirmado=1");
+}
+
+// El terapeuta cancela una cita propia (pendiente o ya confirmada). No borra
+// el evento de Calendar automáticamente todavía — eso queda para cuando
+// conectemos las notificaciones, por ahora solo se refleja en Lemy.
+export async function cancelAppointmentTherapist(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  const reason = String(formData.get("reason") || "").trim() || null;
+
+  const result = await cancelAppointmentAsParticipant(
+    supabase,
+    user.id,
+    appointmentId,
+    "therapist",
+    reason
+  );
+
+  revalidatePath("/dashboard/citas");
+  revalidatePath("/dashboard");
+  redirect(result.ok ? "/dashboard/citas?cancelado=1" : "/dashboard/citas?error=1");
 }

@@ -3,10 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
-import { confirmAppointment } from "./actions";
+import { confirmAppointment, cancelAppointmentTherapist } from "./actions";
 
-// Vista del terapeuta: solicitudes pendientes de confirmar (Etapa D) y sus
-// próximas sesiones ya confirmadas con el enlace de Google Meet.
+// Vista del terapeuta: solicitudes pendientes de confirmar (Etapa D), sus
+// próximas sesiones ya confirmadas con el enlace de Google Meet, y su propia
+// tasa de cancelación (para que se autoevalúe — feedback explícito del
+// dueño del producto, no algo que se le muestra al paciente).
 
 type AppointmentRow = {
   id: string;
@@ -15,6 +17,7 @@ type AppointmentRow = {
   duration_min: number;
   status: string;
   meeting_link: string | null;
+  cancelled_by: string | null;
 };
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
@@ -31,12 +34,37 @@ function formatOaxaca(iso: string) {
   return `${weekday} ${d}/${m} · ${hh}:${mm}`;
 }
 
+function CancelForm({ appointmentId }: { appointmentId: string }) {
+  return (
+    <form action={cancelAppointmentTherapist} className="flex items-center gap-2">
+      <input type="hidden" name="appointment_id" value={appointmentId} />
+      <input
+        type="text"
+        name="reason"
+        placeholder="Motivo (opcional)"
+        className="input-lemy w-[140px] py-1.5 text-[0.8rem]"
+      />
+      <button
+        type="submit"
+        className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
+      >
+        Cancelar
+      </button>
+    </form>
+  );
+}
+
 export default async function CitasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirmado?: string; error?: string; sin_calendario?: string }>;
+  searchParams: Promise<{
+    confirmado?: string;
+    cancelado?: string;
+    error?: string;
+    sin_calendario?: string;
+  }>;
 }) {
-  const { confirmado, error, sin_calendario } = await searchParams;
+  const { confirmado, cancelado, error, sin_calendario } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,11 +78,12 @@ export default async function CitasPage({
     .maybeSingle();
   if (profile?.role !== "therapist") redirect("/dashboard");
 
+  // Traemos todo (incluidas canceladas) para poder calcular la tasa de
+  // cancelación — el filtrado por sección pasa a hacerse en memoria.
   const { data: rawAppointments } = await supabase
     .from("appointments")
-    .select("id, patient_id, scheduled_at, duration_min, status, meeting_link")
+    .select("id, patient_id, scheduled_at, duration_min, status, meeting_link, cancelled_by")
     .eq("therapist_id", user.id)
-    .neq("status", "cancelled")
     .order("scheduled_at");
 
   const appointments = (rawAppointments ?? []) as AppointmentRow[];
@@ -68,6 +97,11 @@ export default async function CitasPage({
 
   const pending = appointments.filter((a) => a.status === "pending_payment");
   const confirmedList = appointments.filter((a) => a.status === "confirmed");
+  const cancelledList = appointments.filter((a) => a.status === "cancelled");
+  const cancelledByPatient = cancelledList.filter((a) => a.cancelled_by === "patient").length;
+  const cancelledByTherapist = cancelledList.filter((a) => a.cancelled_by === "therapist").length;
+  const cancellationRate =
+    appointments.length > 0 ? Math.round((cancelledList.length / appointments.length) * 100) : 0;
 
   return (
     <>
@@ -87,6 +121,11 @@ export default async function CitasPage({
               Cita confirmada. Se creó el evento en tu Google Calendar y se invitó al paciente.
             </p>
           )}
+          {cancelado === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Cita cancelada.
+            </p>
+          )}
           {sin_calendario === "1" && (
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               Tu cuenta no tiene Google Calendar conectado. Cierra sesión y vuelve a entrar con
@@ -103,6 +142,20 @@ export default async function CitasPage({
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               Algo no salió bien, intenta de nuevo.
             </p>
+          )}
+
+          {appointments.length > 0 && (
+            <div className="mt-6 rounded-2xl border border-line bg-sage-white p-5">
+              <p className="font-mono text-[0.72rem] uppercase tracking-[0.08em] text-rose-deep">
+                Tu tasa de cancelación
+              </p>
+              <p className="mt-1.5 text-[0.9rem] text-[#3E4B44]">
+                {cancellationRate}% de tus citas totales se cancelaron
+                {cancelledList.length > 0 &&
+                  ` (${cancelledByTherapist} por ti, ${cancelledByPatient} por el paciente)`}
+                .
+              </p>
+            </div>
           )}
 
           <section className="mt-9">
@@ -124,12 +177,15 @@ export default async function CitasPage({
                       </p>
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                     </div>
-                    <form action={confirmAppointment}>
-                      <input type="hidden" name="appointment_id" value={a.id} />
-                      <Button type="submit" variant="primary">
-                        Confirmar y crear evento
-                      </Button>
-                    </form>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <form action={confirmAppointment}>
+                        <input type="hidden" name="appointment_id" value={a.id} />
+                        <Button type="submit" variant="primary">
+                          Confirmar y crear evento
+                        </Button>
+                      </form>
+                      <CancelForm appointmentId={a.id} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -145,19 +201,27 @@ export default async function CitasPage({
             ) : (
               <div className="space-y-3">
                 {confirmedList.map((a) => (
-                  <div key={a.id} className="rounded-2xl border border-line bg-card p-5">
-                    <p className="font-medium text-forest">{nameById.get(a.patient_id) ?? "Paciente"}</p>
-                    <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
-                    {a.meeting_link && (
-                      <a
-                        href={a.meeting_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1.5 inline-block font-mono text-[0.8rem] text-forest underline"
-                      >
-                        Enlace de Google Meet
-                      </a>
-                    )}
+                  <div
+                    key={a.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card p-5"
+                  >
+                    <div>
+                      <p className="font-medium text-forest">
+                        {nameById.get(a.patient_id) ?? "Paciente"}
+                      </p>
+                      <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
+                      {a.meeting_link && (
+                        <a
+                          href={a.meeting_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1.5 inline-block font-mono text-[0.8rem] text-forest underline"
+                        >
+                          Enlace de Google Meet
+                        </a>
+                      )}
+                    </div>
+                    <CancelForm appointmentId={a.id} />
                   </div>
                 ))}
               </div>

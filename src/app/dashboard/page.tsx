@@ -107,11 +107,16 @@ export default async function DashboardPage({
                 Crea tu perfil profesional: formación, enfoque, tarifas y a quién atiendes. Tú decides
                 cuándo publicarlo.
               </p>
-              <form action={becomeTherapist} className="mt-5">
-                <Button type="submit" variant="primary">
-                  Activar cuenta de terapeuta
+              <div className="mt-5 flex flex-wrap gap-3">
+                <form action={becomeTherapist}>
+                  <Button type="submit" variant="primary">
+                    Activar cuenta de terapeuta
+                  </Button>
+                </form>
+                <Button href="/dashboard/mis-citas" variant="ghost">
+                  Mis citas
                 </Button>
-              </form>
+              </div>
             </div>
           )}
         </div>
