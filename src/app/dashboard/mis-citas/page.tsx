@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { cancelAppointmentPatient } from "./actions";
+import { cancelAppointmentPatient, updatePatientPhone } from "./actions";
 
 // Vista del paciente: sus solicitudes/sesiones agendadas, con opción de
 // cancelar. Antes de esto no existía ninguna forma de ver o cancelar una
@@ -44,14 +44,20 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function MisCitasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cancelado?: string; error?: string }>;
+  searchParams: Promise<{ cancelado?: string; error?: string; telefono_guardado?: string }>;
 }) {
-  const { cancelado, error } = await searchParams;
+  const { cancelado, error, telefono_guardado } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("phone")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const { data: rawAppointments } = await supabase
     .from("appointments")
@@ -94,6 +100,35 @@ export default async function MisCitasPage({
               Algo no salió bien, intenta de nuevo.
             </p>
           )}
+          {telefono_guardado === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, guardamos tu WhatsApp.
+            </p>
+          )}
+
+          <form
+            action={updatePatientPhone}
+            className="mt-6 flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-card p-5"
+          >
+            <label className="block">
+              <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">
+                Tu WhatsApp (para recordatorios de tus citas)
+              </span>
+              <input
+                type="tel"
+                name="phone"
+                defaultValue={myProfile?.phone ?? ""}
+                placeholder="9511234567"
+                className="input-lemy w-[220px]"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded-full border border-line px-4 py-2 font-mono text-[0.8rem] text-forest hover:border-forest"
+            >
+              Guardar
+            </button>
+          </form>
 
           {appointments.length === 0 ? (
             <p className="mt-8 text-[0.95rem] text-[#3E4B44]">

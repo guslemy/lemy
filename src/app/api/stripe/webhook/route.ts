@@ -27,12 +27,14 @@ export async function POST(req: Request) {
         const userId = session.metadata?.lemy_user_id;
         const plan = session.metadata?.plan ?? null;
         if (userId && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(String(session.subscription));
           await supabase
             .from("therapists")
             .update({
-              stripe_billing_subscription_id: String(session.subscription),
+              stripe_billing_subscription_id: subscription.id,
               subscription_status: "active",
               subscription_plan: plan,
+              subscription_current_period_end: currentPeriodEndIso(subscription),
             })
             .eq("id", userId);
         }
@@ -46,7 +48,10 @@ export async function POST(req: Request) {
         if (userId) {
           await supabase
             .from("therapists")
-            .update({ subscription_status: mapStripeStatus(subscription.status) })
+            .update({
+              subscription_status: mapStripeStatus(subscription.status),
+              subscription_current_period_end: currentPeriodEndIso(subscription),
+            })
             .eq("id", userId);
         }
         break;
@@ -61,6 +66,15 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+// Desde la API "Basil" de Stripe (2025-03-31), current_period_end ya no
+// vive en la suscripción — se movió a cada subscription item. Lo leemos de
+// ahí para poder mandar el recordatorio de renovación con la fecha correcta.
+function currentPeriodEndIso(subscription: Stripe.Subscription): string | null {
+  const item = subscription.items.data[0];
+  const unixSeconds = item?.current_period_end;
+  return unixSeconds ? new Date(unixSeconds * 1000).toISOString() : null;
 }
 
 function mapStripeStatus(status: Stripe.Subscription.Status): string {

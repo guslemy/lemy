@@ -24,7 +24,7 @@ export default async function EditarPerfilPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, phone")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -107,6 +107,18 @@ export default async function EditarPerfilPage({
 
                 <Field label="Sobre ti">
                   <textarea name="bio" defaultValue={therapist?.bio ?? ""} rows={5} className="input-lemy" />
+                </Field>
+
+                <Field
+                  label="WhatsApp"
+                  hint="Para mandarte avisos de prueba, renovación y citas — 10 dígitos, ej. 9511234567"
+                >
+                  <input
+                    name="phone"
+                    type="tel"
+                    defaultValue={profile?.phone ?? ""}
+                    className="input-lemy"
+                  />
                 </Field>
               </div>
             </div>

@@ -78,6 +78,9 @@ export async function saveTherapistProfile(formData: FormData) {
   const price_max = formData.get("price_max") ? Number(formData.get("price_max")) : null;
   const is_online_available = formData.get("is_online_available") === "on";
   const wantsPublished = formData.get("is_published") === "on";
+  const phone = String(formData.get("phone") || "").trim() || null;
+
+  await supabase.from("profiles").update({ phone }).eq("id", user.id);
 
   // No se puede publicar sin prueba vigente ni suscripción activa — evita
   // que un perfil quede visible en el buscador sin que haya pago de por
