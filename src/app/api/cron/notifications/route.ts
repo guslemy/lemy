@@ -16,17 +16,12 @@ const noStore = { headers: { "Cache-Control": "no-store, max-age=0" } };
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // TEMPORAL: hasSecret nos dice si la variable de entorno está llegando
-    // al runtime, sin revelar su valor. Quitar en cuanto se confirme.
     return NextResponse.json({ error: "unauthorized" }, { status: 401, ...noStore });
   }
 
   try {
     const result = await runNotificationSweep();
-    return NextResponse.json(
-      { ok: true, ...result, hasSecret: Boolean(process.env.CRON_SECRET) },
-      noStore
-    );
+    return NextResponse.json({ ok: true, ...result }, noStore);
   } catch (err) {
     console.error("Error en el barrido de notificaciones:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500, ...noStore });
