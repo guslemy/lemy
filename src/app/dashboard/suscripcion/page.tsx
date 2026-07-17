@@ -7,6 +7,14 @@ import { createSubscriptionCheckout } from "./actions";
 
 // Estado de la suscripción del terapeuta: prueba gratis, activa, vencida, o
 // sin empezar. El botón de cada plan dispara un Checkout real de Stripe.
+//
+// Nombres de cara al usuario. El identificador interno ("base"/"plus") no
+// cambia — vive en Stripe metadata y en therapists.subscription_plan — solo
+// la etiqueta que se muestra en pantalla.
+const PLAN_LABELS: Record<string, string> = {
+  base: "Empieza",
+  plus: "Gestiona",
+};
 
 export default async function SuscripcionPage({
   searchParams,
@@ -80,7 +88,9 @@ export default async function SuscripcionPage({
             {subscriptionActive ? (
               <p className="text-[0.95rem] text-forest">
                 Tu suscripción está <strong>activa</strong>
-                {therapist?.subscription_plan && ` — plan ${therapist.subscription_plan}`}.
+                {therapist?.subscription_plan &&
+                  ` — plan ${PLAN_LABELS[therapist.subscription_plan] ?? therapist.subscription_plan}`}
+                .
               </p>
             ) : trialActive ? (
               <p className="text-[0.95rem] text-[#3E4B44]">
@@ -97,26 +107,26 @@ export default async function SuscripcionPage({
           <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="rounded-[24px] border border-line bg-card p-6">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.08em] text-rose-deep">
-                Plan Base
+                Plan {PLAN_LABELS.base}
               </p>
               <p className="mt-2 font-display text-[1.6rem] text-forest">$249 MXN/mes</p>
               <form action={createSubscriptionCheckout} className="mt-5">
                 <input type="hidden" name="plan" value="base" />
                 <Button type="submit" variant="primary" className="w-full">
-                  Suscribirme al plan Base
+                  Suscribirme al plan {PLAN_LABELS.base}
                 </Button>
               </form>
             </div>
 
             <div className="rounded-[24px] border border-line bg-card p-6">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.08em] text-rose-deep">
-                Plan Plus
+                Plan {PLAN_LABELS.plus}
               </p>
               <p className="mt-2 font-display text-[1.6rem] text-forest">$399 MXN/mes</p>
               <form action={createSubscriptionCheckout} className="mt-5">
                 <input type="hidden" name="plan" value="plus" />
                 <Button type="submit" variant="primary" className="w-full">
-                  Suscribirme al plan Plus
+                  Suscribirme al plan {PLAN_LABELS.plus}
                 </Button>
               </form>
             </div>
