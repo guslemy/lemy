@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { runNotificationSweep } from "@/lib/notifications/engine";
 
+// IMPORTANTE: sin esto, Next.js cachea la respuesta GET de esta ruta de
+// forma estática (no detecta req.headers.get(...) como señal dinámica) y
+// serviría siempre la misma respuesta vieja en vez de correr el barrido de
+// verdad en cada llamada del cron.
+export const dynamic = "force-dynamic";
+
 // Disparado por Vercel Cron cada 15 min (ver vercel.json). Vercel manda el
 // header Authorization automáticamente cuando CRON_SECRET está configurado
 // en el proyecto — así nadie más puede llamar este endpoint y disparar
