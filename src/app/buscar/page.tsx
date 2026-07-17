@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
@@ -58,6 +59,40 @@ function pillHref(q: string, especialidad: string) {
   if (especialidad) params.set("especialidad", especialidad);
   const qs = params.toString();
   return `/buscar${qs ? `?${qs}` : ""}`;
+}
+
+// Cada especialidad filtrada es una URL propia e indexable — el título y la
+// descripción cambian según lo que se busque, en el mismo lenguaje coloquial
+// que usa la gente real al buscar en Google (no jerga clínica).
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ especialidad?: string }>;
+}): Promise<Metadata> {
+  const { especialidad } = await searchParams;
+  if (!especialidad) {
+    return {
+      title: "Buscar terapeuta en Oaxaca",
+      description:
+        "Filtra terapeutas verificados en Oaxaca por lo que necesitas trabajar: ansiedad, pareja, duelo, autoestima y más.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: specialty } = await supabase
+    .from("specialties")
+    .select("nombre_coloquial, descripcion_coloquial")
+    .eq("slug", especialidad)
+    .maybeSingle();
+
+  if (!specialty) return { title: "Buscar terapeuta en Oaxaca" };
+
+  return {
+    title: `Terapeuta para ${specialty.nombre_coloquial.toLowerCase()} en Oaxaca`,
+    description:
+      specialty.descripcion_coloquial ??
+      `Encuentra terapeutas verificados en Oaxaca especializados en ${specialty.nombre_coloquial.toLowerCase()}.`,
+  };
 }
 
 export default async function BuscarPage({

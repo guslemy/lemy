@@ -76,10 +76,12 @@ function priceLabel(min: number | null, max: number | null) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const therapist = await getTherapist(slug);
-  if (!therapist) return { title: "Terapeuta no encontrado — Lemy" };
+  if (!therapist) return { title: "Terapeuta no encontrado" };
+  const description = therapist.tagline ?? "Perfil de terapeuta verificado en Lemy.";
   return {
-    title: `${therapist.display_name} — Lemy`,
-    description: therapist.tagline ?? "Perfil de terapeuta verificado en Lemy.",
+    title: therapist.display_name,
+    description,
+    openGraph: { title: therapist.display_name, description },
   };
 }
 
@@ -115,8 +117,26 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     .map((a) => a.approach)
     .filter((a): a is CatalogItem => Boolean(a));
 
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: therapist.display_name,
+    jobTitle: "Psicoterapeuta",
+    description: therapist.bio ?? therapist.tagline ?? undefined,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/terapeuta/${therapist.slug}`,
+    knowsAbout: specialties.map((s) => s.nombre_coloquial),
+    address: therapist.city
+      ? { "@type": "PostalAddress", addressLocality: therapist.city, addressCountry: "MX" }
+      : undefined,
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+      />
       <SiteHeader />
 
       <main>

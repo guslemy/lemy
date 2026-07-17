@@ -7,9 +7,31 @@ import "./globals.css";
 // tiene; Vercel sí, pero este método funciona en ambos casos sin diferencias).
 
 export const metadata: Metadata = {
-  title: "Lemy — Encuentra a quien sí va a escucharte",
+  title: {
+    default: "Lemy — Encuentra a quien sí va a escucharte",
+    template: "%s — Lemy",
+  },
   description:
     "Directorio de psicoterapeutas verificados en Oaxaca. Perfiles claros, en lenguaje humano, sin jerga clínica.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"),
+  openGraph: {
+    siteName: "Lemy",
+    type: "website",
+    locale: "es_MX",
+  },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Lemy",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx",
+  description:
+    "Directorio de psicoterapeutas verificados en Oaxaca, México. Perfiles claros, en lenguaje humano, sin jerga clínica.",
+  areaServed: {
+    "@type": "City",
+    name: "Oaxaca",
+  },
 };
 
 export default function RootLayout({
@@ -28,6 +50,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-sage-white font-sans text-ink antialiased">
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         {children}
       </body>
     </html>
