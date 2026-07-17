@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import { saveTherapistProfile } from "../actions";
 
@@ -234,6 +235,8 @@ export default async function EditarPerfilPage({
               Guardar cambios
             </Button>
           </form>
+
+          <BackToDashboard />
         </div>
       </main>
 

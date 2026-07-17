@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { addEducationalContent, deleteEducationalContent } from "./actions";
 
 // Panel de administración de contenido educativo (solo profiles.role = 'admin').
@@ -124,19 +125,17 @@ export default async function ContenidoAdminPage({
               </select>
             </Field>
 
-            <Field label="Link del video">
+            <Field label="Link del video" hint="No hace falta que empiece con https:// — lo agregamos nosotros">
               <input
                 name="url"
-                type="url"
+                type="text"
                 required
                 className="input-lemy"
-                placeholder="https://youtube.com/..."
+                placeholder="youtube.com/..."
               />
             </Field>
 
-            <Button type="submit" variant="primary">
-              Guardar video
-            </Button>
+            <SubmitButton pendingText="Guardando…">Guardar video</SubmitButton>
           </form>
 
           <div className="mt-10 space-y-3">
@@ -181,6 +180,8 @@ export default async function ContenidoAdminPage({
               </div>
             ))}
           </div>
+
+          <BackToDashboard />
         </div>
       </main>
 
@@ -189,11 +190,12 @@ export default async function ContenidoAdminPage({
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">{label}</span>
       {children}
+      {hint && <span className="mt-1 block text-[0.78rem] text-[#7C877F]">{hint}</span>}
     </label>
   );
 }

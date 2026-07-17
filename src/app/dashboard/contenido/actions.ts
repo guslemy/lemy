@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeUrl } from "@/lib/url";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -27,7 +28,7 @@ export async function addEducationalContent(formData: FormData) {
 
   const title = String(formData.get("title") || "").trim();
   const platform = String(formData.get("platform") || "youtube");
-  const url = String(formData.get("url") || "").trim();
+  const url = normalizeUrl(String(formData.get("url") || ""));
   const specialtyIds = formData.getAll("specialties").map(String);
 
   if (!title || !url || specialtyIds.length === 0) {

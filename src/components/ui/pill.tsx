@@ -11,7 +11,7 @@ export function Pill({
   onClick?: () => void;
   href?: string;
 }) {
-  const className = `rounded-full border px-4 py-2 font-mono text-[0.76rem] transition-all duration-200 ${
+  const className = `rounded-full border px-4 py-2 font-mono text-[0.76rem] transition-all duration-200 active:scale-95 ${
     active
       ? "border-forest bg-forest text-sage-white"
       : "border-line bg-card text-[#3E4B44] hover:border-forest hover:bg-forest hover:text-sage-white"

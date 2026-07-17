@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { createSubscriptionCheckout } from "./actions";
 
 // Estado de la suscripción del terapeuta: prueba gratis, activa, vencida, o
@@ -131,6 +132,8 @@ export default async function SuscripcionPage({
               </form>
             </div>
           </div>
+
+          <BackToDashboard />
         </div>
       </main>
 

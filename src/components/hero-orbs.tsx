@@ -38,7 +38,7 @@ export function HeroOrbs() {
         quien lo atiende
       </span>
       <span className="absolute left-[150px] top-[150px] rounded-full bg-card px-3 py-1.5 font-mono text-[0.72rem] font-semibold text-ink shadow-[var(--shadow-signature)] md:left-[190px] md:top-[190px]">
-        tu match
+        tu conexión
       </span>
     </div>
   );

@@ -12,6 +12,10 @@ export default function LoginPage() {
       </div>
 
       <GoogleLoginButton />
+      <p className="max-w-sm text-xs text-neutral-500">
+        Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no vamos a
+        poder crear tus citas automáticamente ahí.
+      </p>
 
       <div className="flex w-full max-w-sm items-center gap-3 text-xs text-neutral-400">
         <div className="h-px flex-1 bg-neutral-300" />

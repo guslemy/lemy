@@ -4,8 +4,8 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { HeroOrbs } from "@/components/hero-orbs";
 import { DirectoryPreview } from "@/components/directory-preview";
 import { Button } from "@/components/ui/button";
-import { Pill } from "@/components/ui/pill";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
+import { HeroSearch } from "@/components/hero-search";
 
 const HERO_PILLS = ["Ansiedad", "Pareja", "Duelo", "Autoestima", "Adolescentes", "Trauma"];
 
@@ -78,26 +78,7 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              <div className="mt-6 max-w-[480px]">
-                <p className="text-[0.85rem] text-[#5A665F]">O, si ya sabes qué buscas:</p>
-                <form action="/buscar" className="mt-2.5 flex gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5">
-                  <input
-                    type="text"
-                    name="q"
-                    placeholder="Ej. ansiedad, pareja…"
-                    className="flex-1 bg-transparent text-[0.92rem] text-ink outline-none placeholder:text-[#8B978F]"
-                  />
-                  <Button type="submit" variant="ghost">
-                    Buscar
-                  </Button>
-                </form>
-
-                <div className="mt-4 flex flex-wrap gap-2.5">
-                  {HERO_PILLS.map((label) => (
-                    <Pill key={label}>{label}</Pill>
-                  ))}
-                </div>
-              </div>
+              <HeroSearch suggestions={HERO_PILLS} />
             </div>
 
             <HeroOrbs />
@@ -258,7 +239,7 @@ export default function HomePage() {
                 />
 
                 <div className="relative">
-                  <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose">Para terapeutas</p>
+                  <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose">¿Eres terapeuta?</p>
                   <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-sage-white sm:text-[2.5rem]">
                     Tu consulta merece verse tan profesional como es
                   </h2>

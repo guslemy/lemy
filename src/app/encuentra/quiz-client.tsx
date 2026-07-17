@@ -58,7 +58,7 @@ function OptionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-2xl border px-6 py-4 text-left transition-all duration-200 ${
+      className={`w-full rounded-2xl border px-6 py-4 text-left transition-all duration-200 active:scale-[0.98] ${
         selected
           ? "border-forest bg-forest text-sage-white"
           : "border-line bg-card text-ink hover:-translate-y-0.5 hover:border-forest hover:shadow-[var(--shadow-signature)]"
@@ -136,9 +136,9 @@ export function QuizClient({
         )}
 
         {step === "intro" && (
-          <div className="text-center">
+          <div key="intro" className="animate-step-in text-center">
             <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
-              Cuestionario de match
+              Encuentra tu conexión
             </p>
             <h1 className="mt-2.5 font-display text-[1.9rem] font-medium leading-[1.15] text-forest sm:text-[2.3rem]">
               Encontremos a quien te pueda escuchar
@@ -157,7 +157,7 @@ export function QuizClient({
         )}
 
         {step === 0 && (
-          <div>
+          <div key="step-0" className="animate-step-in">
             <h2 className="font-display text-[1.4rem] text-forest">¿Para quién estamos buscando?</h2>
             <div className="mt-6 space-y-3">
               <OptionButton
@@ -197,7 +197,7 @@ export function QuizClient({
         )}
 
         {step === 1 && (
-          <div>
+          <div key="step-1" className="animate-step-in">
             <h2 className="font-display text-[1.4rem] text-forest">¿Cómo te imaginas tus sesiones?</h2>
             <div className="mt-6 space-y-3">
               <OptionButton
@@ -236,7 +236,7 @@ export function QuizClient({
         )}
 
         {step === 2 && (
-          <div>
+          <div key="step-2" className="animate-step-in">
             <h2 className="font-display text-[1.4rem] text-forest">
               ¿Con quién te sentirías con más confianza?
             </h2>
@@ -277,7 +277,7 @@ export function QuizClient({
         )}
 
         {step === 3 && (
-          <div>
+          <div key="step-3" className="animate-step-in">
             <h2 className="font-display text-[1.4rem] text-forest">¿Qué te gustaría trabajar?</h2>
             <p className="mt-1.5 text-[0.9rem] text-[#5A665F]">
               Elige las que se parezcan a lo que sientes o vives, puede ser más de una. No necesitas
@@ -321,7 +321,7 @@ export function QuizClient({
         )}
 
         {step === 4 && (
-          <div>
+          <div key="step-4" className="animate-step-in">
             <h2 className="font-display text-[1.4rem] text-forest">
               ¿Es la primera vez que buscas ayuda de este tipo?
             </h2>
@@ -354,7 +354,7 @@ export function QuizClient({
         )}
 
         {step === "resultados" && (
-          <div>
+          <div key="resultados" className="animate-step-in">
             <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
               Tus resultados
             </p>
@@ -367,7 +367,7 @@ export function QuizClient({
             {resultados.length === 0 ? (
               <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-10 text-center">
                 <p className="font-display text-[1.2rem] text-forest">
-                  Todavía no tenemos un match perfecto por aquí
+                  Todavía no tenemos una opción ideal por aquí
                 </p>
                 <p className="mx-auto mt-2.5 max-w-[420px] text-[0.92rem] text-[#42504A]">
                   Seguimos sumando terapeutas verificados en Oaxaca. Puedes ver el directorio

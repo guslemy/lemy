@@ -20,6 +20,7 @@ export function Button({
   className = "",
   onClick,
   type = "button",
+  disabled = false,
 }: {
   href?: string;
   variant?: Variant;
@@ -27,8 +28,11 @@ export function Button({
   className?: string;
   onClick?: () => void;
   type?: "button" | "submit";
+  disabled?: boolean;
 }) {
-  const classes = `inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 ${variantClasses[variant]} ${className}`;
+  const classes = `inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 active:scale-95 ${variantClasses[variant]} ${
+    disabled ? "pointer-events-none opacity-50" : ""
+  } ${className}`;
 
   if (href) {
     return (
@@ -39,7 +43,7 @@ export function Button({
   }
 
   return (
-    <button type={type} onClick={onClick} className={classes}>
+    <button type={type} onClick={onClick} disabled={disabled} className={classes}>
       {children}
     </button>
   );

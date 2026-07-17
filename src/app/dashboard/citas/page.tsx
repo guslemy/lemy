@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { confirmAppointment, cancelAppointmentTherapist } from "./actions";
 
 // Vista del terapeuta: solicitudes pendientes de confirmar (Etapa D), sus
@@ -180,9 +181,7 @@ export default async function CitasPage({
                     <div className="flex flex-wrap items-center gap-2.5">
                       <form action={confirmAppointment}>
                         <input type="hidden" name="appointment_id" value={a.id} />
-                        <Button type="submit" variant="primary">
-                          Confirmar y crear evento
-                        </Button>
+                        <SubmitButton pendingText="Confirmando…">Confirmar y crear evento</SubmitButton>
                       </form>
                       <CancelForm appointmentId={a.id} />
                     </div>
@@ -227,6 +226,8 @@ export default async function CitasPage({
               </div>
             )}
           </section>
+
+          <BackToDashboard />
         </div>
       </main>
 

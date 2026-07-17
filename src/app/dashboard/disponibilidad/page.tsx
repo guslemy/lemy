@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { addAvailabilitySlot, deleteAvailabilitySlot } from "./actions";
 
 // El terapeuta define bloques recurrentes semanales (ej. "lunes 9:00-13:00").
@@ -112,9 +113,7 @@ export default async function DisponibilidadPage({
               <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Hasta</span>
               <input type="time" name="end_time" defaultValue="14:00" required className="input-lemy" />
             </label>
-            <Button type="submit" variant="primary">
-              Agregar
-            </Button>
+            <SubmitButton pendingText="Agregando…">Agregar</SubmitButton>
           </form>
 
           <div className="mt-9 space-y-4">
@@ -145,6 +144,8 @@ export default async function DisponibilidadPage({
               </div>
             ))}
           </div>
+
+          <BackToDashboard />
         </div>
       </main>
 

@@ -104,6 +104,23 @@
   border-color: var(--forest);
 }
 
+/* Transición entre pasos del cuestionario y otras vistas que cambian de
+   contenido sin recargar la página — entra con un fade + deslizamiento
+   corto para que el cambio se sienta suave, no abrupto. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-step-in {
+  animation: step-in 0.32s ease-out;
+}
+
 /* Reveal-on-scroll: arranca oculto, .in-view lo activa (ver ScrollReveal) */
 .reveal {
   opacity: 0;

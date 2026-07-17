@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { cancelAppointmentPatient, updatePatientPhone } from "./actions";
 
 // Vista del paciente: sus solicitudes/sesiones agendadas, con opción de
@@ -193,6 +194,8 @@ export default async function MisCitasPage({
               })}
             </div>
           )}
+
+          <BackToDashboard />
         </div>
       </main>
 
