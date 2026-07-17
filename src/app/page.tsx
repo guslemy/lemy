@@ -5,6 +5,7 @@ import { HeroOrbs } from "@/components/hero-orbs";
 import { DirectoryPreview } from "@/components/directory-preview";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
+import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 
 const HERO_PILLS = ["Ansiedad", "Pareja", "Duelo", "Autoestima", "Adolescentes", "Trauma"];
 
@@ -64,28 +65,46 @@ export default function HomePage() {
                 según quién paga más publicidad. Claro, humano y sin vueltas.
               </p>
 
-              <form action="/buscar" className="mt-9 flex max-w-[520px] gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5 shadow-[var(--shadow-signature)]">
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="¿Qué te gustaría trabajar? Ej. ansiedad, pareja…"
-                  className="flex-1 bg-transparent text-[0.98rem] text-ink outline-none placeholder:text-[#8B978F]"
-                />
-                <Button type="submit" variant="primary">
-                  Buscar
+              <div className="mt-9 max-w-[480px] rounded-[24px] border border-line bg-card p-6 shadow-[var(--shadow-signature)]">
+                <p className="font-display text-[1.15rem] text-forest">
+                  ¿No sabes por dónde empezar?
+                </p>
+                <p className="mt-1.5 text-[0.92rem] text-[#42504A]">
+                  Respóndenos 5 preguntitas rápidas y anónimas — sin cuenta, sin datos — y te
+                  mostramos con quién podrías tener buena conexión.
+                </p>
+                <Button href="/encuentra" variant="primary" className="mt-4.5 w-full">
+                  Encuentra a tu terapeuta ideal
                 </Button>
-              </form>
+              </div>
 
-              <div className="mt-5 flex flex-wrap gap-2.5">
-                {HERO_PILLS.map((label) => (
-                  <Pill key={label}>{label}</Pill>
-                ))}
+              <div className="mt-6 max-w-[480px]">
+                <p className="text-[0.85rem] text-[#5A665F]">O, si ya sabes qué buscas:</p>
+                <form action="/buscar" className="mt-2.5 flex gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5">
+                  <input
+                    type="text"
+                    name="q"
+                    placeholder="Ej. ansiedad, pareja…"
+                    className="flex-1 bg-transparent text-[0.92rem] text-ink outline-none placeholder:text-[#8B978F]"
+                  />
+                  <Button type="submit" variant="ghost">
+                    Buscar
+                  </Button>
+                </form>
+
+                <div className="mt-4 flex flex-wrap gap-2.5">
+                  {HERO_PILLS.map((label) => (
+                    <Pill key={label}>{label}</Pill>
+                  ))}
+                </div>
               </div>
             </div>
 
             <HeroOrbs />
           </div>
         </section>
+
+        <QuizFloatingTab />
 
         {/* COMO FUNCIONA */}
         <ScrollReveal>

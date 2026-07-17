@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
+  { href: "/encuentra", label: "Encuentra tu match" },
   { href: "#directorio", label: "Buscar terapeuta" },
   { href: "#como-funciona", label: "Cómo funciona" },
   { href: "#terapeutas", label: "Para terapeutas" },

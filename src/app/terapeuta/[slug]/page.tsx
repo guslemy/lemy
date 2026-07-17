@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
+import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { getAvailableSlots } from "@/lib/availability";
 import { requestAppointment } from "./actions";
 
@@ -138,6 +139,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
       />
       <SiteHeader />
+      <QuizFloatingTab />
 
       <main>
         <section className="px-6 py-16 sm:px-8 md:py-20">

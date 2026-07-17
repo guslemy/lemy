@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { TherapistCard, type TherapistCardData } from "@/components/therapist-card";
+import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 
 // Buscador con filtros — corazón del diferenciador.
 // Filtros (texto libre + especialidad) se resuelven por query params, así el
@@ -152,6 +153,7 @@ export default async function BuscarPage({
   return (
     <>
       <SiteHeader />
+      <QuizFloatingTab />
 
       <main>
         <section className="px-6 pb-10 pt-16 sm:px-8 md:pt-20">
