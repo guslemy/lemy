@@ -35,7 +35,10 @@ export default async function EncuentraPage() {
   const supabase = await createClient();
 
   const [{ data: rawSpecialties }, { data: rawTherapists }] = await Promise.all([
-    supabase.from("specialties").select("slug, nombre_coloquial").order("nombre_coloquial"),
+    supabase
+      .from("specialties")
+      .select("slug, nombre_coloquial, descripcion_coloquial")
+      .order("nombre_coloquial"),
     supabase
       .from("therapists")
       .select(
@@ -45,7 +48,11 @@ export default async function EncuentraPage() {
       .eq("is_published", true),
   ]);
 
-  const specialties = (rawSpecialties ?? []) as { slug: string; nombre_coloquial: string }[];
+  const specialties = (rawSpecialties ?? []) as {
+    slug: string;
+    nombre_coloquial: string;
+    descripcion_coloquial: string | null;
+  }[];
 
   const therapists: MatchTherapist[] = ((rawTherapists ?? []) as unknown as RawTherapist[]).map((t) => {
     const specs = (t.therapist_specialties ?? [])

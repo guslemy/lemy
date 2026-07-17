@@ -37,12 +37,20 @@ function priceLabel(min: number | null, max: number | null) {
   return "Tarifa a consultar";
 }
 
+// Cuando hay `description`, esa frase (empática, en lenguaje cotidiano) es
+// el texto grande y clicable; la etiqueta corta (a veces más clínica, como
+// "Maltrato o violencia" o "Neurodivergencia") baja de tamaño a una
+// etiqueta secundaria. Así nadie necesita conocer el término exacto para
+// reconocerse, y nadie tiene que "aceptar" una etiqueta incómoda solo para
+// dar clic — puede reconocerse en cómo se siente, no en cómo se llama.
 function OptionButton({
   label,
+  description,
   onClick,
   selected = false,
 }: {
   label: string;
+  description?: string;
   onClick: () => void;
   selected?: boolean;
 }) {
@@ -50,13 +58,26 @@ function OptionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-2xl border px-6 py-4 text-left text-[1rem] transition-all duration-200 ${
+      className={`w-full rounded-2xl border px-6 py-4 text-left transition-all duration-200 ${
         selected
           ? "border-forest bg-forest text-sage-white"
           : "border-line bg-card text-ink hover:-translate-y-0.5 hover:border-forest hover:shadow-[var(--shadow-signature)]"
       }`}
     >
-      {label}
+      {description ? (
+        <>
+          <span className="block text-[0.96rem] leading-snug">{description}</span>
+          <span
+            className={`mt-2 block font-mono text-[0.7rem] uppercase tracking-[0.08em] ${
+              selected ? "text-sage-white/70" : "text-rose-deep"
+            }`}
+          >
+            {label}
+          </span>
+        </>
+      ) : (
+        <span className="text-[1rem]">{label}</span>
+      )}
     </button>
   );
 }
@@ -65,7 +86,7 @@ export function QuizClient({
   specialties,
   therapists,
 }: {
-  specialties: { slug: string; nombre_coloquial: string }[];
+  specialties: { slug: string; nombre_coloquial: string; descripcion_coloquial: string | null }[];
   therapists: MatchTherapist[];
 }) {
   const [step, setStep] = useState<Step>("intro");
@@ -258,18 +279,23 @@ export function QuizClient({
         {step === 3 && (
           <div>
             <h2 className="font-display text-[1.4rem] text-forest">¿Qué te gustaría trabajar?</h2>
-            <p className="mt-1.5 text-[0.9rem] text-[#5A665F]">Elige las que apliquen, puede ser más de una.</p>
+            <p className="mt-1.5 text-[0.9rem] text-[#5A665F]">
+              Elige las que se parezcan a lo que sientes o vives, puede ser más de una. No necesitas
+              saber el nombre exacto.
+            </p>
             <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {specialties.map((s) => (
                 <OptionButton
                   key={s.slug}
                   label={s.nombre_coloquial}
+                  description={s.descripcion_coloquial ?? s.nombre_coloquial}
                   selected={motivos.includes(s.slug)}
                   onClick={() => toggleMotivo(s.slug)}
                 />
               ))}
               <OptionButton
-                label="Otra cosa / todavía no estoy seguro(a)"
+                label="Otra"
+                description="Otra cosa, o todavía no estoy seguro(a)"
                 selected={motivos.includes("otro")}
                 onClick={() => toggleMotivo("otro")}
               />
