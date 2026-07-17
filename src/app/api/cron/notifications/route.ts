@@ -11,17 +11,24 @@ export const dynamic = "force-dynamic";
 // header Authorization automáticamente cuando CRON_SECRET está configurado
 // en el proyecto — así nadie más puede llamar este endpoint y disparar
 // notificaciones a mano.
+const noStore = { headers: { "Cache-Control": "no-store, max-age=0" } };
+
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // TEMPORAL: hasSecret nos dice si la variable de entorno está llegando
+    // al runtime, sin revelar su valor. Quitar en cuanto se confirme.
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, ...noStore });
   }
 
   try {
     const result = await runNotificationSweep();
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json(
+      { ok: true, ...result, hasSecret: Boolean(process.env.CRON_SECRET) },
+      noStore
+    );
   } catch (err) {
     console.error("Error en el barrido de notificaciones:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500, ...noStore });
   }
 }
