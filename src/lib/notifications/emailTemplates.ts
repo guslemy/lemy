@@ -45,6 +45,61 @@ export function renewalReminder(params: { name: string; daysLeft: number; plan: 
   };
 }
 
+// Al instante, cuando el paciente solicita la cita — no es un recordatorio
+// programado, se dispara directo desde la acción de reserva.
+export function appointmentRequestedTherapist(params: {
+  therapistName: string;
+  patientName: string;
+  whenLabel: string;
+}) {
+  const { therapistName, patientName, whenLabel } = params;
+  return {
+    subject: `Nueva solicitud de cita — ${patientName}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <p><strong>${patientName}</strong> solicitó una cita contigo para el <strong>${whenLabel}</strong>.</p>
+      <p><a href="https://lemy.mx/dashboard/citas" style="color: #2F5233;">Ir a confirmarla →</a></p>
+    `),
+  };
+}
+
+// Recibo inmediato para el paciente — no dice "confirmada" porque, hoy,
+// todavía falta que el terapeuta la confirme a mano (transitorio, hasta
+// que Stripe cobre el anticipo automáticamente y el espacio quede
+// asegurado de una vez al reservar).
+export function appointmentRequestedPatient(params: {
+  patientName: string;
+  therapistName: string;
+  whenLabel: string;
+}) {
+  const { patientName, therapistName, whenLabel } = params;
+  return {
+    subject: `Recibimos tu solicitud con ${therapistName}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <p>Tu solicitud de cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong> quedó registrada.</p>
+      <p>En cuanto ${therapistName.split(" ")[0]} la confirme, te avisamos con el enlace de tu sesión.</p>
+      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+    `),
+  };
+}
+
+export function appointmentCancelledNotice(params: {
+  recipientName: string;
+  otherPartyName: string;
+  whenLabel: string;
+  cancelledByLabel: string;
+}) {
+  const { recipientName, otherPartyName, whenLabel, cancelledByLabel } = params;
+  return {
+    subject: `Cita cancelada — ${whenLabel}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <p>${cancelledByLabel} canceló la cita del <strong>${whenLabel}</strong> con ${otherPartyName}.</p>
+    `),
+  };
+}
+
 export function appointmentReminder(params: {
   name: string;
   otherPartyName: string;

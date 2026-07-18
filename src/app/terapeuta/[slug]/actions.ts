@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePatientShell } from "@/lib/supabase/ensure-patient";
+import { notifyAppointmentRequested } from "@/lib/notifications/instant";
 
 // Solicitud de reserva por parte del paciente. Por ahora queda en
 // "pending_payment" y el terapeuta la confirma a mano (Etapa D) — cuando
@@ -53,16 +54,30 @@ export async function requestAppointment(formData: FormData) {
 
   const price = therapist.price_min ?? therapist.price_max ?? 0;
 
-  await supabase.from("appointments").insert({
-    therapist_id: therapist.id,
-    patient_id: user.id,
-    scheduled_at: scheduledAt,
-    duration_min: 50,
-    modality: "online",
-    status: "pending_payment",
-    payment_status: "pending",
-    price,
-  });
+  const { data: inserted } = await supabase
+    .from("appointments")
+    .insert({
+      therapist_id: therapist.id,
+      patient_id: user.id,
+      scheduled_at: scheduledAt,
+      duration_min: 50,
+      modality: "online",
+      status: "pending_payment",
+      payment_status: "pending",
+      price,
+    })
+    .select("id")
+    .single();
+
+  if (inserted?.id) {
+    // No debe bloquear la reserva si falla — se atrapa internamente.
+    await notifyAppointmentRequested({
+      appointmentId: inserted.id,
+      therapistId: therapist.id,
+      patientId: user.id,
+      scheduledAtIso: scheduledAt,
+    });
+  }
 
   revalidatePath(`/terapeuta/${therapistSlug}`);
   revalidatePath("/dashboard");

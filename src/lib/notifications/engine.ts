@@ -15,7 +15,7 @@ function isDue(targetMs: number, toleranceMs: number, nowMs: number) {
   return nowMs >= targetMs && nowMs < targetMs + toleranceMs;
 }
 
-function normalizePhone(raw: string | null | undefined): string | null {
+export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
   if (!digits) return null;
@@ -65,7 +65,7 @@ type DispatchInput = {
   emailOnly?: boolean;
 };
 
-async function dispatch(input: DispatchInput) {
+export async function dispatch(input: DispatchInput) {
   const { supabase, type, relatedId, recipientId, email, phone, subject, html } = input;
 
   if (email && isResendConfigured() && !(await alreadySent(supabase, type, relatedId, "email"))) {
@@ -93,12 +93,12 @@ async function dispatch(input: DispatchInput) {
   }
 }
 
-async function emailOf(supabase: SupabaseClient, userId: string): Promise<string | null> {
+export async function emailOf(supabase: SupabaseClient, userId: string): Promise<string | null> {
   const { data } = await supabase.auth.admin.getUserById(userId);
   return data?.user?.email ?? null;
 }
 
-async function phonesById(supabase: SupabaseClient, ids: string[]): Promise<Map<string, string | null>> {
+export async function phonesById(supabase: SupabaseClient, ids: string[]): Promise<Map<string, string | null>> {
   if (!ids.length) return new Map();
   const { data } = await supabase.from("profiles").select("id, phone").in("id", ids);
   return new Map((data ?? []).map((p) => [p.id as string, p.phone as string | null]));

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
+import { notifyAppointmentCancelled } from "@/lib/notifications/instant";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -39,6 +40,16 @@ export async function cancelAppointmentPatient(formData: FormData) {
     "patient",
     reason
   );
+
+  if (result.ok && result.appointment) {
+    await notifyAppointmentCancelled({
+      appointmentId,
+      cancelledBy: "patient",
+      therapistId: result.appointment.therapist_id,
+      patientId: result.appointment.patient_id,
+      scheduledAtIso: result.appointment.scheduled_at,
+    });
+  }
 
   revalidatePath("/dashboard/mis-citas");
   redirect(result.ok ? "/dashboard/mis-citas?cancelado=1" : "/dashboard/mis-citas?error=1");

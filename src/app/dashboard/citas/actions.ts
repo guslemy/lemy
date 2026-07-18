@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, createCalendarEvent, GoogleCalendarError } from "@/lib/google-calendar";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
+import { notifyAppointmentCancelled } from "@/lib/notifications/instant";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -131,6 +132,16 @@ export async function cancelAppointmentTherapist(formData: FormData) {
     "therapist",
     reason
   );
+
+  if (result.ok && result.appointment) {
+    await notifyAppointmentCancelled({
+      appointmentId,
+      cancelledBy: "therapist",
+      therapistId: result.appointment.therapist_id,
+      patientId: result.appointment.patient_id,
+      scheduledAtIso: result.appointment.scheduled_at,
+    });
+  }
 
   revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
