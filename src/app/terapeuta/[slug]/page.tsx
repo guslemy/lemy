@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { getAvailableSlots } from "@/lib/availability";
+import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
 
 // Perfil público de un terapeuta. Solo visible si is_published = true
@@ -110,6 +111,11 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     list.push(slot);
     slotsByDate.set(slot.date, list);
   }
+  const days: DaySlots[] = Array.from(slotsByDate.entries()).map(([date, daySlots]) => ({
+    date,
+    label: formatSlotDate(date),
+    slots: daySlots.map((s) => ({ startTime: s.startTime, scheduledAtUtc: s.scheduledAtUtc })),
+  }));
 
   const specialties = (therapist.therapist_specialties ?? [])
     .map((s) => s.specialty)
@@ -269,34 +275,18 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 )}
 
-                {slotsByDate.size === 0 ? (
+                {days.length === 0 ? (
                   <p className="mt-5 text-[0.92rem] text-[#42504A]">
                     {therapist.display_name.split(" ")[0]} todavía no tiene horarios disponibles
                     cargados. Vuelve a revisar en unos días.
                   </p>
                 ) : (
-                  <div className="mt-6 space-y-5">
-                    {Array.from(slotsByDate.entries()).map(([date, daySlots]) => (
-                      <div key={date}>
-                        <p className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-[#5A665F]">
-                          {formatSlotDate(date)}
-                        </p>
-                        <div className="flex flex-wrap gap-2.5">
-                          {daySlots.map((slot) => (
-                            <form key={slot.scheduledAtUtc} action={requestAppointment}>
-                              <input type="hidden" name="therapist_slug" value={therapist.slug} />
-                              <input type="hidden" name="scheduled_at" value={slot.scheduledAtUtc} />
-                              <button
-                                type="submit"
-                                className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 hover:border-forest hover:bg-forest hover:text-sage-white"
-                              >
-                                {slot.startTime}
-                              </button>
-                            </form>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="mt-6">
+                    <BookingCalendar
+                      days={days}
+                      therapistSlug={therapist.slug}
+                      requestAppointment={requestAppointment}
+                    />
                   </div>
                 )}
               </div>
