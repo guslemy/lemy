@@ -24,6 +24,18 @@ export default function LoginPage() {
       </div>
 
       <EmailAuthForm />
+
+      <p className="max-w-sm text-center text-xs text-neutral-400">
+        Al continuar aceptas nuestro{" "}
+        <a href="/privacidad" className="underline">
+          Aviso de Privacidad
+        </a>{" "}
+        y{" "}
+        <a href="/terminos" className="underline">
+          Términos de Uso
+        </a>
+        .
+      </p>
     </main>
   );
 }

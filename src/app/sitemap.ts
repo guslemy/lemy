@@ -28,6 +28,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/encuentra`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE_URL}/buscar`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/login`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${BASE_URL}/privacidad`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${BASE_URL}/terminos`, changeFrequency: "yearly", priority: 0.2 },
   ];
 
   // Long-tail: cada especialidad filtrada es su propia URL indexable — así

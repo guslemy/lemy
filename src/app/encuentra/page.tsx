@@ -28,6 +28,7 @@ type RawTherapist = {
   is_online_available: boolean;
   gender: string | null;
   client_niches: string[] | null;
+  photo_url: string | null;
   therapist_specialties: { specialty: { slug: string; nombre_coloquial: string } | null }[] | null;
 };
 
@@ -42,7 +43,7 @@ export default async function EncuentraPage() {
     supabase
       .from("therapists")
       .select(
-        `slug, display_name, tagline, city, price_min, price_max, is_online_available, gender, client_niches,
+        `slug, display_name, tagline, city, price_min, price_max, is_online_available, gender, client_niches, photo_url,
          therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )`
       )
       .eq("is_published", true),
@@ -69,6 +70,7 @@ export default async function EncuentraPage() {
       is_online_available: t.is_online_available,
       gender: t.gender,
       client_niches: t.client_niches,
+      photo_url: t.photo_url,
       specialtySlugs: specs.map((s) => s.slug),
       specialtyNames: specs.map((s) => s.nombre_coloquial),
     };

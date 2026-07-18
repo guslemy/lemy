@@ -385,9 +385,18 @@ export function QuizClient({
                     href={`/terapeuta/${t.slug}`}
                     className="signature-corner flex flex-col gap-4 rounded-[24px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)] sm:flex-row sm:items-center"
                   >
-                    <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-lg font-semibold text-white">
-                      {initialsFrom(t.display_name)}
-                    </div>
+                    {t.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={t.photo_url}
+                        alt=""
+                        className="h-14 w-14 flex-none rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-lg font-semibold text-white">
+                        {initialsFrom(t.display_name)}
+                      </div>
+                    )}
                     <div className="flex-1">
                       <h3 className="font-display text-[1.08rem] text-forest">{t.display_name}</h3>
                       {t.tagline && <p className="mt-0.5 font-mono text-[0.84rem] text-rose-deep">{t.tagline}</p>}

@@ -33,6 +33,7 @@ export type MatchTherapist = {
   is_online_available: boolean;
   gender: string | null;
   client_niches: string[] | null;
+  photo_url: string | null;
   specialtySlugs: string[];
   specialtyNames: string[];
 };

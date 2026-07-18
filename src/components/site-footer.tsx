@@ -42,7 +42,15 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap justify-between gap-2.5 pt-6 text-[0.82rem] text-sage-white/50">
           <span>© 2026 Lemy. Todos los derechos reservados.</span>
-          <span>Aviso de privacidad · Términos de uso</span>
+          <span>
+            <a href="/privacidad" className="hover:text-white">
+              Aviso de privacidad
+            </a>{" "}
+            ·{" "}
+            <a href="/terminos" className="hover:text-white">
+              Términos de uso
+            </a>
+          </span>
         </div>
       </div>
     </footer>

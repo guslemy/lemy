@@ -12,6 +12,7 @@ export type TherapistCardData = {
   price_max: number | null;
   is_online_available: boolean;
   specialties: string[];
+  photo_url?: string | null;
 };
 
 const GRADIENTS = [
@@ -43,12 +44,17 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
       href={`/terapeuta/${t.slug}`}
       className="signature-corner block rounded-[28px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
     >
-      <div
-        className="mb-4 flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
-        style={{ background: gradient }}
-      >
-        {initialsFrom(t.display_name)}
-      </div>
+      {t.photo_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={t.photo_url} alt="" className="mb-4 h-14 w-14 rounded-full object-cover" />
+      ) : (
+        <div
+          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
+          style={{ background: gradient }}
+        >
+          {initialsFrom(t.display_name)}
+        </div>
+      )}
       <h3 className="font-display text-[1.12rem] text-forest">{t.display_name}</h3>
       {t.tagline && <p className="mt-0.5 font-mono text-[0.86rem] text-rose-deep">{t.tagline}</p>}
       {t.city && <p className="mt-3 text-[0.9rem] text-[#42504A]">{t.city}</p>}

@@ -29,6 +29,7 @@ type TherapistDetail = {
   id: string;
   slug: string;
   display_name: string;
+  photo_url: string | null;
   city: string | null;
   zona: string | null;
   tagline: string | null;
@@ -48,7 +49,7 @@ async function getTherapist(slug: string) {
   const { data } = await supabase
     .from("therapists")
     .select(
-      `id, slug, display_name, city, zona, tagline, bio, languages, client_niches,
+      `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        is_online_available, price_min, price_max, verification_status,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_coloquial, descripcion_coloquial ) )`
@@ -157,9 +158,18 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
             <ScrollReveal className="mt-6">
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
-                  <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-3xl font-semibold text-white">
-                    {initialsFrom(therapist.display_name)}
-                  </div>
+                  {therapist.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={therapist.photo_url}
+                      alt=""
+                      className="h-[100px] w-[100px] rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-3xl font-semibold text-white">
+                      {initialsFrom(therapist.display_name)}
+                    </div>
+                  )}
                   <h1 className="mt-4.5 font-display text-[1.4rem] text-forest">{therapist.display_name}</h1>
                   {therapist.tagline && (
                     <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>

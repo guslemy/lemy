@@ -5,18 +5,28 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
-import { saveTherapistProfile } from "../actions";
+import { saveTherapistProfile, uploadTherapistPhoto } from "../actions";
+
+function initialsFrom(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
 
 // Formulario de edición de perfil. Server component puro: el botón
 // "Guardar cambios" dispara el server action directo, sin JS de cliente.
 export default async function EditarPerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; foto_guardada?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, foto_guardada } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -43,7 +53,7 @@ export default async function EditarPerfilPage({
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_published"
+        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_published, photo_url"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -81,8 +91,55 @@ export default async function EditarPerfilPage({
               .
             </p>
           )}
+          {foto_guardada === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, actualizamos tu foto.
+            </p>
+          )}
+          {error === "foto" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              No pudimos subir esa imagen. Revisa que sea un archivo de imagen válido.
+            </p>
+          )}
+          {error === "foto_grande" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Esa imagen pesa demasiado (máximo 5 MB).
+            </p>
+          )}
 
-          <form action={saveTherapistProfile} className="mt-9 space-y-8">
+          <div className="signature-corner mt-9 rounded-[28px] border border-line bg-card p-7">
+            <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+              Tu foto
+            </h2>
+            <div className="flex flex-wrap items-center gap-5">
+              {therapist?.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={therapist.photo_url}
+                  alt=""
+                  className="h-20 w-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-xl font-semibold text-white">
+                  {initialsFrom(therapist?.display_name || "Tu Nombre")}
+                </div>
+              )}
+              <form action={uploadTherapistPhoto} className="flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  name="photo"
+                  accept="image/*"
+                  required
+                  className="text-[0.85rem] text-[#3E4B44]"
+                />
+                <SubmitButton pendingText="Subiendo…" variant="ghost">
+                  Subir foto
+                </SubmitButton>
+              </form>
+            </div>
+          </div>
+
+          <form action={saveTherapistProfile} className="mt-8 space-y-8">
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
               <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                 Lo básico
