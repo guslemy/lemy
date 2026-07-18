@@ -66,7 +66,32 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
   );
 }
 
-export function SiteHeaderClient({ isLoggedIn, role }: { isLoggedIn: boolean; role: SiteRole }) {
+function NotificationBell({ unreadCount }: { unreadCount: number }) {
+  return (
+    <Link
+      href="/dashboard/notificaciones"
+      className="relative text-[1.05rem] text-forest hover:text-rose-deep"
+      aria-label="Notificaciones"
+    >
+      🔔
+      {unreadCount > 0 && (
+        <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 font-mono text-[0.6rem] text-white">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export function SiteHeaderClient({
+  isLoggedIn,
+  role,
+  unreadCount,
+}: {
+  isLoggedIn: boolean;
+  role: SiteRole;
+  unreadCount: number;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -89,7 +114,8 @@ export function SiteHeaderClient({ isLoggedIn, role }: { isLoggedIn: boolean; ro
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3.5 md:flex">
+        <div className="hidden items-center gap-4.5 md:flex">
+          {isLoggedIn && <NotificationBell unreadCount={unreadCount} />}
           <RightCtas isLoggedIn={isLoggedIn} role={role} />
         </div>
 
@@ -109,6 +135,15 @@ export function SiteHeaderClient({ isLoggedIn, role }: { isLoggedIn: boolean; ro
               {link.label}
             </a>
           ))}
+          {isLoggedIn && (
+            <Link
+              href="/dashboard/notificaciones"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2"
+            >
+              🔔 Notificaciones{unreadCount > 0 ? ` (${unreadCount > 9 ? "9+" : unreadCount})` : ""}
+            </Link>
+          )}
           <RightCtas isLoggedIn={isLoggedIn} role={role} className="w-full" />
         </nav>
       )}

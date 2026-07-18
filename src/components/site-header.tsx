@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { countUnread } from "@/lib/notifications/feed";
 import { SiteHeaderClient, type SiteRole } from "./site-header-client";
 
 // Server component: resuelve sesión + rol una vez por render y se lo pasa
@@ -12,14 +13,15 @@ export async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   let role: SiteRole = null;
+  let unreadCount = 0;
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [{ data: profile }, unread] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+      countUnread(supabase, user.id),
+    ]);
     role = (profile?.role as SiteRole) ?? "patient";
+    unreadCount = unread;
   }
 
-  return <SiteHeaderClient isLoggedIn={Boolean(user)} role={role} />;
+  return <SiteHeaderClient isLoggedIn={Boolean(user)} role={role} unreadCount={unreadCount} />;
 }
