@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getBusyRanges } from "@/lib/google-freebusy";
 
 // Calcula horarios reales disponibles para reservar, a partir de los
 // bloques recurrentes semanales del terapeuta (availability_slots),
@@ -58,7 +59,7 @@ export async function getAvailableSlots(
   const rangeStart = new Date();
   const rangeEnd = new Date(Date.now() + (DAYS_AHEAD + 1) * 24 * 60 * 60 * 1000);
 
-  const [{ data: rawWeekly }, { data: therapistRow }, { data: rawBooked }, { data: rawBlocked }] =
+  const [{ data: rawWeekly }, { data: therapistRow }, { data: rawBooked }, { data: rawBlocked }, googleBusy] =
     await Promise.all([
       supabase
         .from("availability_slots")
@@ -84,6 +85,7 @@ export async function getAvailableSlots(
         .eq("therapist_id", therapistId)
         .lte("start_at", rangeEnd.toISOString())
         .gte("end_at", rangeStart.toISOString()),
+      getBusyRanges(therapistId, rangeStart.toISOString(), rangeEnd.toISOString()),
     ]);
 
   const weekly = (rawWeekly ?? []) as RawWeeklySlot[];
@@ -102,10 +104,18 @@ export async function getAvailableSlots(
       60 *
       1000;
 
-  const blockedRanges = ((rawBlocked ?? []) as { start_at: string; end_at: string }[]).map((b) => ({
-    startMs: new Date(b.start_at).getTime(),
-    endMs: new Date(b.end_at).getTime(),
-  }));
+  const blockedRanges = [
+    ...((rawBlocked ?? []) as { start_at: string; end_at: string }[]).map((b) => ({
+      startMs: new Date(b.start_at).getTime(),
+      endMs: new Date(b.end_at).getTime(),
+    })),
+    // Eventos reales del Google Calendar del terapeuta (best-effort, ver
+    // src/lib/google-freebusy.ts — nunca tira error, regresa [] si algo falla).
+    ...(googleBusy ?? []).map((b) => ({
+      startMs: new Date(b.start).getTime(),
+      endMs: new Date(b.end).getTime(),
+    })),
+  ];
 
   const slots: AvailableSlot[] = [];
 

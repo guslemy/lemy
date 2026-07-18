@@ -5,6 +5,7 @@
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
 
 export class GoogleCalendarError extends Error {}
 
@@ -92,4 +93,39 @@ export async function createCalendarEvent(
     eventId: data.id,
     meetingLink: meetEntry?.uri ?? data.hangoutLink ?? null,
   };
+}
+
+export type BusyRange = { start: string; end: string };
+
+// Consulta qué rangos aparecen como "ocupado" en el calendario principal
+// del terapeuta — sin ver títulos ni detalles de esos eventos, solo los
+// intervalos. Requiere el scope calendar.freebusy (ver google-login-button.tsx).
+export async function queryFreeBusy(
+  accessToken: string,
+  timeMinIso: string,
+  timeMaxIso: string
+): Promise<BusyRange[]> {
+  const res = await fetch(FREEBUSY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      timeMin: timeMinIso,
+      timeMax: timeMaxIso,
+      items: [{ id: "primary" }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new GoogleCalendarError(`No se pudo consultar freebusy de Google Calendar: ${body}`);
+  }
+
+  const data = (await res.json()) as {
+    calendars?: Record<string, { busy?: BusyRange[] }>;
+  };
+
+  return data.calendars?.primary?.busy ?? [];
 }

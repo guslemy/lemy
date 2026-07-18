@@ -13,7 +13,13 @@ export function GoogleLoginButton() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: "https://www.googleapis.com/auth/calendar.events",
+        // calendar.freebusy: para poder revisar si el terapeuta ya tiene algo
+        // ocupado en su Google Calendar real (fuera de Lemy) antes de
+        // mostrar un horario como disponible. Quien conectó su cuenta antes
+        // de que agregáramos este scope necesita reconectar (cerrar sesión
+        // y volver a entrar con Google) para otorgarlo.
+        scopes:
+          "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.freebusy",
         queryParams: {
           access_type: "offline", // necesario para refresh_token (usarlo luego server-side)
           prompt: "consent",
