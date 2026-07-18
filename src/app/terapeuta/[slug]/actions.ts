@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePatientShell } from "@/lib/supabase/ensure-patient";
-import { notifyAppointmentRequested } from "@/lib/notifications/instant";
+import { requestAppointmentForUser } from "@/lib/appointments";
+import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
 
 // Solicitud de reserva por parte del paciente. Por ahora queda en
 // "pending_payment" y el terapeuta la confirma a mano (Etapa D) — cuando
@@ -26,60 +27,29 @@ export async function requestAppointment(formData: FormData) {
     redirect(`/terapeuta/${therapistSlug}?error=1`);
   }
 
+  // Antes de reservar necesitamos nombre y teléfono del paciente (para poder
+  // contactarlo sobre su cita y, más adelante, ligar su método de pago). Si
+  // falta algo, lo mandamos a completar su perfil y de ahí retoma esta misma
+  // reserva sin perder la fecha/hora elegida.
+  const complete = await hasCompleteProfile(supabase, user.id);
+  if (!complete) {
+    const params = new URLSearchParams({
+      next_slug: therapistSlug,
+      next_scheduled_at: scheduledAt,
+    });
+    redirect(`/completar-perfil?${params.toString()}`);
+  }
+
   await ensurePatientShell(supabase, user.id);
 
-  const { data: therapist } = await supabase
-    .from("therapists")
-    .select("id, price_min, price_max")
-    .eq("slug", therapistSlug)
-    .eq("is_published", true)
-    .maybeSingle();
-
-  if (!therapist) {
-    redirect(`/terapeuta/${therapistSlug}?error=1`);
-  }
-
-  // Revalidar que el horario sigue libre (por si alguien más lo tomó justo antes)
-  const { data: clash } = await supabase
-    .from("appointments")
-    .select("id")
-    .eq("therapist_id", therapist.id)
-    .eq("scheduled_at", scheduledAt)
-    .neq("status", "cancelled")
-    .maybeSingle();
-
-  if (clash) {
-    redirect(`/terapeuta/${therapistSlug}?ocupado=1`);
-  }
-
-  const price = therapist.price_min ?? therapist.price_max ?? 0;
-
-  const { data: inserted } = await supabase
-    .from("appointments")
-    .insert({
-      therapist_id: therapist.id,
-      patient_id: user.id,
-      scheduled_at: scheduledAt,
-      duration_min: 50,
-      modality: "online",
-      status: "pending_payment",
-      payment_status: "pending",
-      price,
-    })
-    .select("id")
-    .single();
-
-  if (inserted?.id) {
-    // No debe bloquear la reserva si falla — se atrapa internamente.
-    await notifyAppointmentRequested({
-      appointmentId: inserted.id,
-      therapistId: therapist.id,
-      patientId: user.id,
-      scheduledAtIso: scheduledAt,
-    });
-  }
+  const result = await requestAppointmentForUser(supabase, user.id, therapistSlug, scheduledAt);
 
   revalidatePath(`/terapeuta/${therapistSlug}`);
   revalidatePath("/dashboard");
+
+  if (!result.ok) {
+    redirect(`/terapeuta/${therapistSlug}?${result.reason === "taken" ? "ocupado=1" : "error=1"}`);
+  }
+
   redirect(`/terapeuta/${therapistSlug}?solicitado=1`);
 }

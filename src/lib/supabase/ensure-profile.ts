@@ -14,6 +14,9 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
       id: user.id,
       full_name: user.user_metadata?.full_name ?? user.email,
       avatar_url: user.user_metadata?.avatar_url ?? null,
+      // Google normalmente no manda teléfono, pero por si algún proveedor sí
+      // lo trae (o si signUp con correo/contraseña lo pasó en options.data).
+      phone: user.user_metadata?.phone ?? null,
       role: "patient", // por default; el cambio a "therapist" se hace en onboarding
     });
   }

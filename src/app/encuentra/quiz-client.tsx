@@ -144,7 +144,7 @@ export function QuizClient({
               Encontremos a quien te pueda escuchar
             </h1>
             <p className="mx-auto mt-4 max-w-[480px] text-[1.02rem] text-[#3E4B44]">
-              No es un examen ni hay respuestas correctas. Son 5 preguntitas rápidas para conocerte
+              No es un examen ni hay respuestas correctas. Son 5 preguntas rápidas para conocerte
               un poco y mostrarte quién te puede acompañar mejor.
             </p>
             <p className="mx-auto mt-2.5 max-w-[480px] text-[0.9rem] text-[#5A665F]">

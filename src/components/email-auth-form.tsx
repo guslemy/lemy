@@ -10,6 +10,8 @@ export function EmailAuthForm() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "check-email">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -31,10 +33,24 @@ export function EmailAuthForm() {
       router.push("/dashboard");
       router.refresh();
     } else {
+      if (fullName.trim().length < 2) {
+        setErrorMsg("Escribe tu nombre completo.");
+        setStatus("idle");
+        return;
+      }
+      if (phone.replace(/\D/g, "").length < 10) {
+        setErrorMsg("Escribe un teléfono válido (al menos 10 dígitos).");
+        setStatus("idle");
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          data: { full_name: fullName.trim(), phone: phone.trim() },
+        },
       });
       if (error) {
         setErrorMsg(traducirError(error.message));
@@ -56,6 +72,28 @@ export function EmailAuthForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-3">
+      {mode === "signup" && (
+        <>
+          <input
+            type="text"
+            required
+            minLength={2}
+            placeholder="Nombre completo"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+          />
+          <input
+            type="tel"
+            required
+            minLength={10}
+            placeholder="Teléfono (para tu terapeuta)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+          />
+        </>
+      )}
       <input
         type="email"
         required

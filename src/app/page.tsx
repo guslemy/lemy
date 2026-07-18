@@ -6,6 +6,7 @@ import { DirectoryPreview } from "@/components/directory-preview";
 import { Button } from "@/components/ui/button";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { HeroSearch } from "@/components/hero-search";
+import { HeroRotatingWord } from "@/components/hero-rotating-word";
 
 const HERO_PILLS = ["Ansiedad", "Pareja", "Duelo", "Autoestima", "Adolescentes", "Trauma"];
 
@@ -58,7 +59,7 @@ export default function HomePage() {
               <h1 className="mt-2.5 font-display text-[2.4rem] font-medium leading-[1.08] text-forest sm:text-[3rem] md:text-[3.6rem]">
                 Encuentra a quien
                 <br />
-                sí va a <em className="font-medium not-italic italic text-rose-deep">escucharte</em>
+                sí va a <HeroRotatingWord />
               </h1>
               <p className="mt-5 max-w-[480px] text-lg text-[#3E4B44]">
                 Lemy conecta a personas con terapeutas certificados según su motivo de consulta, no
@@ -70,7 +71,7 @@ export default function HomePage() {
                   ¿No sabes por dónde empezar?
                 </p>
                 <p className="mt-1.5 text-[0.92rem] text-[#42504A]">
-                  Respóndenos 5 preguntitas rápidas y anónimas — sin cuenta, sin datos — y te
+                  Respóndenos 5 preguntas rápidas y anónimas — sin cuenta, sin datos — y te
                   mostramos con quién podrías tener buena conexión.
                 </p>
                 <Button href="/encuentra" variant="primary" className="mt-4.5 w-full">

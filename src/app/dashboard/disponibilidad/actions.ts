@@ -115,14 +115,85 @@ export async function updateBookingLead(formData: FormData) {
   redirect("/dashboard/disponibilidad?guardado_anticipacion=1");
 }
 
+const SESSION_DURATIONS = [30, 45, 50, 60, 75, 90];
+const BUFFER_OPTIONS = [0, 15, 30, 60];
+
+// Duración de cada sesión y descanso entre citas consecutivas. Afecta
+// directamente cómo se parten los bloques semanales en horarios reservables
+// (ver src/lib/availability.ts).
+export async function updateSessionSettings(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+
+  const session_duration_min = Number(formData.get("session_duration_min"));
+  const buffer_min = Number(formData.get("buffer_min"));
+
+  if (!SESSION_DURATIONS.includes(session_duration_min) || !BUFFER_OPTIONS.includes(buffer_min)) {
+    redirect("/dashboard/disponibilidad?error=duracion");
+  }
+
+  await supabase
+    .from("therapists")
+    .update({ session_duration_min, buffer_min })
+    .eq("id", user.id);
+
+  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/terapeuta");
+  redirect("/dashboard/disponibilidad?guardado_duracion=1");
+}
+
+const MAX_WINDOW_DAYS = 365;
+
+function windowDays(amount: number, unit: string) {
+  const perUnit = unit === "semanas" ? 7 : unit === "meses" ? 30 : 1;
+  return amount * perUnit;
+}
+
+// Tope de cuánto a futuro se puede reservar (ej. "no más de 3 meses"). Es el
+// complemento del mínimo de anticipación (updateBookingLead, arriba): ese
+// controla qué tan pronto, este qué tan lejos.
+export async function updateBookingMax(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+
+  const amount = Number(formData.get("booking_max_amount"));
+  const unit = String(formData.get("booking_max_unit") || "meses");
+
+  if (
+    Number.isNaN(amount) ||
+    amount < 1 ||
+    amount > 90 ||
+    !["dias", "semanas", "meses"].includes(unit) ||
+    windowDays(amount, unit) > MAX_WINDOW_DAYS
+  ) {
+    redirect("/dashboard/disponibilidad?error=ventana_maxima");
+  }
+
+  await supabase
+    .from("therapists")
+    .update({ booking_max_amount: amount, booking_max_unit: unit })
+    .eq("id", user.id);
+
+  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/terapeuta");
+  redirect("/dashboard/disponibilidad?guardado_ventana_maxima=1");
+}
+
 // Bloqueos puntuales: vacaciones, una comida familiar, un jueves libre.
-// Independientes de los bloques recurrentes semanales.
+// Independientes de los bloques recurrentes semanales. El formulario (ver
+// BlockDatesForm) pide fecha(s) + "día completo" por separado en vez de un
+// datetime-local crudo, así que aquí armamos el string local antes de
+// convertirlo a UTC con el mismo helper de siempre.
 export async function addBlockedSlot(formData: FormData) {
   const { supabase, user } = await requireTherapist();
 
-  const start_at = oaxacaLocalStringToUtcIso(String(formData.get("start_at") || ""));
-  const end_at = oaxacaLocalStringToUtcIso(String(formData.get("end_at") || ""));
+  const startDate = String(formData.get("start_date") || "");
+  const endDate = String(formData.get("end_date") || "").trim() || startDate;
+  const allDay = formData.get("all_day") === "on";
+  const startTime = allDay ? "00:00" : String(formData.get("start_time") || "");
+  const endTime = allDay ? "23:59" : String(formData.get("end_time") || "");
   const reason = String(formData.get("reason") || "").trim() || null;
+
+  const start_at = startDate ? oaxacaLocalStringToUtcIso(`${startDate}T${startTime}`) : null;
+  const end_at = endDate ? oaxacaLocalStringToUtcIso(`${endDate}T${endTime}`) : null;
 
   if (!start_at || !end_at || new Date(start_at).getTime() >= new Date(end_at).getTime()) {
     redirect("/dashboard/disponibilidad?error=bloqueo");

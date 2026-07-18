@@ -4,10 +4,13 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
+import { BlockDatesForm } from "@/components/block-dates-form";
 import {
   addAvailabilitySlot,
   deleteAvailabilitySlot,
   updateBookingLead,
+  updateBookingMax,
+  updateSessionSettings,
   addBlockedSlot,
   deleteBlockedSlot,
 } from "./actions";
@@ -23,6 +26,13 @@ const LEAD_UNITS = [
   { value: "dias", label: "días" },
   { value: "semanas", label: "semanas" },
   { value: "meses", label: "meses" },
+];
+const SESSION_DURATIONS = [30, 45, 50, 60, 75, 90];
+const BUFFER_OPTIONS = [
+  { value: 0, label: "Sin descanso, citas seguidas" },
+  { value: 15, label: "15 minutos" },
+  { value: 30, label: "30 minutos" },
+  { value: 60, label: "60 minutos" },
 ];
 
 type Slot = {
@@ -67,11 +77,22 @@ export default async function DisponibilidadPage({
     eliminado?: string;
     error?: string;
     guardado_anticipacion?: string;
+    guardado_duracion?: string;
+    guardado_ventana_maxima?: string;
     bloqueado?: string;
     desbloqueado?: string;
   }>;
 }) {
-  const { guardado, eliminado, error, guardado_anticipacion, bloqueado, desbloqueado } = await searchParams;
+  const {
+    guardado,
+    eliminado,
+    error,
+    guardado_anticipacion,
+    guardado_duracion,
+    guardado_ventana_maxima,
+    bloqueado,
+    desbloqueado,
+  } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -96,7 +117,9 @@ export default async function DisponibilidadPage({
       .order("start_time"),
     supabase
       .from("therapists")
-      .select("booking_lead_amount, booking_lead_unit")
+      .select(
+        "booking_lead_amount, booking_lead_unit, booking_max_amount, booking_max_unit, session_duration_min, buffer_min"
+      )
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -155,6 +178,26 @@ export default async function DisponibilidadPage({
           {error === "anticipacion" && (
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               El número debe ser entre 1 y 30, y no puede pasar de 1 año en total.
+            </p>
+          )}
+          {guardado_duracion === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, actualizamos la duración de tus consultas.
+            </p>
+          )}
+          {error === "duracion" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Elige una duración y un descanso válidos de la lista.
+            </p>
+          )}
+          {guardado_ventana_maxima === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, actualizamos hasta cuándo a futuro te pueden reservar.
+            </p>
+          )}
+          {error === "ventana_maxima" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              El número debe ser entre 1 y 90, y no puede pasar de 1 año en total.
             </p>
           )}
           {bloqueado === "1" && (
@@ -228,16 +271,59 @@ export default async function DisponibilidadPage({
           </div>
 
           <section className="mt-12">
+            <h2 className="font-display text-[1.3rem] text-forest">¿Cuánto tiempo dura tu consulta?</h2>
+            <p className="mt-1.5 text-[0.9rem] text-[#3E4B44]">
+              Esto define cómo partimos tus bloques semanales en horarios reservables.
+            </p>
+            <form
+              action={updateSessionSettings}
+              className="signature-corner mt-5 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            >
+              <label className="block">
+                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Duración de la consulta</span>
+                <select
+                  name="session_duration_min"
+                  defaultValue={therapist?.session_duration_min ?? 50}
+                  className="input-lemy"
+                >
+                  {SESSION_DURATIONS.map((min) => (
+                    <option key={min} value={min}>
+                      {min} minutos
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">
+                  Descanso entre citas
+                </span>
+                <select
+                  name="buffer_min"
+                  defaultValue={therapist?.buffer_min ?? 0}
+                  className="input-lemy"
+                >
+                  {BUFFER_OPTIONS.map((b) => (
+                    <option key={b.value} value={b.value}>
+                      {b.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SubmitButton pendingText="Guardando…">Guardar</SubmitButton>
+            </form>
+          </section>
+
+          <section className="mt-12">
             <h2 className="font-display text-[1.3rem] text-forest">¿Con cuánta anticipación te pueden agendar?</h2>
             <p className="mt-1.5 text-[0.9rem] text-[#3E4B44]">
-              Los pacientes no van a poder reservar horarios más cercanos que esto.
+              Controla tanto qué tan pronto como qué tan lejos a futuro puede reservar un paciente.
             </p>
             <form
               action={updateBookingLead}
               className="signature-corner mt-5 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
             >
               <label className="block">
-                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Cantidad</span>
+                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Mínimo</span>
                 <input
                   type="number"
                   name="booking_lead_amount"
@@ -264,6 +350,39 @@ export default async function DisponibilidadPage({
               </label>
               <SubmitButton pendingText="Guardando…">Guardar</SubmitButton>
             </form>
+
+            <form
+              action={updateBookingMax}
+              className="signature-corner mt-4 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            >
+              <label className="block">
+                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Máximo a futuro</span>
+                <input
+                  type="number"
+                  name="booking_max_amount"
+                  min={1}
+                  max={90}
+                  defaultValue={therapist?.booking_max_amount ?? 3}
+                  required
+                  className="input-lemy"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Unidad</span>
+                <select
+                  name="booking_max_unit"
+                  defaultValue={therapist?.booking_max_unit ?? "meses"}
+                  className="input-lemy"
+                >
+                  {LEAD_UNITS.map((u) => (
+                    <option key={u.value} value={u.value}>
+                      {u.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SubmitButton pendingText="Guardando…">Guardar</SubmitButton>
+            </form>
           </section>
 
           <section className="mt-12">
@@ -272,33 +391,7 @@ export default async function DisponibilidadPage({
               Para lo puntual: una comida, un viaje, un día que quieres descansar. No afecta tus
               bloques semanales, solo quita ese rango mientras dure.
             </p>
-            <form
-              action={addBlockedSlot}
-              className="signature-corner mt-5 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-2"
-            >
-              <label className="block">
-                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Desde</span>
-                <input type="datetime-local" name="start_at" required className="input-lemy" />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Hasta</span>
-                <input type="datetime-local" name="end_at" required className="input-lemy" />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">
-                  Motivo (opcional, solo para ti)
-                </span>
-                <input
-                  type="text"
-                  name="reason"
-                  placeholder="Ej. Vacaciones, comida familiar…"
-                  className="input-lemy"
-                />
-              </label>
-              <div className="sm:col-span-2">
-                <SubmitButton pendingText="Bloqueando…">Bloquear</SubmitButton>
-              </div>
-            </form>
+            <BlockDatesForm action={addBlockedSlot} />
 
             {blockedSlots.length > 0 && (
               <div className="mt-5 space-y-2.5">

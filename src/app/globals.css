@@ -121,6 +121,42 @@
   animation: step-in 0.32s ease-out;
 }
 
+/* Pestaña flotante del cuestionario: cada 6s se resalta sola un instante
+   (invierte a rosa con texto blanco) para llamar la atención de quien no
+   ha notado que existe, sin depender solo del hover. Se pausa al pasar el
+   mouse para no competir con el estado hover propio. */
+@keyframes tab-attention {
+  0%,
+  82%,
+  100% {
+    background-color: var(--card);
+    color: var(--forest);
+    border-color: var(--line);
+    box-shadow: var(--shadow-signature);
+    transform: scale(1);
+  }
+  88% {
+    background-color: var(--rose-deep);
+    color: #fff;
+    border-color: var(--rose-deep);
+    box-shadow: 0 10px 30px -8px rgba(193, 120, 106, 0.55);
+    transform: scale(1.05);
+  }
+  94% {
+    background-color: var(--card);
+    color: var(--forest);
+    border-color: var(--line);
+    box-shadow: var(--shadow-signature);
+    transform: scale(1);
+  }
+}
+.animate-tab-attention {
+  animation: tab-attention 6s ease-in-out infinite;
+}
+.animate-tab-attention:hover {
+  animation-play-state: paused;
+}
+
 /* Reveal-on-scroll: arranca oculto, .in-view lo activa (ver ScrollReveal) */
 .reveal {
   opacity: 0;

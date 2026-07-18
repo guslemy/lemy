@@ -16,8 +16,10 @@ export type AvailableSlot = {
   scheduledAtUtc: string; // ISO UTC — lo que se guarda en appointments.scheduled_at
 };
 
-const SESSION_DURATION_MIN = 50;
-const DAYS_AHEAD = 14;
+const DEFAULT_SESSION_DURATION_MIN = 50;
+const DEFAULT_BUFFER_MIN = 0;
+const DEFAULT_DAYS_AHEAD = 14;
+const MAX_DAYS_AHEAD_CAP = 365;
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
 
 type RawWeeklySlot = { day_of_week: number; start_time: string; end_time: string };
@@ -52,14 +54,38 @@ function leadTimeMinutes(amount: number, unit: string): number {
   return Math.max(0, amount) * perUnitMinutes;
 }
 
+// Mismo criterio que leadTimeMinutes, pero para la ventana MÁXIMA a futuro
+// (ej. "no reserves más de 3 meses"), devuelta en días para el loop de abajo.
+// Se limita a MAX_DAYS_AHEAD_CAP por si algún valor guardado fuera absurdo.
+function maxWindowDays(amount: number | undefined, unit: string | undefined): number {
+  if (!amount) return DEFAULT_DAYS_AHEAD;
+  const perUnitDays = unit === "semanas" ? 7 : unit === "meses" ? 30 : 1;
+  return Math.min(MAX_DAYS_AHEAD_CAP, Math.max(1, amount) * perUnitDays);
+}
+
 export async function getAvailableSlots(
   supabase: SupabaseClient,
   therapistId: string
 ): Promise<AvailableSlot[]> {
-  const rangeStart = new Date();
-  const rangeEnd = new Date(Date.now() + (DAYS_AHEAD + 1) * 24 * 60 * 60 * 1000);
+  // Primero necesitamos saber la ventana máxima del terapeuta para armar el
+  // rango de búsqueda — por eso esta consulta va antes del Promise.all grande.
+  const { data: therapistRow } = await supabase
+    .from("therapists")
+    .select(
+      "booking_lead_amount, booking_lead_unit, booking_max_amount, booking_max_unit, session_duration_min, buffer_min"
+    )
+    .eq("id", therapistId)
+    .maybeSingle();
 
-  const [{ data: rawWeekly }, { data: therapistRow }, { data: rawBooked }, { data: rawBlocked }, googleBusy] =
+  const daysAhead = maxWindowDays(
+    therapistRow?.booking_max_amount as number | undefined,
+    therapistRow?.booking_max_unit as string | undefined
+  );
+
+  const rangeStart = new Date();
+  const rangeEnd = new Date(Date.now() + (daysAhead + 1) * 24 * 60 * 60 * 1000);
+
+  const [{ data: rawWeekly }, { data: rawBooked }, { data: rawBlocked }, googleBusy] =
     await Promise.all([
       supabase
         .from("availability_slots")
@@ -67,11 +93,6 @@ export async function getAvailableSlots(
         .eq("therapist_id", therapistId)
         .eq("is_recurring", true)
         .eq("is_blocked", false),
-      supabase
-        .from("therapists")
-        .select("booking_lead_amount, booking_lead_unit")
-        .eq("id", therapistId)
-        .maybeSingle(),
       supabase
         .from("appointments")
         .select("scheduled_at")
@@ -104,6 +125,13 @@ export async function getAvailableSlots(
       60 *
       1000;
 
+  const sessionDurationMin = (therapistRow?.session_duration_min as number | undefined) ?? DEFAULT_SESSION_DURATION_MIN;
+  const bufferMin = (therapistRow?.buffer_min as number | undefined) ?? DEFAULT_BUFFER_MIN;
+  // El "paso" entre inicios de sesión consecutivos incluye el descanso que
+  // pidió el terapeuta — la sesión en sí sigue durando sessionDurationMin,
+  // pero el siguiente horario ofrecido no empieza hasta después del buffer.
+  const stepMin = sessionDurationMin + bufferMin;
+
   const blockedRanges = [
     ...((rawBlocked ?? []) as { start_at: string; end_at: string }[]).map((b) => ({
       startMs: new Date(b.start_at).getTime(),
@@ -119,7 +147,7 @@ export async function getAvailableSlots(
 
   const slots: AvailableSlot[] = [];
 
-  for (let dayOffset = 0; dayOffset < DAYS_AHEAD; dayOffset++) {
+  for (let dayOffset = 0; dayOffset < daysAhead; dayOffset++) {
     const localDay = new Date(oaxacaNow.getTime() + dayOffset * 24 * 60 * 60 * 1000);
     const dow = localDay.getUTCDay();
     const y = localDay.getUTCFullYear();
@@ -130,7 +158,7 @@ export async function getAvailableSlots(
     for (const w of daySlots) {
       const startMin = toMinutes(w.start_time);
       const endMin = toMinutes(w.end_time);
-      for (let m = startMin; m + SESSION_DURATION_MIN <= endMin; m += SESSION_DURATION_MIN) {
+      for (let m = startMin; m + sessionDurationMin <= endMin; m += stepMin) {
         const hh = Math.floor(m / 60);
         const mm = m % 60;
         const scheduledAtUtc = localFieldsToUtcInstant(y, mo, d, hh, mm);
@@ -140,7 +168,7 @@ export async function getAvailableSlots(
         const iso = scheduledAtUtc.toISOString();
         if (bookedSet.has(iso)) continue;
 
-        const slotEndMs = slotStartMs + SESSION_DURATION_MIN * 60 * 1000;
+        const slotEndMs = slotStartMs + sessionDurationMin * 60 * 1000;
         const isBlocked = blockedRanges.some((b) => slotStartMs < b.endMs && slotEndMs > b.startMs);
         if (isBlocked) continue;
 
