@@ -68,7 +68,7 @@ const MAX_LEAD_DAYS = 365;
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
 
 function leadDays(amount: number, unit: string) {
-  const perUnit = unit === "semanas" ? 7 : unit === "meses" ? 30 : 1;
+  const perUnit = unit === "horas" ? 1 / 24 : unit === "semanas" ? 7 : unit === "meses" ? 30 : 1;
   return amount * perUnit;
 }
 
@@ -87,8 +87,11 @@ function oaxacaLocalStringToUtcIso(raw: string): string | null {
 }
 
 // El terapeuta define cuánto tiempo antes tiene que agendarse una cita con
-// él/ella (ej. "al menos 2 días antes"). Tope de 1 año para evitar valores
-// absurdos que dejarían la agenda vacía sin explicación.
+// él/ella (ej. "al menos 2 días antes"). 0 está permitido a propósito: hay
+// terapeutas que sí aceptan que les agenden en el momento, o con solo
+// algunas horas de aviso (por eso también existe la unidad "horas"). Tope
+// de 1 año para evitar valores absurdos que dejarían la agenda vacía sin
+// explicación.
 export async function updateBookingLead(formData: FormData) {
   const { supabase, user } = await requireTherapist();
 
@@ -97,9 +100,9 @@ export async function updateBookingLead(formData: FormData) {
 
   if (
     Number.isNaN(amount) ||
-    amount < 1 ||
+    amount < 0 ||
     amount > 30 ||
-    !["dias", "semanas", "meses"].includes(unit) ||
+    !["horas", "dias", "semanas", "meses"].includes(unit) ||
     leadDays(amount, unit) > MAX_LEAD_DAYS
   ) {
     redirect("/dashboard/disponibilidad?error=anticipacion");

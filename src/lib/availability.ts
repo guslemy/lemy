@@ -50,7 +50,8 @@ function localFieldsToUtcInstant(y: number, mo: number, d: number, hh: number, m
 // actual. Los meses se tratan como 30 días — no necesitamos precisión de
 // calendario aquí, solo un mínimo razonable.
 function leadTimeMinutes(amount: number, unit: string): number {
-  const perUnitMinutes = unit === "semanas" ? 7 * 24 * 60 : unit === "meses" ? 30 * 24 * 60 : 24 * 60;
+  const perUnitMinutes =
+    unit === "horas" ? 60 : unit === "semanas" ? 7 * 24 * 60 : unit === "meses" ? 30 * 24 * 60 : 24 * 60;
   return Math.max(0, amount) * perUnitMinutes;
 }
 

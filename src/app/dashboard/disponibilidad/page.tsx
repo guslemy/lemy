@@ -22,7 +22,15 @@ import {
 // — ambos se aplican en src/lib/availability.ts al calcular horarios reales.
 
 const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+// "horas" solo aplica a la anticipación MÍNIMA (tiene sentido decir "avísame
+// con 2 horas"); para el máximo a futuro no se ofrece, por eso son dos listas.
 const LEAD_UNITS = [
+  { value: "horas", label: "horas" },
+  { value: "dias", label: "días" },
+  { value: "semanas", label: "semanas" },
+  { value: "meses", label: "meses" },
+];
+const MAX_WINDOW_UNITS = [
   { value: "dias", label: "días" },
   { value: "semanas", label: "semanas" },
   { value: "meses", label: "meses" },
@@ -177,7 +185,7 @@ export default async function DisponibilidadPage({
           )}
           {error === "anticipacion" && (
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
-              El número debe ser entre 1 y 30, y no puede pasar de 1 año en total.
+              El número debe ser entre 0 y 30, y no puede pasar de 1 año en total.
             </p>
           )}
           {guardado_duracion === "1" && (
@@ -317,6 +325,7 @@ export default async function DisponibilidadPage({
             <h2 className="font-display text-[1.3rem] text-forest">¿Con cuánta anticipación te pueden agendar?</h2>
             <p className="mt-1.5 text-[0.9rem] text-[#3E4B44]">
               Controla tanto qué tan pronto como qué tan lejos a futuro puede reservar un paciente.
+              Usa 0 si te parece bien que te agenden en el momento.
             </p>
             <form
               action={updateBookingLead}
@@ -327,7 +336,7 @@ export default async function DisponibilidadPage({
                 <input
                   type="number"
                   name="booking_lead_amount"
-                  min={1}
+                  min={0}
                   max={30}
                   defaultValue={therapist?.booking_lead_amount ?? 1}
                   required
@@ -374,7 +383,7 @@ export default async function DisponibilidadPage({
                   defaultValue={therapist?.booking_max_unit ?? "meses"}
                   className="input-lemy"
                 >
-                  {LEAD_UNITS.map((u) => (
+                  {MAX_WINDOW_UNITS.map((u) => (
                     <option key={u.value} value={u.value}>
                       {u.label}
                     </option>
