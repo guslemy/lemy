@@ -7,7 +7,7 @@ import { BackToDashboard } from "@/components/back-to-dashboard";
 import { confirmAppointment, cancelAppointmentTherapist } from "./actions";
 
 // Vista del terapeuta: solicitudes pendientes de confirmar (Etapa D), sus
-// próximas sesiones ya confirmadas con el enlace de Google Meet, y su propia
+// próximas sesiones ya confirmadas con el enlace de la videollamada, y su propia
 // tasa de cancelación (para que se autoevalúe — feedback explícito del
 // dueño del producto, no algo que se le muestra al paciente).
 
@@ -62,10 +62,9 @@ export default async function CitasPage({
     confirmado?: string;
     cancelado?: string;
     error?: string;
-    sin_calendario?: string;
   }>;
 }) {
-  const { confirmado, cancelado, error, sin_calendario } = await searchParams;
+  const { confirmado, cancelado, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -119,24 +118,13 @@ export default async function CitasPage({
 
           {confirmado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
-              Cita confirmada. Se creó el evento en tu Google Calendar y se invitó al paciente.
+              Cita confirmada. Le mandamos a tu paciente el link de la sesión y una invitación de
+              calendario por correo.
             </p>
           )}
           {cancelado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
               Cita cancelada.
-            </p>
-          )}
-          {sin_calendario === "1" && (
-            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
-              Tu cuenta no tiene Google Calendar conectado. Cierra sesión y vuelve a entrar con
-              &quot;Continuar con Google&quot; para conectarlo, luego regresa a confirmar.
-            </p>
-          )}
-          {error === "google" && (
-            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
-              Google Calendar rechazó la solicitud. Intenta de nuevo en un momento; si persiste,
-              puede que necesites reconectar tu cuenta de Google.
             </p>
           )}
           {error === "1" && (
@@ -216,7 +204,7 @@ export default async function CitasPage({
                           rel="noreferrer"
                           className="mt-1.5 inline-block font-mono text-[0.8rem] text-forest underline"
                         >
-                          Enlace de Google Meet
+                          Entrar a la videollamada
                         </a>
                       )}
                     </div>

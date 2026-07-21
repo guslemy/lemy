@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getAccessToken, createCalendarEvent, GoogleCalendarError } from "@/lib/google-calendar";
+import { getAccessToken, createCalendarEvent } from "@/lib/google-calendar";
+import { fallbackMeetingLink } from "@/lib/video-link";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
-import { notifyAppointmentCancelled } from "@/lib/notifications/instant";
+import { notifyAppointmentCancelled, notifyAppointmentConfirmed } from "@/lib/notifications/instant";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -26,10 +27,12 @@ async function requireTherapist() {
   return { supabase, user };
 }
 
-// El terapeuta confirma una cita solicitada: crea el evento real en su Google
-// Calendar (con Meet autogenerado, invitando al paciente) y recién entonces
-// la cita pasa a "confirmed". Si algo falla del lado de Google, la cita se
-// queda como estaba — no marcamos nada como confirmado sin evento real.
+// El terapeuta confirma una cita solicitada. Si tiene Google Calendar
+// conectado, se crea el evento real con Meet autogenerado (mejor
+// experiencia). Si no — o si Google falla por cualquier razón — la cita se
+// confirma igual con una sala de respaldo (Jitsi, sin cuenta de nadie) más
+// una invitación de calendario (.ics) por correo. Nadie se queda bloqueado
+// por no tener Gmail.
 export async function confirmAppointment(formData: FormData) {
   const { supabase, user } = await requireTherapist();
   const appointmentId = String(formData.get("appointment_id") || "");
@@ -59,10 +62,6 @@ export async function confirmAppointment(formData: FormData) {
     p_user_id: user.id,
   });
 
-  if (!refreshToken) {
-    redirect("/dashboard/citas?sin_calendario=1");
-  }
-
   const { data: patientAuth } = await serviceClient.auth.admin.getUserById(appointment.patient_id);
   const patientEmail = patientAuth?.user?.email;
   const therapistEmail = user.email;
@@ -85,32 +84,50 @@ export async function confirmAppointment(formData: FormData) {
   const therapistName = therapist?.display_name ?? "tu terapeuta";
   const patientName = patientProfile?.full_name ?? "tu paciente";
 
-  try {
-    const accessToken = await getAccessToken(refreshToken);
-    const { eventId, meetingLink } = await createCalendarEvent({
-      accessToken,
-      summary: `Sesión Lemy — ${therapistName} y ${patientName}`,
-      description: "Sesión agendada a través de Lemy.",
-      startIso,
-      endIso,
-      therapistEmail,
-      patientEmail,
-    });
+  let eventId: string | null = null;
+  let meetingLink: string | null = null;
 
-    await supabase
-      .from("appointments")
-      .update({
-        status: "confirmed",
-        google_calendar_event_id: eventId,
-        meeting_link: meetingLink,
-      })
-      .eq("id", appointmentId)
-      .eq("therapist_id", user.id);
-  } catch (err) {
-    console.error("Error confirmando cita / creando evento en Calendar:", err);
-    const reason = err instanceof GoogleCalendarError ? "google" : "1";
-    redirect(`/dashboard/citas?error=${reason}`);
+  if (refreshToken) {
+    try {
+      const accessToken = await getAccessToken(refreshToken);
+      const created = await createCalendarEvent({
+        accessToken,
+        summary: `Sesión Lemy — ${therapistName} y ${patientName}`,
+        description: "Sesión agendada a través de Lemy.",
+        startIso,
+        endIso,
+        therapistEmail,
+        patientEmail,
+      });
+      eventId = created.eventId;
+      meetingLink = created.meetingLink;
+    } catch (err) {
+      console.error("Error creando evento en Google Calendar, se usa la sala de respaldo:", err);
+    }
   }
+
+  if (!meetingLink) {
+    meetingLink = fallbackMeetingLink(appointmentId);
+  }
+
+  await supabase
+    .from("appointments")
+    .update({
+      status: "confirmed",
+      google_calendar_event_id: eventId,
+      meeting_link: meetingLink,
+    })
+    .eq("id", appointmentId)
+    .eq("therapist_id", user.id);
+
+  await notifyAppointmentConfirmed({
+    appointmentId,
+    therapistId: user.id,
+    patientId: appointment.patient_id,
+    scheduledAtIso: appointment.scheduled_at,
+    durationMin: appointment.duration_min,
+    meetingLink,
+  });
 
   revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");

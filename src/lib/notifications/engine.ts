@@ -63,6 +63,7 @@ type DispatchInput = {
   whatsappTemplate?: string;
   whatsappParams?: string[];
   emailOnly?: boolean;
+  attachments?: { filename: string; content: string }[]; // content en base64
 };
 
 export async function dispatch(input: DispatchInput) {
@@ -70,7 +71,13 @@ export async function dispatch(input: DispatchInput) {
 
   if (email && isResendConfigured() && !(await alreadySent(supabase, type, relatedId, "email"))) {
     try {
-      await getResendClient().emails.send({ from: NOTIFICATIONS_FROM_EMAIL, to: email, subject, html });
+      await getResendClient().emails.send({
+        from: NOTIFICATIONS_FROM_EMAIL,
+        to: email,
+        subject,
+        html,
+        ...(input.attachments ? { attachments: input.attachments } : {}),
+      });
       await logSent(supabase, type, relatedId, "email", recipientId);
     } catch (err) {
       console.error(`Error mandando email (${type} → ${email}):`, err);

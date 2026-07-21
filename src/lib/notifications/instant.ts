@@ -9,9 +9,11 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { dispatch, emailOf, normalizePhone, phonesById } from "./engine";
+import { buildIcsEvent } from "@/lib/ics";
 import {
   appointmentRequestedTherapist,
   appointmentRequestedPatient,
+  appointmentConfirmed,
   appointmentCancelledNotice,
 } from "./emailTemplates";
 
@@ -87,6 +89,104 @@ export async function notifyAppointmentRequested({
     });
   } catch (err) {
     console.error("Error notificando nueva solicitud de cita:", err);
+  }
+}
+
+// Al momento en que el terapeuta confirma la cita: ambas partes reciben el
+// link real de la sesión (Google Meet, o la sala de respaldo de Jitsi si no
+// hay Google conectado) más una invitación de calendario (.ics) adjunta —
+// funciona igual sin importar el proveedor de correo de quien la reciba.
+export async function notifyAppointmentConfirmed({
+  appointmentId,
+  therapistId,
+  patientId,
+  scheduledAtIso,
+  durationMin,
+  meetingLink,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  scheduledAtIso: string;
+  durationMin: number;
+  meetingLink: string | null;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const whenLabel = whenLabelFor(scheduledAtIso);
+    const endIso = new Date(new Date(scheduledAtIso).getTime() + durationMin * 60 * 1000).toISOString();
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, therapistEmail, patientEmail] =
+      await Promise.all([
+        supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+        phonesById(supabase, [therapistId, patientId]),
+        emailOf(supabase, therapistId),
+        emailOf(supabase, patientId),
+      ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "tu paciente";
+
+    if (!therapistEmail || !patientEmail) return;
+
+    const icsContent = buildIcsEvent({
+      uid: appointmentId,
+      summary: `Sesión Lemy — ${therapistName} y ${patientName}`,
+      description: "Sesión agendada a través de Lemy.",
+      location: meetingLink,
+      startIso: scheduledAtIso,
+      endIso,
+      organizerEmail: therapistEmail,
+      organizerName: therapistName,
+      attendeeEmail: patientEmail,
+      attendeeName: patientName,
+    });
+    const attachments = [
+      { filename: "cita-lemy.ics", content: Buffer.from(icsContent, "utf-8").toString("base64") },
+    ];
+
+    const forTherapist = appointmentConfirmed({
+      recipientName: therapistName,
+      otherPartyName: patientName,
+      whenLabel,
+      meetingLink,
+    });
+    await dispatch({
+      supabase,
+      type: "appointment_confirmed_therapist",
+      relatedId: appointmentId,
+      recipientId: therapistId,
+      email: therapistEmail,
+      phone: normalizePhone(phones.get(therapistId)),
+      subject: forTherapist.subject,
+      html: forTherapist.html,
+      attachments,
+      whatsappTemplate: "lemy_appointment_confirmed",
+      whatsappParams: [therapistName, patientName, whenLabel],
+    });
+
+    const forPatient = appointmentConfirmed({
+      recipientName: patientName,
+      otherPartyName: therapistName,
+      whenLabel,
+      meetingLink,
+    });
+    await dispatch({
+      supabase,
+      type: "appointment_confirmed_patient",
+      relatedId: appointmentId,
+      recipientId: patientId,
+      email: patientEmail,
+      phone: normalizePhone(phones.get(patientId)),
+      subject: forPatient.subject,
+      html: forPatient.html,
+      attachments,
+      whatsappTemplate: "lemy_appointment_confirmed",
+      whatsappParams: [patientName, therapistName, whenLabel],
+    });
+  } catch (err) {
+    console.error("Error notificando confirmación de cita:", err);
   }
 }
 

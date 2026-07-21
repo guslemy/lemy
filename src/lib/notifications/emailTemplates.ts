@@ -84,6 +84,33 @@ export function appointmentRequestedPatient(params: {
   };
 }
 
+// Al instante, cuando el terapeuta confirma la cita — trae el link real de
+// la sesión (Google Meet o, si no hay Google conectado, la sala de respaldo
+// de Jitsi) y una invitación de calendario adjunta (.ics) que cualquier
+// cliente de correo reconoce, sin importar el proveedor.
+export function appointmentConfirmed(params: {
+  recipientName: string;
+  otherPartyName: string;
+  whenLabel: string;
+  meetingLink: string | null;
+}) {
+  const { recipientName, otherPartyName, whenLabel, meetingLink } = params;
+  return {
+    subject: `Cita confirmada — ${whenLabel}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <p>Tu cita con <strong>${otherPartyName}</strong> quedó confirmada para el <strong>${whenLabel}</strong>.</p>
+      ${
+        meetingLink
+          ? `<p><a href="${meetingLink}" style="color: #2F5233;">Entrar a la videollamada →</a></p>`
+          : ""
+      }
+      <p>Te dejamos adjunta la invitación de calendario — ábrela para agregarla a Gmail, Outlook, Apple Calendar o el que uses.</p>
+      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+    `),
+  };
+}
+
 export function appointmentCancelledNotice(params: {
   recipientName: string;
   otherPartyName: string;

@@ -170,7 +170,7 @@ export default async function MisCitasPage({
                           rel="noreferrer"
                           className="mt-1.5 inline-block font-mono text-[0.8rem] text-forest underline"
                         >
-                          Enlace de Google Meet
+                          Entrar a la videollamada
                         </a>
                       )}
                     </div>
