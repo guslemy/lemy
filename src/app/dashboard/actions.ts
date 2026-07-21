@@ -77,6 +77,10 @@ export async function saveTherapistProfile(formData: FormData) {
   const price_min = formData.get("price_min") ? Number(formData.get("price_min")) : null;
   const price_max = formData.get("price_max") ? Number(formData.get("price_max")) : null;
   const is_online_available = formData.get("is_online_available") === "on";
+  const is_in_person_available = formData.get("is_in_person_available") === "on";
+  const address = is_in_person_available
+    ? String(formData.get("address") || "").trim() || null
+    : null;
   const wantsPublished = formData.get("is_published") === "on";
   const phone = String(formData.get("phone") || "").trim() || null;
 
@@ -128,6 +132,8 @@ export async function saveTherapistProfile(formData: FormData) {
       price_min,
       price_max,
       is_online_available,
+      is_in_person_available,
+      address,
       is_published,
     })
     .eq("id", user.id);

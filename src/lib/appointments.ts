@@ -3,6 +3,8 @@ import { notifyAppointmentRequested } from "@/lib/notifications/instant";
 
 export type CancelRole = "patient" | "therapist";
 
+export type Modality = "online" | "presencial";
+
 export type RequestAppointmentResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "taken" };
@@ -15,16 +17,29 @@ export async function requestAppointmentForUser(
   supabase: SupabaseClient,
   userId: string,
   therapistSlug: string,
-  scheduledAt: string
+  scheduledAt: string,
+  requestedModality: Modality
 ): Promise<RequestAppointmentResult> {
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("id, price_min, price_max, session_duration_min")
+    .select(
+      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available"
+    )
     .eq("slug", therapistSlug)
     .eq("is_published", true)
     .maybeSingle();
 
   if (!therapist) return { ok: false, reason: "not_found" };
+
+  // Defensa extra por si el request llega manipulado: nunca aceptar una
+  // modalidad que el terapeuta no ofrece. La UI ya debería impedirlo, esto
+  // es el respaldo del lado del servidor.
+  let modality: Modality = requestedModality;
+  if (modality === "online" && !therapist.is_online_available) {
+    modality = "presencial";
+  } else if (modality === "presencial" && !therapist.is_in_person_available) {
+    modality = "online";
+  }
 
   // Revalidar que el horario sigue libre (por si alguien más lo tomó justo antes)
   const { data: clash } = await supabase
@@ -46,7 +61,7 @@ export async function requestAppointmentForUser(
       patient_id: userId,
       scheduled_at: scheduledAt,
       duration_min: therapist.session_duration_min ?? 50,
-      modality: "online",
+      modality,
       status: "pending_payment",
       payment_status: "pending",
       price,

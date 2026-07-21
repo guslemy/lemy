@@ -11,6 +11,7 @@ export type TherapistCardData = {
   price_min: number | null;
   price_max: number | null;
   is_online_available: boolean;
+  is_in_person_available?: boolean;
   specialties: string[];
   photo_url?: string | null;
 };
@@ -59,7 +60,8 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
       {t.tagline && <p className="mt-0.5 font-mono text-[0.86rem] text-rose-deep">{t.tagline}</p>}
       {t.city && <p className="mt-3 text-[0.9rem] text-[#42504A]">{t.city}</p>}
       <div className="mt-3.5 flex flex-wrap gap-1.5">
-        {t.is_online_available && <Tag>Online</Tag>}
+        {t.is_online_available && <Tag>En línea</Tag>}
+        {t.is_in_person_available && <Tag>Presencial</Tag>}
         {t.specialties.slice(0, 2).map((s) => (
           <Tag key={s}>{s}</Tag>
         ))}

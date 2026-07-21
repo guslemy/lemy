@@ -13,6 +13,7 @@ import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
 export async function requestAppointment(formData: FormData) {
   const therapistSlug = String(formData.get("therapist_slug") || "");
   const scheduledAt = String(formData.get("scheduled_at") || "");
+  const modality = formData.get("modality") === "presencial" ? "presencial" : "online";
 
   const supabase = await createClient();
   const {
@@ -30,19 +31,20 @@ export async function requestAppointment(formData: FormData) {
   // Antes de reservar necesitamos nombre y teléfono del paciente (para poder
   // contactarlo sobre su cita y, más adelante, ligar su método de pago). Si
   // falta algo, lo mandamos a completar su perfil y de ahí retoma esta misma
-  // reserva sin perder la fecha/hora elegida.
+  // reserva (incluida la modalidad elegida) sin perder nada.
   const complete = await hasCompleteProfile(supabase, user.id);
   if (!complete) {
     const params = new URLSearchParams({
       next_slug: therapistSlug,
       next_scheduled_at: scheduledAt,
+      next_modality: modality,
     });
     redirect(`/completar-perfil?${params.toString()}`);
   }
 
   await ensurePatientShell(supabase, user.id);
 
-  const result = await requestAppointmentForUser(supabase, user.id, therapistSlug, scheduledAt);
+  const result = await requestAppointmentForUser(supabase, user.id, therapistSlug, scheduledAt, modality);
 
   revalidatePath(`/terapeuta/${therapistSlug}`);
   revalidatePath("/dashboard");

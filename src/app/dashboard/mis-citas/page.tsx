@@ -15,7 +15,9 @@ type AppointmentRow = {
   therapist_id: string;
   scheduled_at: string;
   status: string;
+  modality: string | null;
   meeting_link: string | null;
+  location_address: string | null;
 };
 
 type TherapistInfo = { display_name: string; slug: string };
@@ -62,7 +64,7 @@ export default async function MisCitasPage({
 
   const { data: rawAppointments } = await supabase
     .from("appointments")
-    .select("id, therapist_id, scheduled_at, status, meeting_link")
+    .select("id, therapist_id, scheduled_at, status, modality, meeting_link, location_address")
     .eq("patient_id", user.id)
     .neq("status", "cancelled")
     .order("scheduled_at");
@@ -162,8 +164,9 @@ export default async function MisCitasPage({
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                       <p className="mt-1 font-mono text-[0.72rem] uppercase tracking-[0.06em] text-[#8B978F]">
                         {STATUS_LABEL[a.status] ?? a.status}
+                        {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}
                       </p>
-                      {a.meeting_link && (
+                      {a.modality === "online" && a.meeting_link && (
                         <a
                           href={a.meeting_link}
                           target="_blank"
@@ -172,6 +175,11 @@ export default async function MisCitasPage({
                         >
                           Entrar a la videollamada
                         </a>
+                      )}
+                      {a.modality === "presencial" && a.location_address && (
+                        <p className="mt-1.5 text-[0.8rem] text-[#3E4B44]">
+                          <span className="font-medium">Dirección:</span> {a.location_address}
+                        </p>
                       )}
                     </div>
                     <form action={cancelAppointmentPatient} className="flex items-center gap-2">

@@ -37,6 +37,7 @@ type TherapistDetail = {
   languages: string[] | null;
   client_niches: string[] | null;
   is_online_available: boolean;
+  is_in_person_available: boolean;
   price_min: number | null;
   price_max: number | null;
   verification_status: string;
@@ -50,7 +51,7 @@ async function getTherapist(slug: string) {
     .from("therapists")
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
-       is_online_available, price_min, price_max, verification_status,
+       is_online_available, is_in_person_available, price_min, price_max, verification_status,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_coloquial, descripcion_coloquial ) )`
     )
@@ -189,7 +190,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                         {approaches.map((a) => a.nombre_coloquial).join(", ")}
                       </div>
                     )}
-                    {(therapist.zona || therapist.city) && (
+                    {therapist.is_in_person_available && (therapist.zona || therapist.city) && (
                       <div>
                         <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
                           Ubicación
@@ -201,7 +202,13 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
                         Modalidad
                       </strong>
-                      {therapist.is_online_available ? "Online" : "Presencial"}
+                      {therapist.is_online_available && therapist.is_in_person_available
+                        ? "En línea o presencial"
+                        : therapist.is_online_available
+                          ? "En línea"
+                          : therapist.is_in_person_available
+                            ? "Presencial"
+                            : "Agenda llena por ahora"}
                     </div>
                     {therapist.languages && therapist.languages.length > 0 && (
                       <div>
@@ -285,7 +292,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 )}
 
-                {days.length === 0 ? (
+                {!therapist.is_online_available && !therapist.is_in_person_available ? (
+                  <p className="mt-5 text-[0.92rem] text-[#42504A]">
+                    {therapist.display_name.split(" ")[0]} tiene la agenda llena por ahora — no está
+                    aceptando citas nuevas en este momento.
+                  </p>
+                ) : days.length === 0 ? (
                   <p className="mt-5 text-[0.92rem] text-[#42504A]">
                     {therapist.display_name.split(" ")[0]} todavía no tiene horarios disponibles
                     cargados. Vuelve a revisar en unos días.
@@ -295,6 +307,8 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     <BookingCalendar
                       days={days}
                       therapistSlug={therapist.slug}
+                      onlineAvailable={therapist.is_online_available}
+                      inPersonAvailable={therapist.is_in_person_available}
                       requestAppointment={requestAppointment}
                     />
                   </div>

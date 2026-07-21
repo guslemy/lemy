@@ -12,9 +12,14 @@ import { saveProfileAndContinue } from "./actions";
 export default async function CompletarPerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next_slug?: string; next_scheduled_at?: string; error?: string }>;
+  searchParams: Promise<{
+    next_slug?: string;
+    next_scheduled_at?: string;
+    next_modality?: string;
+    error?: string;
+  }>;
 }) {
-  const { next_slug, next_scheduled_at, error } = await searchParams;
+  const { next_slug, next_scheduled_at, next_modality, error } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -61,6 +66,7 @@ export default async function CompletarPerfilPage({
           >
             <input type="hidden" name="next_slug" value={next_slug ?? ""} />
             <input type="hidden" name="next_scheduled_at" value={next_scheduled_at ?? ""} />
+            <input type="hidden" name="next_modality" value={next_modality ?? "online"} />
 
             <label className="block">
               <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Correo</span>

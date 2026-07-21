@@ -41,6 +41,8 @@ export type CreateCalendarEventInput = {
   endIso: string; // ISO UTC
   therapistEmail: string;
   patientEmail: string;
+  modality: "online" | "presencial";
+  location?: string | null; // dirección — solo se usa (y solo tiene sentido) si modality es "presencial"
 };
 
 export type CreateCalendarEventResult = {
@@ -49,32 +51,43 @@ export type CreateCalendarEventResult = {
 };
 
 // Crea el evento en el calendario del terapeuta (el dueño del refresh token)
-// con Google Meet autogenerado, e invita al paciente por correo.
+// e invita al paciente por correo. Solo pide Google Meet autogenerado si la
+// sesión es en línea — una cita presencial no debe traer un link de
+// videollamada que confunda a nadie sobre dónde es realmente la sesión.
 export async function createCalendarEvent(
   input: CreateCalendarEventInput
 ): Promise<CreateCalendarEventResult> {
   const requestId = `lemy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const isOnline = input.modality === "online";
 
-  const res = await fetch(`${EVENTS_URL}?conferenceDataVersion=1&sendUpdates=all`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      summary: input.summary,
-      description: input.description,
-      start: { dateTime: input.startIso },
-      end: { dateTime: input.endIso },
-      attendees: [{ email: input.therapistEmail }, { email: input.patientEmail }],
-      conferenceData: {
-        createRequest: {
-          requestId,
-          conferenceSolutionKey: { type: "hangoutsMeet" },
-        },
+  const res = await fetch(
+    `${EVENTS_URL}?conferenceDataVersion=1&sendUpdates=all`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        summary: input.summary,
+        description: input.description,
+        start: { dateTime: input.startIso },
+        end: { dateTime: input.endIso },
+        attendees: [{ email: input.therapistEmail }, { email: input.patientEmail }],
+        ...(input.location ? { location: input.location } : {}),
+        ...(isOnline
+          ? {
+              conferenceData: {
+                createRequest: {
+                  requestId,
+                  conferenceSolutionKey: { type: "hangoutsMeet" },
+                },
+              },
+            }
+          : {}),
+      }),
+    }
+  );
 
   if (!res.ok) {
     const body = await res.text();

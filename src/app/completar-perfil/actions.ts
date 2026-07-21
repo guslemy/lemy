@@ -22,12 +22,14 @@ export async function saveProfileAndContinue(formData: FormData) {
   const phone = String(formData.get("phone") || "").trim();
   const nextSlug = String(formData.get("next_slug") || "");
   const nextScheduledAt = String(formData.get("next_scheduled_at") || "");
+  const nextModality = formData.get("next_modality") === "presencial" ? "presencial" : "online";
 
   if (!isValidName(fullName) || !isValidPhone(phone)) {
     const params = new URLSearchParams({
       error: "1",
       ...(nextSlug ? { next_slug: nextSlug } : {}),
       ...(nextScheduledAt ? { next_scheduled_at: nextScheduledAt } : {}),
+      ...(nextSlug ? { next_modality: nextModality } : {}),
     });
     redirect(`/completar-perfil?${params.toString()}`);
   }
@@ -36,7 +38,7 @@ export async function saveProfileAndContinue(formData: FormData) {
   await ensurePatientShell(supabase, user.id);
 
   if (nextSlug && nextScheduledAt) {
-    const result = await requestAppointmentForUser(supabase, user.id, nextSlug, nextScheduledAt);
+    const result = await requestAppointmentForUser(supabase, user.id, nextSlug, nextScheduledAt, nextModality);
     revalidatePath(`/terapeuta/${nextSlug}`);
     revalidatePath("/dashboard");
 

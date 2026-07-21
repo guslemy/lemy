@@ -40,7 +40,7 @@ export async function confirmAppointment(formData: FormData) {
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, scheduled_at, duration_min, status")
+    .select("id, therapist_id, patient_id, scheduled_at, duration_min, status, modality")
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
     .maybeSingle();
@@ -50,11 +50,17 @@ export async function confirmAppointment(formData: FormData) {
     redirect("/dashboard/citas?error=1");
   }
 
+  const modality: "online" | "presencial" = appointment.modality === "presencial" ? "presencial" : "online";
+
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("display_name")
+    .select("display_name, address")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Solo se lleva la dirección si la cita es presencial — para una cita en
+  // línea no tiene sentido ni debe aparecer en ningún lado.
+  const address = modality === "presencial" ? therapist?.address ?? null : null;
 
   const serviceClient = createServiceClient();
 
@@ -86,18 +92,24 @@ export async function confirmAppointment(formData: FormData) {
 
   let eventId: string | null = null;
   let meetingLink: string | null = null;
+  const modalityLabel = modality === "online" ? "en línea" : "presencial";
 
   if (refreshToken) {
     try {
       const accessToken = await getAccessToken(refreshToken);
       const created = await createCalendarEvent({
         accessToken,
-        summary: `Sesión Lemy — ${therapistName} y ${patientName}`,
-        description: "Sesión agendada a través de Lemy.",
+        summary: `Sesión Lemy (${modalityLabel}) — ${therapistName} y ${patientName}`,
+        description:
+          modality === "online"
+            ? "Sesión en línea agendada a través de Lemy."
+            : "Sesión presencial agendada a través de Lemy.",
         startIso,
         endIso,
         therapistEmail,
         patientEmail,
+        modality,
+        location: modality === "presencial" ? address : null,
       });
       eventId = created.eventId;
       meetingLink = created.meetingLink;
@@ -106,7 +118,10 @@ export async function confirmAppointment(formData: FormData) {
     }
   }
 
-  if (!meetingLink) {
+  // La sala de respaldo (Jitsi) solo aplica a sesiones en línea — una cita
+  // presencial nunca debe traer un link de videollamada, sea cual sea el
+  // motivo por el que Google no se pudo usar.
+  if (modality === "online" && !meetingLink) {
     meetingLink = fallbackMeetingLink(appointmentId);
   }
 
@@ -116,6 +131,7 @@ export async function confirmAppointment(formData: FormData) {
       status: "confirmed",
       google_calendar_event_id: eventId,
       meeting_link: meetingLink,
+      location_address: address,
     })
     .eq("id", appointmentId)
     .eq("therapist_id", user.id);
@@ -126,7 +142,9 @@ export async function confirmAppointment(formData: FormData) {
     patientId: appointment.patient_id,
     scheduledAtIso: appointment.scheduled_at,
     durationMin: appointment.duration_min,
+    modality,
     meetingLink,
+    address,
   });
 
   revalidatePath("/dashboard/citas");

@@ -17,9 +17,20 @@ type AppointmentRow = {
   scheduled_at: string;
   duration_min: number;
   status: string;
+  modality: string | null;
   meeting_link: string | null;
+  location_address: string | null;
   cancelled_by: string | null;
 };
+
+function ModalityTag({ modality }: { modality: string | null }) {
+  if (!modality) return null;
+  return (
+    <span className="ml-2 rounded-full bg-forest/[0.08] px-2.5 py-0.5 font-mono text-[0.68rem] uppercase tracking-[0.05em] text-forest">
+      {modality === "online" ? "En línea" : "Presencial"}
+    </span>
+  );
+}
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -82,7 +93,9 @@ export default async function CitasPage({
   // cancelación — el filtrado por sección pasa a hacerse en memoria.
   const { data: rawAppointments } = await supabase
     .from("appointments")
-    .select("id, patient_id, scheduled_at, duration_min, status, meeting_link, cancelled_by")
+    .select(
+      "id, patient_id, scheduled_at, duration_min, status, modality, meeting_link, location_address, cancelled_by"
+    )
     .eq("therapist_id", user.id)
     .order("scheduled_at");
 
@@ -163,6 +176,7 @@ export default async function CitasPage({
                     <div>
                       <p className="font-medium text-forest">
                         {nameById.get(a.patient_id) ?? "Paciente"}
+                        <ModalityTag modality={a.modality} />
                       </p>
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                     </div>
@@ -195,9 +209,10 @@ export default async function CitasPage({
                     <div>
                       <p className="font-medium text-forest">
                         {nameById.get(a.patient_id) ?? "Paciente"}
+                        <ModalityTag modality={a.modality} />
                       </p>
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
-                      {a.meeting_link && (
+                      {a.modality === "online" && a.meeting_link && (
                         <a
                           href={a.meeting_link}
                           target="_blank"
@@ -206,6 +221,11 @@ export default async function CitasPage({
                         >
                           Entrar a la videollamada
                         </a>
+                      )}
+                      {a.modality === "presencial" && a.location_address && (
+                        <p className="mt-1.5 text-[0.8rem] text-[#3E4B44]">
+                          <span className="font-medium">Dirección:</span> {a.location_address}
+                        </p>
                       )}
                     </div>
                     <CancelForm appointmentId={a.id} />

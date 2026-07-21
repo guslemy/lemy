@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
+import { ProfileForm } from "@/components/therapist-profile-form";
+import { ModalityFields } from "@/components/therapist-modality-fields";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import { saveTherapistProfile, uploadTherapistPhoto } from "../actions";
 
@@ -53,7 +55,7 @@ export default async function EditarPerfilPage({
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_published, photo_url"
+        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -139,7 +141,7 @@ export default async function EditarPerfilPage({
             </div>
           </div>
 
-          <form action={saveTherapistProfile} className="mt-8 space-y-8">
+          <ProfileForm action={saveTherapistProfile}>
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
               <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                 Lo básico
@@ -225,15 +227,11 @@ export default async function EditarPerfilPage({
                 </Field>
               </div>
 
-              <label className="mt-4 flex items-center gap-2.5 text-[0.9rem] text-[#3E4B44]">
-                <input
-                  type="checkbox"
-                  name="is_online_available"
-                  defaultChecked={therapist?.is_online_available ?? true}
-                  className="h-4 w-4 accent-forest"
-                />
-                Atiendo sesiones en línea
-              </label>
+              <ModalityFields
+                initialOnline={therapist?.is_online_available ?? true}
+                initialInPerson={therapist?.is_in_person_available ?? false}
+                initialAddress={therapist?.address ?? ""}
+              />
             </div>
 
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
@@ -291,7 +289,7 @@ export default async function EditarPerfilPage({
             <Button type="submit" variant="primary" className="w-full sm:w-auto">
               Guardar cambios
             </Button>
-          </form>
+          </ProfileForm>
 
           <BackToDashboard />
         </div>

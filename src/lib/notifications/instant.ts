@@ -92,24 +92,30 @@ export async function notifyAppointmentRequested({
   }
 }
 
-// Al momento en que el terapeuta confirma la cita: ambas partes reciben el
-// link real de la sesión (Google Meet, o la sala de respaldo de Jitsi si no
-// hay Google conectado) más una invitación de calendario (.ics) adjunta —
-// funciona igual sin importar el proveedor de correo de quien la reciba.
+// Al momento en que el terapeuta confirma la cita. Si es en línea, ambas
+// partes reciben el link real de la sesión (Google Meet, o la sala de
+// respaldo de Jitsi si no hay Google conectado). Si es presencial, reciben
+// la dirección del consultorio en vez de un link — nunca los dos a la vez.
+// Siempre va una invitación de calendario (.ics) adjunta, funciona igual sin
+// importar el proveedor de correo de quien la reciba.
 export async function notifyAppointmentConfirmed({
   appointmentId,
   therapistId,
   patientId,
   scheduledAtIso,
   durationMin,
+  modality,
   meetingLink,
+  address,
 }: {
   appointmentId: string;
   therapistId: string;
   patientId: string;
   scheduledAtIso: string;
   durationMin: number;
+  modality: "online" | "presencial";
   meetingLink: string | null;
+  address: string | null;
 }) {
   try {
     const supabase = createServiceClient();
@@ -130,11 +136,15 @@ export async function notifyAppointmentConfirmed({
 
     if (!therapistEmail || !patientEmail) return;
 
+    const modalityLabel = modality === "online" ? "en línea" : "presencial";
     const icsContent = buildIcsEvent({
       uid: appointmentId,
-      summary: `Sesión Lemy — ${therapistName} y ${patientName}`,
-      description: "Sesión agendada a través de Lemy.",
-      location: meetingLink,
+      summary: `Sesión Lemy (${modalityLabel}) — ${therapistName} y ${patientName}`,
+      description:
+        modality === "online"
+          ? `Sesión en línea agendada a través de Lemy.${meetingLink ? ` Link: ${meetingLink}` : ""}`
+          : "Sesión presencial agendada a través de Lemy.",
+      location: modality === "presencial" ? address : null,
       startIso: scheduledAtIso,
       endIso,
       organizerEmail: therapistEmail,
@@ -150,7 +160,9 @@ export async function notifyAppointmentConfirmed({
       recipientName: therapistName,
       otherPartyName: patientName,
       whenLabel,
+      modality,
       meetingLink,
+      address,
     });
     await dispatch({
       supabase,
@@ -170,7 +182,9 @@ export async function notifyAppointmentConfirmed({
       recipientName: patientName,
       otherPartyName: therapistName,
       whenLabel,
+      modality,
       meetingLink,
+      address,
     });
     await dispatch({
       supabase,
