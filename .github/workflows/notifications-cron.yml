@@ -1,0 +1,20 @@
+name: Disparar barrido de notificaciones
+
+# Vercel Hobby (plan gratis) solo permite cron jobs una vez al día — pero
+# necesitamos el recordatorio de "tu sesión es en 1 hora", que requiere
+# checarse cada 15 min. Por eso el cron de Vercel se quitó de vercel.json y
+# lo reemplazamos por este workflow de GitHub Actions (gratis, sin límite de
+# frecuencia), que simplemente llama al mismo endpoint por HTTPS.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a /api/cron/notifications
+        run: |
+          curl -sf -X GET "https://lemy.mx/api/cron/notifications" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
