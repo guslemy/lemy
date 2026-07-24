@@ -7,10 +7,13 @@ import { runNotificationSweep } from "@/lib/notifications/engine";
 // verdad en cada llamada del cron.
 export const dynamic = "force-dynamic";
 
-// Disparado por Vercel Cron cada 15 min (ver vercel.json). Vercel manda el
-// header Authorization automáticamente cuando CRON_SECRET está configurado
-// en el proyecto — así nadie más puede llamar este endpoint y disparar
-// notificaciones a mano.
+// Disparado cada 15 min por un workflow de GitHub Actions (ver
+// .github/workflows/notifications-cron.yml) — antes usaba el Cron nativo de
+// Vercel, pero el plan Hobby (gratis) solo permite cron jobs una vez al día,
+// y este barrido necesita correr más seguido para el recordatorio de "tu
+// sesión es en 1 hora". El workflow manda el mismo header Authorization
+// con el secreto guardado en GitHub — así nadie más puede llamar este
+// endpoint y disparar notificaciones a mano.
 const noStore = { headers: { "Cache-Control": "no-store, max-age=0" } };
 
 export async function GET(req: Request) {
