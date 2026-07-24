@@ -20,9 +20,10 @@ export function SiteFooter() {
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Pacientes</h4>
-            <a href="#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Buscar terapeuta</a>
-            <a href="#como-funciona" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Cómo funciona</a>
+            <a href="#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</a>
+            <a href="#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</a>
             <a href="#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
+            <a href="/blog" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Blog</a>
           </div>
 
           <div>
@@ -34,7 +35,7 @@ export function SiteFooter() {
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Contacto</h4>
-            <a href="mailto:hola@lemy.com" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">hola@lemy.com</a>
+            <a href="mailto:hola@lemy.mx" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">hola@lemy.mx</a>
             <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Instagram</a>
             <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">LinkedIn</a>
           </div>

@@ -5,12 +5,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { href: "/encuentra", label: "Encuentra tu conexión" },
-  { href: "#directorio", label: "Buscar terapeuta" },
-  { href: "#como-funciona", label: "Cómo funciona" },
+  { href: "#que-es-lemy", label: "¿Qué es Lemy?" },
+  { href: "#directorio", label: "Terapeutas verificados" },
   { href: "#terapeutas", label: "¿Eres terapeuta?" },
-  { href: "#confianza", label: "Confianza" },
 ];
+
+// El test de afinidad es, en el fondo, otro CTA — se destaca aparte de los
+// demás links de texto plano en vez de mezclarse con ellos.
+const AFFINITY_TEST = { href: "/encuentra", label: "Test de afinidad" };
 
 export type SiteRole = "admin" | "therapist" | "patient" | null;
 
@@ -105,7 +107,13 @@ export function SiteHeaderClient({
           Lemy
         </Link>
 
-        <nav className="hidden gap-8 text-sm font-medium md:flex">
+        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+          <a
+            href={AFFINITY_TEST.href}
+            className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
+          >
+            {AFFINITY_TEST.label}
+          </a>
           {navLinks.map((link) => (
             <a key={link.href} href={link.href} className="group relative py-1 text-ink">
               {link.label}
@@ -130,6 +138,13 @@ export function SiteHeaderClient({
 
       {menuOpen && (
         <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 md:hidden">
+          <a
+            href={AFFINITY_TEST.href}
+            onClick={() => setMenuOpen(false)}
+            className="rounded-full bg-rose-deep px-4 py-2 text-center font-semibold text-white"
+          >
+            {AFFINITY_TEST.label}
+          </a>
           {navLinks.map((link) => (
             <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
               {link.label}

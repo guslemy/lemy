@@ -88,17 +88,19 @@ export default function HomePage() {
 
         <QuizFloatingTab />
 
-        {/* COMO FUNCIONA */}
+        {/* QUE ES LEMY */}
         <ScrollReveal>
-          <section id="como-funciona" className="py-20 md:py-24">
+          <section id="que-es-lemy" className="py-20 md:py-24">
             <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
               <div className="mb-12 max-w-[620px]">
-                <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">El proceso</p>
+                <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Sobre Lemy</p>
                 <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.5rem]">
-                  Tres pasos, no un formulario eterno
+                  ¿Qué es Lemy?
                 </h2>
                 <p className="mt-3.5 text-[1.05rem] text-[#3E4B44]">
-                  Nada de cuestionarios interminables. Lo justo para encontrar a la persona correcta.
+                  Lemy es un directorio de salud mental donde puedes encontrar al terapeuta ideal
+                  para el <HeroRotatingWord words={["malestar", "dolor", "vacío", "agobio"]} /> que
+                  sientes, en solo 3 pasos:
                 </p>
               </div>
 
@@ -110,6 +112,29 @@ export default function HomePage() {
                     </div>
                     <h3 className="text-[1.15rem] text-forest">{step.title}</h3>
                     <p className="mt-2.5 text-[0.95rem] text-[#42504A]">{step.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </ScrollReveal>
+
+        {/* CONFIANZA */}
+        <ScrollReveal>
+          <section id="confianza" className="py-20 md:py-24">
+            <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
+              <div className="mb-12 max-w-[620px]">
+                <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Confianza</p>
+                <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.5rem]">
+                  Buscar ayuda no debería sentirse riesgoso
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 gap-7 sm:grid-cols-3">
+                {TRUST.map((item) => (
+                  <div key={item.mark}>
+                    <p className="font-display text-[1.6rem] italic text-rose-deep">{item.mark}</p>
+                    <p className="mt-2.5 text-[0.94rem] leading-relaxed text-[#3E4B44]">{item.body}</p>
                   </div>
                 ))}
               </div>
@@ -276,29 +301,6 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* CONFIANZA */}
-        <ScrollReveal>
-          <section id="confianza" className="py-20 md:py-24">
-            <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
-              <div className="mb-12 max-w-[620px]">
-                <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Confianza</p>
-                <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.5rem]">
-                  Buscar ayuda no debería sentirse riesgoso
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-7 sm:grid-cols-3">
-                {TRUST.map((item) => (
-                  <div key={item.mark}>
-                    <p className="font-display text-[1.6rem] italic text-rose-deep">{item.mark}</p>
-                    <p className="mt-2.5 text-[0.94rem] leading-relaxed text-[#3E4B44]">{item.body}</p>
-                  </div>
-                ))}
               </div>
             </div>
           </section>

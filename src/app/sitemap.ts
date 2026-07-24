@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { BLOG_POSTS } from "@/content/blog-posts";
 
 // Cliente anónimo simple — un sitemap no tiene usuario ni sesión, así que
 // no necesita el cliente basado en cookies (createServerClient de @/lib/
@@ -30,7 +31,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/login`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${BASE_URL}/privacidad`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE_URL}/terminos`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${BASE_URL}/enfoques`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: 0.7 },
   ];
+
+  const blogEntries: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
 
   // Long-tail: cada especialidad filtrada es su propia URL indexable — así
   // es como la gente busca de verdad ("terapia para ansiedad"), no con
@@ -47,5 +56,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticEntries, ...specialtyEntries, ...therapistEntries];
+  return [...staticEntries, ...blogEntries, ...specialtyEntries, ...therapistEntries];
 }
