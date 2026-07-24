@@ -32,11 +32,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/privacidad`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE_URL}/terminos`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE_URL}/enfoques`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${BASE_URL}/biblioteca`, changeFrequency: "weekly", priority: 0.7 },
   ];
 
   const blogEntries: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
+    url: `${BASE_URL}/biblioteca/${post.slug}`,
     changeFrequency: "monthly",
     priority: 0.6,
   }));

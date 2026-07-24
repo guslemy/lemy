@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# carpeta vieja de /blog que el FUSE del sandbox no deja borrar de verdad —
+# ya no es una ruta real (movida a /biblioteca), solo queda huérfana aquí
+/_old_blog_removed/
+*.local-bak

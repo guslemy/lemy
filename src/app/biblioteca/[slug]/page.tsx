@@ -89,7 +89,7 @@ export default async function BlogPostPage({ params }: Props) {
     datePublished: post.publishedAt,
     author: { "@type": "Organization", name: post.authorName },
     publisher: { "@type": "Organization", name: "Lemy" },
-    mainEntityOfPage: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/blog/${post.slug}`,
+    mainEntityOfPage: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/biblioteca/${post.slug}`,
   };
 
   return (
@@ -102,8 +102,8 @@ export default async function BlogPostPage({ params }: Props) {
       <SiteHeader />
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <article className="mx-auto max-w-[680px]">
-          <Link href="/blog" className="text-[0.85rem] font-medium text-forest hover:text-rose-deep">
-            ← Volver al blog
+          <Link href="/biblioteca" className="text-[0.85rem] font-medium text-forest hover:text-rose-deep">
+            ← Volver a la biblioteca
           </Link>
 
           <p className="mt-6 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">

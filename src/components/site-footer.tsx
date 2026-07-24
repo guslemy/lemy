@@ -49,7 +49,7 @@ export function SiteFooter() {
             <a href="#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</a>
             <a href="#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</a>
             <a href="#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
-            <a href="/blog" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Blog</a>
+            <a href="/biblioteca" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Biblioteca</a>
           </div>
 
           <div>
