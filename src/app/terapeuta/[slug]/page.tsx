@@ -23,7 +23,12 @@ type Props = {
   searchParams: Promise<{ solicitado?: string; ocupado?: string; error?: string }>;
 };
 
-type CatalogItem = { slug: string; nombre_coloquial: string; descripcion_coloquial: string | null };
+type CatalogItem = {
+  slug: string;
+  nombre_tecnico?: string;
+  nombre_coloquial: string;
+  descripcion_coloquial: string | null;
+};
 
 type TherapistDetail = {
   id: string;
@@ -53,7 +58,7 @@ async function getTherapist(slug: string) {
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        is_online_available, is_in_person_available, price_min, price_max, verification_status,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
-       therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_coloquial, descripcion_coloquial ) )`
+       therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) )`
     )
     .eq("slug", slug)
     .eq("is_published", true)
@@ -164,10 +169,10 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     <img
                       src={therapist.photo_url}
                       alt=""
-                      className="h-[100px] w-[100px] rounded-full object-cover"
+                      className="h-[150px] w-[150px] rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-3xl font-semibold text-white">
+                    <div className="flex h-[150px] w-[150px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-4xl font-semibold text-white">
                       {initialsFrom(therapist.display_name)}
                     </div>
                   )}
@@ -182,14 +187,6 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   )}
 
                   <div className="mt-5.5 space-y-2.5 text-[0.88rem] text-[#3E4B44]">
-                    {approaches.length > 0 && (
-                      <div>
-                        <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
-                          Enfoque
-                        </strong>
-                        {approaches.map((a) => a.nombre_coloquial).join(", ")}
-                      </div>
-                    )}
                     {therapist.is_in_person_available && (therapist.zona || therapist.city) && (
                       <div>
                         <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
@@ -238,6 +235,32 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                         Sobre mí
                       </h4>
                       <p className="mb-6.5 text-[0.96rem] text-[#37433D]">{therapist.bio}</p>
+                    </>
+                  )}
+
+                  {approaches.length > 0 && (
+                    <>
+                      <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                        Enfoque terapéutico
+                      </h4>
+                      <div className="mb-2.5 space-y-3">
+                        {approaches.map((a) => (
+                          <div key={a.slug}>
+                            <p className="font-medium text-forest">{a.nombre_tecnico ?? a.nombre_coloquial}</p>
+                            {a.descripcion_coloquial && (
+                              <p className="mt-0.5 text-[0.85rem] text-[#7C877F]">
+                                {a.descripcion_coloquial}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <Link
+                        href="/enfoques"
+                        className="mb-6.5 inline-block text-[0.82rem] font-medium text-rose-deep underline underline-offset-2"
+                      >
+                        Aprende más sobre los enfoques de terapia →
+                      </Link>
                     </>
                   )}
 

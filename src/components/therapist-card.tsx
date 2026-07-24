@@ -47,10 +47,10 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
     >
       {t.photo_url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={t.photo_url} alt="" className="mb-4 h-14 w-14 rounded-full object-cover" />
+        <img src={t.photo_url} alt="" className="mb-4 h-24 w-24 rounded-full object-cover" />
       ) : (
         <div
-          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
+          className="mb-4 flex h-24 w-24 items-center justify-center rounded-full font-display text-2xl font-semibold text-white"
           style={{ background: gradient }}
         >
           {initialsFrom(t.display_name)}

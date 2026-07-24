@@ -9,6 +9,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
+import { PhotoUploadField } from "@/components/photo-upload-field";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import { saveTherapistProfile, uploadTherapistPhoto } from "../actions";
 
@@ -60,7 +61,7 @@ export default async function EditarPerfilPage({
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("specialties").select("id, nombre_coloquial").order("nombre_coloquial"),
-    supabase.from("therapeutic_approaches").select("id, nombre_coloquial").order("nombre_coloquial"),
+    supabase.from("therapeutic_approaches").select("id, nombre_tecnico").order("nombre_tecnico"),
     supabase.from("therapist_specialties").select("specialty_id").eq("therapist_id", user.id),
     supabase.from("therapist_approaches").select("approach_id").eq("therapist_id", user.id),
   ]);
@@ -126,14 +127,10 @@ export default async function EditarPerfilPage({
                   {initialsFrom(therapist?.display_name || "Tu Nombre")}
                 </div>
               )}
-              <form action={uploadTherapistPhoto} className="flex flex-wrap items-center gap-3">
-                <input
-                  type="file"
-                  name="photo"
-                  accept="image/*"
-                  required
-                  className="text-[0.85rem] text-[#3E4B44]"
-                />
+              <form action={uploadTherapistPhoto} className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="min-w-[240px] flex-1">
+                  <PhotoUploadField />
+                </div>
                 <SubmitButton pendingText="Subiendo…" variant="ghost">
                   Subir foto
                 </SubmitButton>
@@ -258,6 +255,10 @@ export default async function EditarPerfilPage({
               <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                 Tu enfoque
               </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                En tu perfil público esto se muestra con una explicación en lenguaje llano para el
+                paciente — aquí solo necesitas marcar el tuyo.
+              </p>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {(approaches ?? []).map((a) => (
                   <label key={a.id} className="flex items-center gap-2.5 text-[0.88rem] text-[#3E4B44]">
@@ -268,7 +269,7 @@ export default async function EditarPerfilPage({
                       defaultChecked={selectedApproachIds.has(a.id)}
                       className="h-4 w-4 accent-forest"
                     />
-                    {a.nombre_coloquial}
+                    {a.nombre_tecnico}
                   </label>
                 ))}
               </div>

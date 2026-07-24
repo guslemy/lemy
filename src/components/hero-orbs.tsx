@@ -37,8 +37,8 @@ export function HeroOrbs() {
       <span className="absolute bottom-4 right-0 rounded-full border border-line bg-sage-white px-3 py-1.5 font-mono text-[0.72rem] text-rose-deep">
         quien lo atiende
       </span>
-      <span className="absolute left-[150px] top-[150px] rounded-full bg-card px-3 py-1.5 font-mono text-[0.72rem] font-semibold text-ink shadow-[var(--shadow-signature)] md:left-[190px] md:top-[190px]">
-        tu conexión
+      <span className="absolute left-[150px] top-[150px] rounded-full bg-card px-4 py-2 font-display text-[1.05rem] font-semibold text-forest shadow-[var(--shadow-signature)] md:left-[190px] md:top-[190px] md:text-[1.2rem]">
+        Lemy
       </span>
     </div>
   );

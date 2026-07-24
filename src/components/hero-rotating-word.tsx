@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 // Palabra del hero que cambia sola cada ciertos segundos, con un fundido
 // simple (fade out → cambia → fade in). Lista fácil de extender: solo hay
 // que agregar strings aquí (o pasar otra lista por props).
-const DEFAULT_WORDS = ["escucharte", "acompañarte", "ayudarte"];
+const DEFAULT_WORDS = ["comprenda", "acompañe", "escuche"];
 
 const INTERVAL_MS = 2800;
 const FADE_MS = 350;
