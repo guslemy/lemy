@@ -2,11 +2,74 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { HeroOrbs } from "@/components/hero-orbs";
-import { DirectoryPreview } from "@/components/directory-preview";
+import { DirectoryPreview, type DirectoryTherapist } from "@/components/directory-preview";
 import { Button } from "@/components/ui/button";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { HeroSearch } from "@/components/hero-search";
 import { HeroRotatingWord } from "@/components/hero-rotating-word";
+import { createClient } from "@/lib/supabase/server";
+
+// Cuántos terapeutas mostrar en la vista previa de la home — suficiente
+// para llenar 2 filas de 3 en la grid, sin volverse un scroll interminable.
+// El directorio completo (sin límite) vive en /buscar.
+const DIRECTORY_PREVIEW_LIMIT = 6;
+
+type RawHomeTherapist = {
+  slug: string;
+  display_name: string;
+  tagline: string | null;
+  city: string | null;
+  price_min: number | null;
+  price_max: number | null;
+  is_online_available: boolean;
+  is_in_person_available: boolean;
+  photo_url: string | null;
+  verification_status: string;
+  created_at: string;
+  therapist_specialties: { specialty: { slug: string; nombre_coloquial: string } | null }[] | null;
+};
+
+async function getDirectoryPreviewTherapists(): Promise<DirectoryTherapist[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("therapists")
+    .select(
+      `slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available,
+       photo_url, verification_status, created_at,
+       therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )`
+    )
+    .eq("is_published", true);
+
+  const rows = (data ?? []) as unknown as RawHomeTherapist[];
+
+  // Verificados primero (más confianza para quien apenas llega a la home),
+  // luego los más recientes — así se siente activo, no una lista fija.
+  const sorted = [...rows].sort((a, b) => {
+    const aVerified = a.verification_status === "verified" ? 1 : 0;
+    const bVerified = b.verification_status === "verified" ? 1 : 0;
+    if (aVerified !== bVerified) return bVerified - aVerified;
+    return a.created_at < b.created_at ? 1 : -1;
+  });
+
+  return sorted.slice(0, DIRECTORY_PREVIEW_LIMIT).map((t) => {
+    const specs = (t.therapist_specialties ?? [])
+      .map((ts) => ts.specialty)
+      .filter((s): s is { slug: string; nombre_coloquial: string } => Boolean(s));
+    return {
+      slug: t.slug,
+      display_name: t.display_name,
+      tagline: t.tagline,
+      city: t.city,
+      price_min: t.price_min,
+      price_max: t.price_max,
+      is_online_available: t.is_online_available,
+      is_in_person_available: t.is_in_person_available,
+      photo_url: t.photo_url,
+      specialtySlugs: specs.map((s) => s.slug),
+      specialtyNames: specs.map((s) => s.nombre_coloquial),
+    };
+  });
+}
 
 const HERO_PILLS = ["Ansiedad", "Pareja", "Duelo", "Autoestima", "Adolescentes", "Trauma"];
 
@@ -43,7 +106,9 @@ const TRUST = [
   { mark: "Directo", body: "Contactas al terapeuta sin intermediarios; tú decides con quién y cuándo continuar." },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const previewTherapists = await getDirectoryPreviewTherapists();
+
   return (
     <>
       <SiteHeader />
@@ -165,7 +230,7 @@ export default function HomePage() {
           </section>
         </ScrollReveal>
 
-        {/* DIRECTORIO (preview con datos de ejemplo) */}
+        {/* DIRECTORIO (datos reales de Supabase — misma fuente que /buscar) */}
         <ScrollReveal>
           <section id="directorio" className="py-20 md:py-24">
             <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
@@ -179,7 +244,21 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <DirectoryPreview />
+              {previewTherapists.length > 0 ? (
+                <DirectoryPreview therapists={previewTherapists} />
+              ) : (
+                <div className="signature-corner rounded-[28px] border border-line bg-card p-10 text-center">
+                  <p className="font-display text-[1.2rem] text-forest">
+                    Cuéntanos qué buscas y te ayudamos directo
+                  </p>
+                  <p className="mx-auto mt-2.5 max-w-[440px] text-[0.95rem] text-[#42504A]">
+                    Responde el test de afinidad y te acercamos a quien te pueda acompañar mejor.
+                  </p>
+                  <Button href="/test" variant="primary" className="mt-6">
+                    Iniciar test de afinidad
+                  </Button>
+                </div>
+              )}
             </div>
           </section>
         </ScrollReveal>
