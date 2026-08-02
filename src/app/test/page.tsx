@@ -11,6 +11,10 @@ import { QuizClient } from "./quiz-client";
 // categorías reales del sitio, sin tener que mantener una lista aparte) y
 // los terapeutas publicados. Todo el flujo de preguntas vive en el cliente
 // y no se guarda nada en la base de datos — ver src/lib/questionnaire.ts.
+//
+// Nota: esta ruta vivía en /encuentra — se renombró a /test (más corto,
+// más fácil de decir en voz alta). El redirect permanente vive en
+// next.config.ts para no perder el SEO/bookmarks que ya tuviera.
 
 export const metadata: Metadata = {
   title: "Encuentra a tu terapeuta ideal",
@@ -32,7 +36,7 @@ type RawTherapist = {
   therapist_specialties: { specialty: { slug: string; nombre_coloquial: string } | null }[] | null;
 };
 
-export default async function EncuentraPage() {
+export default async function TestPage() {
   const supabase = await createClient();
 
   const [{ data: rawSpecialties }, { data: rawTherapists }] = await Promise.all([

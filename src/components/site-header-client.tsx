@@ -12,7 +12,7 @@ const navLinks = [
 
 // El test de afinidad es, en el fondo, otro CTA — se destaca aparte de los
 // demás links de texto plano en vez de mezclarse con ellos.
-const AFFINITY_TEST = { href: "/encuentra", label: "Test de afinidad" };
+const AFFINITY_TEST = { href: "/test", label: "Test de afinidad" };
 
 export type SiteRole = "admin" | "therapist" | "patient" | null;
 

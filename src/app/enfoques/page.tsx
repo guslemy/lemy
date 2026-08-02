@@ -5,10 +5,13 @@ import { ApproachIcon } from "@/components/approach-icon";
 import { createClient } from "@/lib/supabase/server";
 import { APPROACH_DETAILS } from "@/content/approaches-detail";
 
+const PAGE_DESCRIPTION =
+  "Qué significa cada enfoque terapéutico — Cognitivo-conductual, Psicodinámico, Sistémico, Humanista, Gestalt y EMDR — explicado en lenguaje llano, con para quién es cada uno y qué esperar en sesión.";
+
 export const metadata: Metadata = {
   title: "Enfoques de terapia",
-  description:
-    "Qué significa cada enfoque terapéutico — Cognitivo-conductual, Psicodinámico, Sistémico, Humanista, Gestalt y EMDR — explicado en lenguaje llano.",
+  description: PAGE_DESCRIPTION,
+  openGraph: { title: "Enfoques de terapia", description: PAGE_DESCRIPTION, type: "article" },
 };
 
 type Approach = {
@@ -35,8 +38,29 @@ async function getApproaches() {
 export default async function EnfoquesPage() {
   const approaches = await getApproaches();
 
+  // DefinedTermSet: le da a Google una estructura explícita de "esto es un
+  // glosario de N términos", con su propia definición corta cada uno — más
+  // probabilidad de salir como rich result que texto plano sin marcar.
+  const definedTermSetJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    name: "Enfoques de terapia",
+    description: PAGE_DESCRIPTION,
+    hasDefinedTerm: approaches.map((a) => ({
+      "@type": "DefinedTerm",
+      name: a.nombre_tecnico,
+      description: a.descripcion_coloquial ?? undefined,
+      inDefinedTermSet: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/enfoques`,
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSetJsonLd) }}
+      />
       <SiteHeader />
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[820px]">
@@ -104,7 +128,7 @@ export default async function EnfoquesPage() {
 
           <p className="mt-10 text-[0.9rem] text-[#5A665F]">
             ¿No sabes cuál te conviene? No necesitas decidirlo tú sol@ —{" "}
-            <a href="/encuentra" className="text-forest underline">
+            <a href="/test" className="text-forest underline">
               responde el test de afinidad
             </a>{" "}
             y te acercamos a terapeutas que trabajan justo lo que necesitas, sin que tengas que

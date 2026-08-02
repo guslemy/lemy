@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
@@ -56,9 +57,14 @@ async function getVideosForSpecialty(
   return (rawVideos ?? []) as unknown as EducationalVideo[];
 }
 
-function pillHref(q: string, especialidad: string) {
+// Antes esto conservaba el texto de la barra de búsqueda (`q`) al hacer
+// clic en una pill, y el formulario de texto conservaba la pill activa —
+// las dos se combinaban con AND y confundía a la gente ("busco ansiedad,
+// le doy clic a Duelo, y no entiendo por qué sigo viendo resultados de
+// ansiedad"). Ahora son independientes: pill y buscador de texto son
+// mutuamente excluyentes, cada uno reemplaza al otro.
+function pillHref(especialidad: string) {
   const params = new URLSearchParams();
-  if (q) params.set("q", q);
   if (especialidad) params.set("especialidad", especialidad);
   const qs = params.toString();
   return `/buscar${qs ? `?${qs}` : ""}`;
@@ -174,7 +180,6 @@ export default async function BuscarPage({
               action="/buscar"
               className="mt-8 flex max-w-[520px] gap-2 rounded-full border border-line bg-card py-1.5 pl-5 pr-1.5 shadow-[var(--shadow-signature)]"
             >
-              {especialidad && <input type="hidden" name="especialidad" value={especialidad} />}
               <input
                 type="text"
                 name="q"
@@ -188,11 +193,11 @@ export default async function BuscarPage({
             </form>
 
             <div className="mt-5 flex flex-wrap gap-2.5">
-              <Pill href={pillHref(q, "")} active={!especialidad}>
+              <Pill href={pillHref("")} active={!especialidad}>
                 Todos
               </Pill>
               {(specialties ?? []).map((s) => (
-                <Pill key={s.slug} href={pillHref(q, s.slug)} active={especialidad === s.slug}>
+                <Pill key={s.slug} href={pillHref(s.slug)} active={especialidad === s.slug}>
                   {s.nombre_coloquial}
                 </Pill>
               ))}
@@ -236,10 +241,12 @@ export default async function BuscarPage({
 
             {filtered.length === 0 ? (
               <div className="signature-corner rounded-[28px] border border-line bg-card p-10 text-center">
-                <p className="font-display text-[1.3rem] text-forest">Todavía no hay resultados por aquí</p>
+                <p className="font-display text-[1.3rem] text-forest">No encontramos nada con esas búsqueda.</p>
                 <p className="mx-auto mt-2.5 max-w-[440px] text-[0.95rem] text-[#42504A]">
-                  Estamos incorporando a los primeros terapeutas verificados de Lemy. Vuelve pronto o
-                  ajusta tu búsqueda.
+                  Usa otras palabras para describir lo que sientes, o usa nuestro{" "}
+                  <Link href="/test" className="font-semibold text-rose-deep underline">
+                    Test de afinidad
+                  </Link>
                 </p>
               </div>
             ) : (

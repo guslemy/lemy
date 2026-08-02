@@ -8,7 +8,7 @@ import Link from "next/link";
 export function QuizFloatingTab() {
   return (
     <Link
-      href="/encuentra"
+      href="/test"
       className="animate-tab-attention fixed bottom-6 right-0 z-40 flex items-center gap-2 rounded-l-full border border-r-0 border-line bg-card py-3 pl-4.5 pr-5 text-[0.85rem] font-semibold text-forest shadow-[var(--shadow-signature)] transition-all duration-200 hover:border-rose-deep hover:bg-rose-deep hover:pr-6 hover:text-white"
     >
       <span aria-hidden>✦</span>

@@ -5,14 +5,21 @@ import { createClient } from "@/lib/supabase/client";
 // Login con Google. Pedimos también el scope de Calendar para poder,
 // al final de la Fase 1, crear el evento + Google Meet automáticamente
 // cuando el paciente paga el anticipo de una cita.
-export function GoogleLoginButton() {
+//
+// `next` viaja hasta /auth/callback (que sí sabe leerlo) para que, si
+// alguien llegó aquí a media reserva de cita, Google no lo mande a
+// /dashboard a secas — regresa exactamente a donde iba.
+export function GoogleLoginButton({ next }: { next?: string }) {
   const supabase = createClient();
 
   const handleLogin = async () => {
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (next) callbackUrl.searchParams.set("next", next);
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
         // calendar.freebusy: para poder revisar si el terapeuta ya tiene algo
         // ocupado en su Google Calendar real (fuera de Lemy) antes de
         // mostrar un horario como disponible. Quien conectó su cuenta antes
@@ -31,7 +38,7 @@ export function GoogleLoginButton() {
   return (
     <button
       onClick={handleLogin}
-      className="flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-6 py-3 font-medium text-neutral-800 transition hover:bg-neutral-50"
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-line bg-white px-6 py-3 font-medium text-ink transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest/[0.03]"
     >
       Continuar con Google
     </button>

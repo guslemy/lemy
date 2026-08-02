@@ -1,41 +1,71 @@
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { GoogleLoginButton } from "@/components/google-login-button";
 import { EmailAuthForm } from "@/components/email-auth-form";
 
-export default function LoginPage() {
+// Antes esta página tenía su propio estilo hardcodeado (verde azulado y
+// crema, sin header/footer del sitio) y un único copy genérico ("Entra a
+// Lemy") sin importar de dónde viniera alguien. Se sentía "agresiva" para
+// quien solo estaba tratando de confirmar una cita — como si le estuvieran
+// pidiendo crear una cuenta de la nada. Ahora usa el mismo sistema visual
+// que el resto del sitio, y cuando `next` indica que se llegó desde el flujo
+// de reservar (perfil de terapeuta o completar-perfil), el copy se enfoca
+// en la cita, no en "crear una cuenta".
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const isBookingFlow = Boolean(next && (next.startsWith("/terapeuta/") || next === "/completar-perfil"));
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#f5f1e8] p-8 text-center">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-[#0f3d3e]">Entra a Lemy</h1>
-        <p className="text-sm text-neutral-600">
-          Con Google o con tu correo — lo que se te haga más fácil.
-        </p>
-      </div>
+    <>
+      <SiteHeader />
+      <main className="px-6 py-16 sm:px-8 md:py-24">
+        <div className="mx-auto max-w-[440px] text-center">
+          <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
+            {isBookingFlow ? "Un último paso" : "Bienvenid@"}
+          </p>
+          <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.2rem]">
+            {isBookingFlow ? "Antes de confirmar tu cita" : "Entra a Lemy"}
+          </h1>
+          <p className="mt-3 text-[0.95rem] text-[#3E4B44]">
+            {isBookingFlow
+              ? "Solo necesitamos saber que eres tú, para poder guardar tu solicitud y avisarte cuando tu terapeuta la confirme."
+              : "Con Google o con tu correo — lo que se te haga más fácil."}
+          </p>
 
-      <GoogleLoginButton />
-      <p className="max-w-sm text-xs text-neutral-500">
-        Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no vamos a
-        poder crear tus citas automáticamente ahí.
-      </p>
+          <div className="signature-corner mt-8 flex flex-col items-center gap-5 rounded-[28px] border border-line bg-card p-7">
+            <GoogleLoginButton next={next} />
+            <p className="max-w-sm text-[0.78rem] text-[#7C877F]">
+              Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no
+              vamos a poder crear tus citas automáticamente ahí.
+            </p>
 
-      <div className="flex w-full max-w-sm items-center gap-3 text-xs text-neutral-400">
-        <div className="h-px flex-1 bg-neutral-300" />
-        o con tu correo
-        <div className="h-px flex-1 bg-neutral-300" />
-      </div>
+            <div className="flex w-full items-center gap-3 text-[0.78rem] text-[#9AA59D]">
+              <div className="h-px flex-1 bg-line" />
+              o con tu correo
+              <div className="h-px flex-1 bg-line" />
+            </div>
 
-      <EmailAuthForm />
+            <EmailAuthForm next={next} />
+          </div>
 
-      <p className="max-w-sm text-center text-xs text-neutral-400">
-        Al continuar aceptas nuestro{" "}
-        <a href="/privacidad" className="underline">
-          Aviso de Privacidad
-        </a>{" "}
-        y{" "}
-        <a href="/terminos" className="underline">
-          Términos de Uso
-        </a>
-        .
-      </p>
-    </main>
+          <p className="mx-auto mt-6 max-w-sm text-center text-[0.78rem] text-[#7C877F]">
+            Al continuar aceptas nuestro{" "}
+            <a href="/privacidad" className="underline">
+              Aviso de Privacidad
+            </a>{" "}
+            y{" "}
+            <a href="/terminos" className="underline">
+              Términos de Uso
+            </a>
+            .
+          </p>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
   );
 }

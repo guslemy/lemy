@@ -1,8 +1,24 @@
 import Stripe from "stripe";
 
 // Cliente de servidor — nunca importar esto desde un componente de cliente.
-// Una sola instancia reutilizada entre server actions / route handlers.
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+//
+// OJO: antes esto era `export const stripe = new Stripe(...)` instanciado
+// al importar el módulo. Eso hace que Next.js truene TODO el build en
+// Vercel ("Neither apiKey nor config.authenticator provided") en el paso
+// de "Collecting page data" si STRIPE_SECRET_KEY no está disponible en ese
+// momento — aunque el webhook nunca se llegue a ejecutar. Con una función
+// diferida, el cliente solo se crea cuando de verdad se usa (en tiempo de
+// request), no al cargar el módulo durante el build.
+let _stripe: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("Falta la variable de entorno STRIPE_SECRET_KEY.");
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return _stripe;
+}
 
 // IDs de los objetos de Stripe (Productos/Precios/Cupón) — se crean una vez
 // desde el Dashboard de Stripe (no vía API, para no depender de red saliente

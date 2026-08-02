@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 
 // Fuente de verdad para el estado real de la suscripción: nunca confiamos
@@ -9,6 +9,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 export async function POST(req: Request) {
   const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text();
+  const stripe = getStripe();
 
   let event: Stripe.Event;
   try {

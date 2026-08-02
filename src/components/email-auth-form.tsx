@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 // Login alterno para quien no tiene (o no quiere usar) cuenta de Google —
 // funciona con cualquier proveedor de correo (Hotmail, Outlook, Yahoo, etc.).
-export function EmailAuthForm() {
+export function EmailAuthForm({ next }: { next?: string }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +30,7 @@ export function EmailAuthForm() {
         setStatus("idle");
         return;
       }
-      router.push("/dashboard");
+      router.push(next || "/dashboard");
       router.refresh();
     } else {
       if (fullName.trim().length < 2) {
@@ -44,11 +44,14 @@ export function EmailAuthForm() {
         return;
       }
 
+      const confirmUrl = new URL("/auth/confirm", window.location.origin);
+      if (next) confirmUrl.searchParams.set("next", next);
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: confirmUrl.toString(),
           data: { full_name: fullName.trim(), phone: phone.trim() },
         },
       });
@@ -63,9 +66,9 @@ export function EmailAuthForm() {
 
   if (status === "check-email") {
     return (
-      <p className="max-w-sm text-center text-sm text-neutral-600">
-        Te mandamos un correo a <strong>{email}</strong>. Ábrelo y dale clic al
-        link para activar tu cuenta.
+      <p className="max-w-sm text-center text-[0.9rem] text-[#3E4B44]">
+        Te mandamos un correo a <strong className="text-forest">{email}</strong>. Ábrelo y dale
+        clic al link para activar tu cuenta.
       </p>
     );
   }
@@ -81,7 +84,7 @@ export function EmailAuthForm() {
             placeholder="Nombre completo"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+            className="input-lemy"
           />
           <input
             type="tel"
@@ -90,7 +93,7 @@ export function EmailAuthForm() {
             placeholder="Teléfono (para tu terapeuta)"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+            className="input-lemy"
           />
         </>
       )}
@@ -100,7 +103,7 @@ export function EmailAuthForm() {
         placeholder="tu@correo.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+        className="input-lemy"
       />
       <input
         type="password"
@@ -109,15 +112,15 @@ export function EmailAuthForm() {
         placeholder="Contraseña (mínimo 6 caracteres)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="rounded-lg border border-neutral-300 px-4 py-2 text-sm"
+        className="input-lemy"
       />
 
-      {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+      {errorMsg && <p className="text-[0.85rem] text-rose-deep">{errorMsg}</p>}
 
       <button
         type="submit"
         disabled={status === "loading"}
-        className="rounded-full bg-[#0f3d3e] px-6 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+        className="rounded-full bg-forest px-6 py-2.5 text-sm font-semibold text-sage-white transition-all duration-200 active:scale-95 hover:bg-forest-deep disabled:opacity-50"
       >
         {status === "loading"
           ? "Un momento..."
@@ -129,7 +132,7 @@ export function EmailAuthForm() {
       <button
         type="button"
         onClick={() => setMode(mode === "login" ? "signup" : "login")}
-        className="text-sm text-neutral-500 underline"
+        className="text-[0.85rem] text-[#7C877F] underline"
       >
         {mode === "login" ? "¿Primera vez? Crea tu cuenta" : "¿Ya tienes cuenta? Entra"}
       </button>

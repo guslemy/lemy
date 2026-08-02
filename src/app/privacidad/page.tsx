@@ -55,7 +55,7 @@ export default function AvisoPrivacidadPage() {
               Calendar cuando confirmas una cita.
             </p>
             <p>
-              <strong className="text-forest">Cuestionario de match (&quot;/encuentra&quot;):</strong>{" "}
+              <strong className="text-forest">Cuestionario de match (&quot;/test&quot;):</strong>{" "}
               por diseño, este cuestionario no guarda ninguna respuesta ligada a tu identidad. Las
               respuestas viven solo en tu navegador durante la sesión y se descartan al salir.
             </p>

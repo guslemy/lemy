@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/blog", destination: "/biblioteca", permanent: true },
       { source: "/blog/:slug", destination: "/biblioteca/:slug", permanent: true },
+      { source: "/encuentra", destination: "/test", permanent: true },
     ];
   },
 };

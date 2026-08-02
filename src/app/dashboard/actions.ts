@@ -211,6 +211,6 @@ export async function uploadTherapistPhoto(formData: FormData) {
   revalidatePath("/dashboard/perfil");
   revalidatePath("/dashboard");
   revalidatePath("/buscar");
-  revalidatePath("/encuentra");
+  revalidatePath("/test");
   redirect("/dashboard/perfil?foto_guardada=1");
 }

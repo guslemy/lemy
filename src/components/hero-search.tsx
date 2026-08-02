@@ -44,6 +44,9 @@ export function HeroSearch({ suggestions }: { suggestions: string[] }) {
             {label}
           </Pill>
         ))}
+        <Pill href="/buscar" tone="accent">
+          Ver más…
+        </Pill>
       </div>
     </div>
   );

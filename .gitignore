@@ -45,3 +45,6 @@ next-env.d.ts
 /_old_blog_removed/
 *.local-bak
 build.log
+
+# lo mismo, pero para /encuentra → /test
+/_old_encuentra_removed/

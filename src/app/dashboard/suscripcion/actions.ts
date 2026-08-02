@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { stripe, STRIPE_PRICE_BASE, STRIPE_PRICE_PLUS, STRIPE_COUPON_FOUNDER } from "@/lib/stripe";
+import { getStripe, STRIPE_PRICE_BASE, STRIPE_PRICE_PLUS, STRIPE_COUPON_FOUNDER } from "@/lib/stripe";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -33,6 +33,7 @@ async function siteUrl() {
 // Checkout Session real en modo suscripción. Si es de los primeros 30
 // fundadores, aplica el cupón de 30% x 3 meses automáticamente.
 export async function createSubscriptionCheckout(formData: FormData) {
+  const stripe = getStripe();
   const { supabase, user } = await requireTherapist();
   const plan = String(formData.get("plan") || "base") === "plus" ? "plus" : "base";
   const priceId = plan === "plus" ? STRIPE_PRICE_PLUS : STRIPE_PRICE_BASE;

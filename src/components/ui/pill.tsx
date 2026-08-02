@@ -5,16 +5,22 @@ export function Pill({
   children,
   onClick,
   href,
+  tone = "default",
 }: {
   active?: boolean;
   children: React.ReactNode;
   onClick?: () => void;
   href?: string;
+  // "accent" es para la pill de "Ver más…" — mismo tamaño/forma, pero en
+  // rose-deep para que se lea como un CTA distinto, no una opción más.
+  tone?: "default" | "accent";
 }) {
   const className = `rounded-full border px-4 py-2 font-mono text-[0.76rem] transition-all duration-200 active:scale-95 ${
-    active
-      ? "border-forest bg-forest text-sage-white"
-      : "border-line bg-card text-[#3E4B44] hover:border-forest hover:bg-forest hover:text-sage-white"
+    tone === "accent"
+      ? "border-rose-deep bg-rose-deep text-white hover:bg-[#a86356]"
+      : active
+        ? "border-forest bg-forest text-sage-white"
+        : "border-line bg-card text-[#3E4B44] hover:border-forest hover:bg-forest hover:text-sage-white"
   }`;
 
   if (href) {

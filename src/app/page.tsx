@@ -57,24 +57,19 @@ export default function HomePage() {
                 Directorio de salud mental
               </p>
               <h1 className="mt-2.5 font-display text-[2.4rem] font-medium leading-[1.08] text-forest sm:text-[3rem] md:text-[3.6rem]">
-                Quiero encontrar a alguien
+                Quiero a alguien
                 <br />
                 que me <HeroRotatingWord />
               </h1>
               <p className="mt-5 max-w-[480px] text-lg text-[#3E4B44]">
-                Lemy conecta a personas con terapeutas certificados según su motivo de consulta, no
-                según quién paga más publicidad. Claro, humano y sin vueltas.
+                Lemy te conecta con la persona más adecuada para lo que estás buscando.
               </p>
 
               <div className="mt-9 max-w-[480px] rounded-[24px] border border-line bg-card p-6 shadow-[var(--shadow-signature)]">
                 <p className="font-display text-[1.15rem] text-forest">
                   ¿No sabes por dónde empezar?
                 </p>
-                <p className="mt-1.5 text-[0.92rem] text-[#42504A]">
-                  Cuéntanos un poco sobre ti — 5 preguntas breves y anónimas, sin necesidad de crear
-                  una cuenta — y te acercamos a los terapeutas con quienes tendrías mayor afinidad.
-                </p>
-                <Button href="/encuentra" variant="primary" className="mt-4.5 w-full">
+                <Button href="/test" variant="primary" className="mt-4.5 w-full">
                   Iniciar test de afinidad
                 </Button>
               </div>

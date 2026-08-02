@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { PageTransition } from "@/components/page-transition";
+import { HashScrollFix } from "@/components/hash-scroll-fix";
 import "./globals.css";
 
 // Nota: las fuentes se cargan con <link> en vez de next/font/google —
@@ -55,7 +57,8 @@ export default function RootLayout({
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        {children}
+        <HashScrollFix />
+        <PageTransition>{children}</PageTransition>
       </body>
     </html>
   );

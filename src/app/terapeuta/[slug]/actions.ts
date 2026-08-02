@@ -25,7 +25,7 @@ export async function requestAppointment(formData: FormData) {
   }
 
   if (!therapistSlug || !scheduledAt) {
-    redirect(`/terapeuta/${therapistSlug}?error=1`);
+    redirect(`/terapeuta/${therapistSlug}?error=1#agenda`);
   }
 
   // Antes de reservar necesitamos nombre y teléfono del paciente (para poder
@@ -50,8 +50,14 @@ export async function requestAppointment(formData: FormData) {
   revalidatePath("/dashboard");
 
   if (!result.ok) {
-    redirect(`/terapeuta/${therapistSlug}?${result.reason === "taken" ? "ocupado=1" : "error=1"}`);
+    redirect(
+      `/terapeuta/${therapistSlug}?${result.reason === "taken" ? "ocupado=1" : "error=1"}#agenda`
+    );
   }
 
-  redirect(`/terapeuta/${therapistSlug}?solicitado=1`);
+  // El #agenda es clave: sin él, el navegador regresa hasta arriba de la
+  // página después del redirect y el mensaje de confirmación ("Listo, tu
+  // solicitud quedó registrada") queda fuera de vista — se veía como si no
+  // hubiera pasado nada.
+  redirect(`/terapeuta/${therapistSlug}?solicitado=1#agenda`);
 }
