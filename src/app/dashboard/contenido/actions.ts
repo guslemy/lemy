@@ -30,6 +30,8 @@ export async function addEducationalContent(formData: FormData) {
   const platform = String(formData.get("platform") || "youtube");
   const url = normalizeUrl(String(formData.get("url") || ""));
   const specialtyIds = formData.getAll("specialties").map(String);
+  const thumbnailRaw = String(formData.get("thumbnail_url") || "").trim();
+  const thumbnail_url = thumbnailRaw ? normalizeUrl(thumbnailRaw) : null;
 
   if (!title || !url || specialtyIds.length === 0) {
     redirect("/dashboard/contenido?error=1");
@@ -37,7 +39,7 @@ export async function addEducationalContent(formData: FormData) {
 
   const { data: inserted, error: insertError } = await supabase
     .from("educational_content")
-    .insert({ title, platform, url })
+    .insert({ title, platform, url, thumbnail_url })
     .select("id")
     .single();
 

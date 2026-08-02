@@ -23,6 +23,7 @@ type VideoRow = {
   title: string;
   platform: string;
   url: string;
+  thumbnail_url: string | null;
   educational_content_specialties: { specialty: { nombre_coloquial: string } | null }[] | null;
 };
 
@@ -51,7 +52,7 @@ export default async function ContenidoAdminPage({
     supabase
       .from("educational_content")
       .select(
-        "id, title, platform, url, created_at, educational_content_specialties ( specialty:specialties ( nombre_coloquial ) )"
+        "id, title, platform, url, thumbnail_url, created_at, educational_content_specialties ( specialty:specialties ( nombre_coloquial ) )"
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -132,6 +133,18 @@ export default async function ContenidoAdminPage({
                 required
                 className="input-lemy"
                 placeholder="youtube.com/..."
+              />
+            </Field>
+
+            <Field
+              label="Thumbnail (opcional)"
+              hint="Solo hace falta para Instagram/TikTok — en YouTube la tomamos automáticamente. Si la dejas vacía, se usa una portada ilustrada de Lemy."
+            >
+              <input
+                name="thumbnail_url"
+                type="text"
+                className="input-lemy"
+                placeholder="Link a una imagen (opcional)"
               />
             </Field>
 

@@ -21,6 +21,9 @@ export type BlogPost = {
   publishedAt: string;
   authorName: string;
   readingMinutes: number;
+  // Palabras clave para el buscador de /biblioteca — no son visibles, solo
+  // amplían qué texto se compara contra lo que alguien escribe en el buscador.
+  tags: string[];
   blocks: BlogBlock[];
 };
 
@@ -35,6 +38,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-07-24",
     authorName: "Equipo Lemy",
     readingMinutes: 5,
+    tags: ["primera sesión", "empezar terapia", "nervios", "qué esperar", "primera vez"],
     blocks: [
       {
         type: "p",
@@ -111,6 +115,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-07-24",
     authorName: "Equipo Lemy",
     readingMinutes: 6,
+    tags: ["elegir terapeuta", "cómo elegir", "preguntas", "comparar terapeutas"],
     blocks: [
       {
         type: "p",
@@ -179,6 +184,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-07-24",
     authorName: "Equipo Lemy",
     readingMinutes: 5,
+    tags: ["en línea", "presencial", "modalidad", "virtual", "a distancia"],
     blocks: [
       {
         type: "p",
@@ -243,6 +249,15 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-07-24",
     authorName: "Equipo Lemy",
     readingMinutes: 6,
+    tags: [
+      "enfoques",
+      "cognitivo-conductual",
+      "psicodinámico",
+      "sistémico",
+      "humanista",
+      "gestalt",
+      "emdr",
+    ],
     blocks: [
       {
         type: "p",
@@ -322,6 +337,7 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "2026-07-24",
     authorName: "Equipo Lemy",
     readingMinutes: 5,
+    tags: ["señales", "cuándo ir a terapia", "ansiedad", "salud mental", "momento de buscar ayuda"],
     blocks: [
       {
         type: "p",

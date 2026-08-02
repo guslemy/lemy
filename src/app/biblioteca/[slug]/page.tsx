@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { AbstractCover } from "@/components/abstract-cover";
 import { BLOG_POSTS, getBlogPost, type BlogBlock } from "@/content/blog-posts";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -105,6 +106,10 @@ export default async function BlogPostPage({ params }: Props) {
           <Link href="/biblioteca" className="text-[0.85rem] font-medium text-forest hover:text-rose-deep">
             ← Volver a la biblioteca
           </Link>
+
+          <div className="signature-corner mt-6 aspect-[21/9] w-full overflow-hidden rounded-[24px]">
+            <AbstractCover seed={post.slug} className="h-full w-full" />
+          </div>
 
           <p className="mt-6 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
             {formatDate(post.publishedAt)} · {post.readingMinutes} min de lectura

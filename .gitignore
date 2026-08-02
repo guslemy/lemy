@@ -44,3 +44,4 @@ next-env.d.ts
 # ya no es una ruta real (movida a /biblioteca), solo queda huérfana aquí
 /_old_blog_removed/
 *.local-bak
+build.log
