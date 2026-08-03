@@ -12,6 +12,11 @@
 export type BrandCoverSpec = {
   background: string;
   circles: { cx: number; cy: number; r: number; fill: string; blend?: boolean }[];
+  // Formas grandes y difuminadas detrás de los círculos nítidos — dan la
+  // sensación de una foto/textura de fondo (como pidió Gustavo) sin
+  // necesitar una imagen real. Mismo trío de colores que las circles, solo
+  // que más grandes, más suaves y con blur.
+  bgBlobs: { cx: number; cy: number; r: number; fill: string }[];
 };
 
 const PALETTE = {
@@ -37,6 +42,10 @@ function hashSeed(seed: string): number {
 const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   (j) => ({
     background: PALETTE.sageWhite,
+    bgBlobs: [
+      { cx: 90, cy: 60, r: 150, fill: PALETTE.rose },
+      { cx: 320, cy: 210, r: 170, fill: PALETTE.forest },
+    ],
     circles: [
       { cx: 150 + j, cy: 125, r: 108, fill: PALETTE.forest },
       { cx: 235 - j, cy: 145, r: 96, fill: PALETTE.rose, blend: true },
@@ -44,6 +53,10 @@ const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   }),
   (j) => ({
     background: PALETTE.card,
+    bgBlobs: [
+      { cx: 340, cy: 40, r: 140, fill: PALETTE.roseDeep },
+      { cx: 60, cy: 220, r: 160, fill: PALETTE.forestDeep },
+    ],
     circles: [
       { cx: 270, cy: 95 + j, r: 88, fill: PALETTE.roseDeep },
       { cx: 205, cy: 190 - j, r: 122, fill: PALETTE.forestDeep, blend: true },
@@ -51,6 +64,10 @@ const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   }),
   (j) => ({
     background: PALETTE.forest,
+    bgBlobs: [
+      { cx: 60, cy: 210, r: 150, fill: PALETTE.sageWhite },
+      { cx: 330, cy: 50, r: 130, fill: PALETTE.rose },
+    ],
     circles: [
       { cx: 130 + j, cy: 160, r: 100, fill: PALETTE.sageWhite },
       { cx: 205 - j, cy: 100, r: 78, fill: PALETTE.rose, blend: true },
@@ -58,6 +75,10 @@ const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   }),
   (j) => ({
     background: PALETTE.sageWhite,
+    bgBlobs: [
+      { cx: 350, cy: 220, r: 180, fill: PALETTE.roseDeep },
+      { cx: 190, cy: 30, r: 120, fill: PALETTE.forest },
+    ],
     circles: [
       { cx: 300 - j, cy: 180, r: 130, fill: PALETTE.roseDeep },
       { cx: 230 + j, cy: 90, r: 70, fill: PALETTE.forest, blend: true },
@@ -65,6 +86,10 @@ const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   }),
   (j) => ({
     background: PALETTE.rose,
+    bgBlobs: [
+      { cx: 100, cy: 40, r: 160, fill: PALETTE.forestDeep },
+      { cx: 330, cy: 210, r: 110, fill: PALETTE.card },
+    ],
     circles: [
       { cx: 160, cy: 120 + j, r: 112, fill: PALETTE.forestDeep },
       { cx: 260, cy: 165 - j, r: 66, fill: PALETTE.card, blend: true },
@@ -72,6 +97,10 @@ const COMPOSITIONS: ((jitter: number) => BrandCoverSpec)[] = [
   }),
   (j) => ({
     background: PALETTE.card,
+    bgBlobs: [
+      { cx: 50, cy: 40, r: 120, fill: PALETTE.forest },
+      { cx: 250, cy: 220, r: 180, fill: PALETTE.roseDeep },
+    ],
     circles: [
       { cx: 100 + j, cy: 90, r: 74, fill: PALETTE.forest },
       { cx: 180 - j, cy: 150, r: 118, fill: PALETTE.roseDeep, blend: true },

@@ -165,29 +165,38 @@ export function BibliotecaExplorer({
 
   return (
     <div className="mt-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-[340px]">
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C877F]"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.4-3.4" />
-          </svg>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por tema — ansiedad, en línea, EMDR…"
-            className="input-lemy w-full pl-10"
-          />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 sm:max-w-[340px]">
+          <div className="relative">
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7C877F]"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.4-3.4" />
+            </svg>
+            {/* .input-lemy trae su propio padding en globals.css (fuera de
+                @layer, así que le gana a pl-10 sin el !) — con ! forzamos
+                que el padding-left sí deje espacio para el ícono. */}
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por tema…"
+              className="input-lemy w-full !pl-10"
+            />
+          </div>
+          <p className="mt-2 text-[0.8rem] text-[#8B978F]">
+            Busca lo que sientes o quieras entender mejor — ansiedad, terapia
+            cognitivo-conductual, duelo…
+          </p>
         </div>
 
         <div className="flex flex-none gap-2">

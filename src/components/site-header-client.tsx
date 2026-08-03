@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+// Antes estos eran anclas sueltas ("#que-es-lemy") — funcionaban solo
+// parados en la home. En cualquier otra página (biblioteca, enfoques,
+// perfil de terapeuta...) el navegador no encontraba ese id y no pasaba
+// nada. Con "/" al frente, el navegador (o next/link) primero va a la home
+// y desde ahí baja hasta la sección — funciona sin importar en qué página
+// estés parado.
 const navLinks = [
-  { href: "#que-es-lemy", label: "¿Qué es Lemy?" },
-  { href: "#directorio", label: "Terapeutas verificados" },
-  { href: "#terapeutas", label: "¿Eres terapeuta?" },
+  { href: "/#que-es-lemy", label: "¿Qué es Lemy?" },
+  { href: "/#directorio", label: "Terapeutas verificados" },
+  { href: "/#terapeutas", label: "¿Eres terapeuta?" },
 ];
 
 // El test de afinidad es, en el fondo, otro CTA — se destaca aparte de los
@@ -27,7 +33,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/login" variant="ghost" className={className}>
           Iniciar sesión
         </Button>
-        <Button href="#terapeutas" variant="primary" className={className}>
+        <Button href="/#terapeutas" variant="primary" className={className}>
           Soy terapeuta
         </Button>
       </>
@@ -108,17 +114,17 @@ export function SiteHeaderClient({
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <a
+          <Link
             href={AFFINITY_TEST.href}
             className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
           >
             {AFFINITY_TEST.label}
-          </a>
+          </Link>
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="group relative py-1 text-ink">
+            <Link key={link.href} href={link.href} className="group relative py-1 text-ink">
               {link.label}
               <span className="absolute bottom-0 left-0 h-[1.5px] w-0 bg-rose-deep transition-all duration-300 group-hover:w-full" />
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -138,17 +144,17 @@ export function SiteHeaderClient({
 
       {menuOpen && (
         <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 md:hidden">
-          <a
+          <Link
             href={AFFINITY_TEST.href}
             onClick={() => setMenuOpen(false)}
             className="rounded-full bg-rose-deep px-4 py-2 text-center font-semibold text-white"
           >
             {AFFINITY_TEST.label}
-          </a>
+          </Link>
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
+            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
               {link.label}
-            </a>
+            </Link>
           ))}
           {isLoggedIn && (
             <Link

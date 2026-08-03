@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ApproachIcon } from "@/components/approach-icon";
+import { AbstractCover } from "@/components/abstract-cover";
 import { createClient } from "@/lib/supabase/server";
 import { APPROACH_DETAILS } from "@/content/approaches-detail";
 
@@ -64,7 +65,11 @@ export default async function EnfoquesPage() {
       <SiteHeader />
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[820px]">
-          <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
+          <div className="signature-corner aspect-[21/9] w-full overflow-hidden rounded-[24px]">
+            <AbstractCover seed="enfoques-de-terapia" className="h-full w-full" />
+          </div>
+
+          <p className="mt-8 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
             Para entender mejor
           </p>
           <h1 className="mt-2.5 font-display text-[2rem] font-medium text-forest sm:text-[2.4rem]">

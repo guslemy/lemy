@@ -46,16 +46,16 @@ export function SiteFooter() {
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Pacientes</h4>
-            <a href="#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</a>
-            <a href="#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</a>
-            <a href="#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
+            <a href="/#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</a>
+            <a href="/#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</a>
+            <a href="/#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
             <a href="/biblioteca" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Biblioteca</a>
           </div>
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Terapeutas</h4>
-            <a href="#terapeutas" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Crear perfil</a>
-            <a href="#perfil" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Ejemplo de perfil</a>
+            <a href="/#terapeutas" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Crear perfil</a>
+            <a href="/#perfil" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Ejemplo de perfil</a>
             <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Preguntas frecuentes</a>
           </div>
 
