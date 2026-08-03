@@ -7,7 +7,7 @@ export type Modality = "online" | "presencial";
 
 export type RequestAppointmentResult =
   | { ok: true }
-  | { ok: false; reason: "not_found" | "taken" };
+  | { ok: false; reason: "not_found" | "taken" | "self" };
 
 // Lógica compartida para crear una solicitud de cita — la usan tanto
 // requestAppointment (terapeuta/[slug]/actions.ts) como completar-perfil/
@@ -30,6 +30,10 @@ export async function requestAppointmentForUser(
     .maybeSingle();
 
   if (!therapist) return { ok: false, reason: "not_found" };
+
+  // Un terapeuta no puede reservar consigo mismo (con su propia cuenta de
+  // paciente) — therapist.id es el mismo uuid que su fila en profiles.
+  if (therapist.id === userId) return { ok: false, reason: "self" };
 
   // Defensa extra por si el request llega manipulado: nunca aceptar una
   // modalidad que el terapeuta no ofrece. La UI ya debería impedirlo, esto

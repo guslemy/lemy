@@ -43,7 +43,9 @@ export async function saveProfileAndContinue(formData: FormData) {
     revalidatePath("/dashboard");
 
     if (!result.ok) {
-      redirect(`/terapeuta/${nextSlug}?${result.reason === "taken" ? "ocupado=1" : "error=1"}`);
+      const param =
+        result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
+      redirect(`/terapeuta/${nextSlug}?${param}`);
     }
     redirect(`/terapeuta/${nextSlug}?solicitado=1`);
   }

@@ -50,9 +50,9 @@ export async function requestAppointment(formData: FormData) {
   revalidatePath("/dashboard");
 
   if (!result.ok) {
-    redirect(
-      `/terapeuta/${therapistSlug}?${result.reason === "taken" ? "ocupado=1" : "error=1"}#agenda`
-    );
+    const param =
+      result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
+    redirect(`/terapeuta/${therapistSlug}?${param}#agenda`);
   }
 
   // El #agenda es clave: sin él, el navegador regresa hasta arriba de la

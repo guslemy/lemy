@@ -20,7 +20,7 @@ import { requestAppointment } from "./actions";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ solicitado?: string; ocupado?: string; error?: string }>;
+  searchParams: Promise<{ solicitado?: string; ocupado?: string; error?: string; propio?: string }>;
 };
 
 type CatalogItem = {
@@ -106,7 +106,7 @@ function formatSlotDate(dateStr: string) {
 
 export default async function TherapistProfilePage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { solicitado, ocupado, error } = await searchParams;
+  const { solicitado, ocupado, error, propio } = await searchParams;
   const therapist = await getTherapist(slug);
   if (!therapist) notFound();
 
@@ -312,6 +312,11 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                 {error === "1" && (
                   <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
                     Algo no salió bien, intenta de nuevo.
+                  </p>
+                )}
+                {propio === "1" && (
+                  <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+                    No puedes agendar una cita contigo mismo.
                   </p>
                 )}
 

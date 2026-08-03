@@ -30,6 +30,12 @@ export function BookingCalendar({
 }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(days[0]?.date ?? null);
   const [modality, setModality] = useState<Modality>(onlineAvailable ? "online" : "presencial");
+  // Cada horario es su propio <form>, sin estado "pending" nativo — sin esto,
+  // un doble click (o un click mientras la red va lenta) manda dos
+  // solicitudes de golpe, ya que el usuario no tiene ninguna señal de que la
+  // primera ya se está procesando. En cuanto se envía cualquiera, se
+  // deshabilitan todos los botones de horario hasta que la página navegue.
+  const [submitting, setSubmitting] = useState(false);
 
   const selectedDay = days.find((d) => d.date === selectedDate) ?? null;
 
@@ -89,15 +95,20 @@ export function BookingCalendar({
           </p>
           <div className="flex flex-wrap gap-2.5">
             {selectedDay.slots.map((slot) => (
-              <form key={slot.scheduledAtUtc} action={requestAppointment}>
+              <form
+                key={slot.scheduledAtUtc}
+                action={requestAppointment}
+                onSubmit={() => setSubmitting(true)}
+              >
                 <input type="hidden" name="therapist_slug" value={therapistSlug} />
                 <input type="hidden" name="scheduled_at" value={slot.scheduledAtUtc} />
                 <input type="hidden" name="modality" value={modality} />
                 <button
                   type="submit"
-                  className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest hover:text-sage-white"
+                  disabled={submitting}
+                  className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest hover:text-sage-white disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {slot.startTime}
+                  {submitting ? "Enviando…" : slot.startTime}
                 </button>
               </form>
             ))}

@@ -27,7 +27,7 @@ async function alreadySent(
   supabase: SupabaseClient,
   type: string,
   relatedId: string,
-  channel: "email" | "whatsapp"
+  channel: "email" | "whatsapp" | "in_app"
 ) {
   const { data } = await supabase
     .from("notification_log")
@@ -43,7 +43,7 @@ async function logSent(
   supabase: SupabaseClient,
   type: string,
   relatedId: string,
-  channel: "email" | "whatsapp",
+  channel: "email" | "whatsapp" | "in_app",
   recipientId: string
 ) {
   await supabase
@@ -68,6 +68,15 @@ type DispatchInput = {
 
 export async function dispatch(input: DispatchInput) {
   const { supabase, type, relatedId, recipientId, email, phone, subject, html } = input;
+
+  // La notificación dentro del dashboard (campanita) se registra siempre,
+  // sin importar si el correo se manda o falla — antes solo se creaba como
+  // efecto secundario de un envío de Resend exitoso, así que si
+  // RESEND_API_KEY faltaba o el envío fallaba, el destinatario no se
+  // enteraba de nada, ni siquiera dentro de la app.
+  if (!(await alreadySent(supabase, type, relatedId, "in_app"))) {
+    await logSent(supabase, type, relatedId, "in_app", recipientId);
+  }
 
   if (email && isResendConfigured() && !(await alreadySent(supabase, type, relatedId, "email"))) {
     try {
