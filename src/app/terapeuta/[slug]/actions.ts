@@ -55,9 +55,5 @@ export async function requestAppointment(formData: FormData) {
     redirect(`/terapeuta/${therapistSlug}?${param}#agenda`);
   }
 
-  // El #agenda es clave: sin él, el navegador regresa hasta arriba de la
-  // página después del redirect y el mensaje de confirmación ("Listo, tu
-  // solicitud quedó registrada") queda fuera de vista — se veía como si no
-  // hubiera pasado nada.
-  redirect(`/terapeuta/${therapistSlug}?solicitado=1#agenda`);
+  redirect(`/gracias/${result.appointmentId}`);
 }

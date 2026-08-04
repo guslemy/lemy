@@ -6,7 +6,7 @@ export type CancelRole = "patient" | "therapist";
 export type Modality = "online" | "presencial";
 
 export type RequestAppointmentResult =
-  | { ok: true }
+  | { ok: true; appointmentId: string }
   | { ok: false; reason: "not_found" | "taken" | "self" };
 
 // Lógica compartida para crear una solicitud de cita — la usan tanto
@@ -73,17 +73,17 @@ export async function requestAppointmentForUser(
     .select("id")
     .single();
 
-  if (inserted?.id) {
-    // No debe bloquear la reserva si falla — se atrapa internamente.
-    await notifyAppointmentRequested({
-      appointmentId: inserted.id,
-      therapistId: therapist.id,
-      patientId: userId,
-      scheduledAtIso: scheduledAt,
-    });
-  }
+  if (!inserted?.id) return { ok: false, reason: "not_found" };
 
-  return { ok: true };
+  // No debe bloquear la reserva si falla — se atrapa internamente.
+  await notifyAppointmentRequested({
+    appointmentId: inserted.id,
+    therapistId: therapist.id,
+    patientId: userId,
+    scheduledAtIso: scheduledAt,
+  });
+
+  return { ok: true, appointmentId: inserted.id };
 }
 
 // Cancela una cita en nombre de quien la pide, siempre y cuando esa persona
