@@ -44,13 +44,18 @@ export async function confirmAppointment(formData: FormData) {
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, scheduled_at, duration_min, status, modality")
+    .select("id, therapist_id, patient_id, scheduled_at, duration_min, status, payment_status, modality")
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
     .maybeSingle();
 
   if (!appointment) redirect("/dashboard/citas?error=1");
   if (appointment.status !== "pending_payment") {
+    redirect("/dashboard/citas?error=1");
+  }
+  // No se puede confirmar una cita cuyo pago no llegó a completarse — el
+  // paciente pudo haber cerrado Stripe Checkout a medias.
+  if (appointment.payment_status !== "paid") {
     redirect("/dashboard/citas?error=1");
   }
 

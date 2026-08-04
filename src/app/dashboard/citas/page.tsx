@@ -24,6 +24,7 @@ type AppointmentRow = {
   scheduled_at: string;
   duration_min: number;
   status: string;
+  payment_status: string | null;
   modality: string | null;
   meeting_link: string | null;
   location_address: string | null;
@@ -102,7 +103,7 @@ export default async function CitasPage({
   const { data: rawAppointments } = await supabase
     .from("appointments")
     .select(
-      "id, patient_id, scheduled_at, duration_min, status, modality, meeting_link, location_address, cancelled_by"
+      "id, patient_id, scheduled_at, duration_min, status, payment_status, modality, meeting_link, location_address, cancelled_by"
     )
     .eq("therapist_id", user.id)
     .order("scheduled_at");
@@ -117,7 +118,13 @@ export default async function CitasPage({
   const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
   const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
 
-  const pending = appointments.filter((a) => a.status === "pending_payment");
+  // Solo se muestran como "por confirmar" las que sí llegaron a pagarse —
+  // una reserva que se quedó a medias en Stripe Checkout (el paciente cerró
+  // la pestaña, la tarjeta falló, etc.) no debe aparecer aquí ni generar
+  // ninguna expectativa de que hay que confirmar algo.
+  const pending = appointments.filter(
+    (a) => a.status === "pending_payment" && a.payment_status === "paid"
+  );
   const confirmedList = appointments.filter((a) => a.status === "confirmed");
   const cancelledList = appointments.filter((a) => a.status === "cancelled");
   const cancelledByPatient = cancelledList.filter((a) => a.cancelled_by === "patient").length;

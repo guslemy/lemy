@@ -5,11 +5,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePatientShell } from "@/lib/supabase/ensure-patient";
 import { requestAppointmentForUser } from "@/lib/appointments";
+import { startAppointmentCheckout } from "@/lib/appointment-checkout";
 import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
 
-// Solicitud de reserva por parte del paciente. Por ahora queda en
-// "pending_payment" y el terapeuta la confirma a mano (Etapa D) — cuando
-// conectemos Stripe, el pago disparará la misma confirmación automáticamente.
+// Solicitud de reserva por parte del paciente. La cita se crea en
+// "pending_payment" y de inmediato se manda a pagar (Direct charge a la
+// cuenta de Stripe Connect del terapeuta) — recién cuando el webhook
+// confirma el pago se notifica al terapeuta y puede confirmar la sesión.
 export async function requestAppointment(formData: FormData) {
   const therapistSlug = String(formData.get("therapist_slug") || "");
   const scheduledAt = String(formData.get("scheduled_at") || "");
@@ -60,5 +62,7 @@ export async function requestAppointment(formData: FormData) {
     redirect(`/${therapistSlug}?${param}#agenda`);
   }
 
-  redirect(`/gracias/${result.appointmentId}`);
+  const checkoutUrl = await startAppointmentCheckout(result.appointmentId);
+  if (!checkoutUrl) redirect(`/${therapistSlug}?error=1#agenda`);
+  redirect(checkoutUrl);
 }

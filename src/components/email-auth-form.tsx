@@ -24,12 +24,29 @@ export function EmailAuthForm({ next }: { next?: string }) {
     setStatus("loading");
 
     if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setErrorMsg(traducirError(error.message));
         setStatus("idle");
         return;
       }
+
+      // Cuenta desactivada desde el panel de admin — no la dejamos entrar,
+      // aunque la contraseña sea correcta.
+      if (data.user) {
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("deactivated_at")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        if (profileRow?.deactivated_at) {
+          await supabase.auth.signOut();
+          setErrorMsg("Esta cuenta está desactivada. Contacta a soporte si crees que es un error.");
+          setStatus("idle");
+          return;
+        }
+      }
+
       router.push(next || "/dashboard");
       router.refresh();
     } else {

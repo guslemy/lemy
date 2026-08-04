@@ -63,9 +63,12 @@ export default async function DashboardPage({
               <p className="mt-2 text-[0.92rem] text-[#42504A]">
                 Agrega o quita los videos educativos que aparecen en el buscador según palabra clave.
               </p>
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Button href="/dashboard/contenido" variant="primary">
                   Ir al panel de contenido
+                </Button>
+                <Button href="/dashboard/admin" variant="ghost">
+                  Gestión de usuarios
                 </Button>
               </div>
             </div>
@@ -92,6 +95,9 @@ export default async function DashboardPage({
                 </Button>
                 <Button href="/dashboard/suscripcion" variant="ghost">
                   Suscripción
+                </Button>
+                <Button href="/dashboard/pagos" variant="ghost">
+                  Cobros por consulta
                 </Button>
                 {therapist?.is_published && therapist?.slug && (
                   <Button href={`/${therapist.slug}`} variant="ghost">

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePatientShell } from "@/lib/supabase/ensure-patient";
 import { requestAppointmentForUser } from "@/lib/appointments";
+import { startAppointmentCheckout } from "@/lib/appointment-checkout";
 import { isValidName, isValidPhone } from "@/lib/supabase/profile-completeness";
 
 // Guarda nombre + teléfono del paciente y, si venía de intentar reservar una
@@ -47,7 +48,10 @@ export async function saveProfileAndContinue(formData: FormData) {
         result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
       redirect(`/${nextSlug}?${param}`);
     }
-    redirect(`/gracias/${result.appointmentId}`);
+
+    const checkoutUrl = await startAppointmentCheckout(result.appointmentId);
+    if (!checkoutUrl) redirect(`/${nextSlug}?error=1`);
+    redirect(checkoutUrl);
   }
 
   revalidatePath("/dashboard");

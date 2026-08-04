@@ -15,6 +15,7 @@ type AppointmentRow = {
   therapist_id: string;
   scheduled_at: string;
   status: string;
+  payment_status: string | null;
   modality: string | null;
   meeting_link: string | null;
   location_address: string | null;
@@ -64,7 +65,9 @@ export default async function MisCitasPage({
 
   const { data: rawAppointments } = await supabase
     .from("appointments")
-    .select("id, therapist_id, scheduled_at, status, modality, meeting_link, location_address")
+    .select(
+      "id, therapist_id, scheduled_at, status, payment_status, modality, meeting_link, location_address"
+    )
     .eq("patient_id", user.id)
     .neq("status", "cancelled")
     .order("scheduled_at");
@@ -163,7 +166,9 @@ export default async function MisCitasPage({
                       )}
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                       <p className="mt-1 font-mono text-[0.72rem] uppercase tracking-[0.06em] text-[#8B978F]">
-                        {STATUS_LABEL[a.status] ?? a.status}
+                        {a.status === "pending_payment" && a.payment_status !== "paid"
+                          ? "Pago no completado"
+                          : (STATUS_LABEL[a.status] ?? a.status)}
                         {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}
                       </p>
                       {a.modality === "online" && a.meeting_link && (

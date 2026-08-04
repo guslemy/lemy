@@ -58,6 +58,7 @@ type TherapistDetail = {
   price_min: number | null;
   price_max: number | null;
   verification_status: string;
+  stripe_connect_charges_enabled: boolean;
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
@@ -73,6 +74,7 @@ async function getTherapist(slug: string) {
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        is_online_available, is_in_person_available, price_min, price_max, verification_status,
+       stripe_connect_charges_enabled,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) )`
@@ -399,7 +401,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 )}
 
-                {!therapist.is_online_available && !therapist.is_in_person_available ? (
+                {!therapist.stripe_connect_charges_enabled ? (
+                  <p className="mt-5 text-[0.92rem] text-[#42504A]">
+                    {therapist.display_name.split(" ")[0]} está terminando de activar sus cobros — vuelve
+                    a revisar en un rato para poder agendar.
+                  </p>
+                ) : !therapist.is_online_available && !therapist.is_in_person_available ? (
                   <p className="mt-5 text-[0.92rem] text-[#42504A]">
                     {therapist.display_name.split(" ")[0]} tiene la agenda llena por ahora — no está
                     aceptando citas nuevas en este momento.

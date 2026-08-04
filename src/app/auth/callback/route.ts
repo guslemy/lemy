@@ -17,6 +17,18 @@ export async function GET(request: NextRequest) {
     if (!error && data.user) {
       await ensureProfile(supabase, data.user);
 
+      // Cuenta desactivada desde /dashboard/admin (item 2 del panel de
+      // admin) — no la borramos, pero tampoco la dejamos entrar.
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("deactivated_at")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (profileRow?.deactivated_at) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/login?desactivada=1`);
+      }
+
       // Si Google mandó un refresh token (pedimos access_type=offline +
       // prompt=consent en el login), lo guardamos cifrado en Vault para
       // poder crear eventos en su Google Calendar más adelante sin pedirle

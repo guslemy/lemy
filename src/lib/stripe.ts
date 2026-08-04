@@ -29,3 +29,24 @@ export const STRIPE_COUPON_FOUNDER = process.env.STRIPE_COUPON_FOUNDER;
 
 export const FOUNDING_MEMBER_LIMIT = 30;
 export const TRIAL_DAYS = 15;
+
+// ─────────────────────────────────────────────
+// Stripe Connect — pago directo del paciente al terapeuta (Direct charges,
+// estilo Uber/Rappi): el PaymentIntent se crea EN la cuenta conectada del
+// terapeuta (él es el "merchant of record" ante el SAT, no Lemy), y Lemy
+// se queda con una comisión vía application_fee_amount. Gustavo eligió un
+// modelo de fijo + porcentaje (como cobra el propio Stripe) — los números
+// exactos quedan en variables de entorno para poder ajustarlos sin tocar
+// código ni redeploy de más. Default conservador mientras confirma cifras.
+// ─────────────────────────────────────────────
+const CONNECT_FEE_FIXED_MXN_CENTS = Number(process.env.STRIPE_CONNECT_FEE_FIXED_MXN_CENTS ?? 1000); // $10 MXN
+const CONNECT_FEE_PERCENT = Number(process.env.STRIPE_CONNECT_FEE_PERCENT ?? 8); // 8%
+
+// priceMxn viene de therapists.price_min (numeric MXN, ej. 600.00).
+// Devuelve la comisión de Lemy en centavos, para pasarla directo a
+// application_fee_amount. Nunca cobra más comisión que el precio total.
+export function calculateApplicationFeeCents(priceMxn: number): number {
+  const priceCents = Math.round(priceMxn * 100);
+  const fee = CONNECT_FEE_FIXED_MXN_CENTS + Math.round((priceCents * CONNECT_FEE_PERCENT) / 100);
+  return Math.min(fee, priceCents);
+}

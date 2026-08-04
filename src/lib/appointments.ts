@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { notifyAppointmentRequested } from "@/lib/notifications/instant";
 
 export type CancelRole = "patient" | "therapist";
 
@@ -75,14 +74,10 @@ export async function requestAppointmentForUser(
 
   if (!inserted?.id) return { ok: false, reason: "not_found" };
 
-  // No debe bloquear la reserva si falla — se atrapa internamente.
-  await notifyAppointmentRequested({
-    appointmentId: inserted.id,
-    therapistId: therapist.id,
-    patientId: userId,
-    scheduledAtIso: scheduledAt,
-  });
-
+  // Ya no se notifica aquí — la cita todavía no está pagada. La notificación
+  // de "nueva solicitud" se dispara desde el webhook de Stripe en cuanto se
+  // confirma el pago (ver api/stripe/webhook/route.ts), para no avisarle al
+  // terapeuta de reservas que el paciente nunca llegó a pagar.
   return { ok: true, appointmentId: inserted.id };
 }
 
