@@ -106,6 +106,8 @@ export async function getNotificationFeed(
         return `Recibimos tu solicitud con ${therapistName}${when ? ` para el ${when}` : ""}.`;
       case "appointment_cancelled":
         return `Se canceló una cita${when ? ` del ${when}` : ""}.`;
+      case "appointment_rescheduled":
+        return `Tu cita con ${therapistName} cambió de horario${when ? ` — ahora es ${when}` : ""}.`;
       default:
         return "Tienes una notificación nueva.";
     }

@@ -137,6 +137,21 @@ export function appointmentCancelledNotice(params: {
   };
 }
 
+export function appointmentRescheduled(params: {
+  recipientName: string;
+  otherPartyName: string;
+  newWhenLabel: string;
+}) {
+  const { recipientName, otherPartyName, newWhenLabel } = params;
+  return {
+    subject: `Tu cita cambió de horario — nuevo horario ${newWhenLabel}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <p>${otherPartyName} movió la cita a un nuevo horario: <strong>${newWhenLabel}</strong>.</p>
+    `),
+  };
+}
+
 export function appointmentReminder(params: {
   name: string;
   otherPartyName: string;

@@ -7,7 +7,11 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, createCalendarEvent } from "@/lib/google-calendar";
 import { fallbackMeetingLink } from "@/lib/video-link";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
-import { notifyAppointmentCancelled, notifyAppointmentConfirmed } from "@/lib/notifications/instant";
+import {
+  notifyAppointmentCancelled,
+  notifyAppointmentConfirmed,
+  notifyAppointmentRescheduled,
+} from "@/lib/notifications/instant";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -181,4 +185,72 @@ export async function cancelAppointmentTherapist(formData: FormData) {
   revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
   redirect(result.ok ? "/dashboard/citas?cancelado=1" : "/dashboard/citas?error=1");
+}
+
+// Guarda las notas privadas del terapeuta sobre un paciente — no redirige
+// (a diferencia de las demás acciones de esta página) para que el popup
+// del paciente se quede abierto después de guardar, en vez de mandar a la
+// persona hasta arriba de la página.
+export async function savePatientNotes(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const patientId = String(formData.get("patient_id") || "");
+  const notes = String(formData.get("notes") || "");
+  if (!patientId) return;
+
+  await supabase
+    .from("therapist_patient_notes")
+    .upsert(
+      { therapist_id: user.id, patient_id: patientId, notes, updated_at: new Date().toISOString() },
+      { onConflict: "therapist_id,patient_id" }
+    );
+
+  revalidatePath("/dashboard/citas");
+  revalidatePath(`/dashboard/pacientes/${patientId}`);
+}
+
+// Reagenda una cita propia a un nuevo horario. No hay pago por cita hoy
+// (solo suscripción del terapeuta), así que no aplica ningún reembolso —
+// simplemente se mueve la fecha y se avisa al paciente.
+export async function rescheduleAppointment(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  const newLocalDatetime = String(formData.get("new_scheduled_at") || ""); // "YYYY-MM-DDTHH:mm", hora de Oaxaca
+
+  if (!appointmentId || !newLocalDatetime) redirect("/dashboard/citas?error=1");
+
+  const { data: appointment } = await supabase
+    .from("appointments")
+    .select("id, therapist_id, patient_id, status")
+    .eq("id", appointmentId)
+    .eq("therapist_id", user.id)
+    .maybeSingle();
+
+  if (!appointment || appointment.status === "cancelled" || appointment.status === "completed") {
+    redirect("/dashboard/citas?error=1");
+  }
+
+  // Oaxaca no observa horario de verano — el offset -06:00 es constante.
+  const newScheduledAtIso = new Date(`${newLocalDatetime}:00-06:00`).toISOString();
+  if (Number.isNaN(new Date(newScheduledAtIso).getTime())) {
+    redirect("/dashboard/citas?error=1");
+  }
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({ scheduled_at: newScheduledAtIso })
+    .eq("id", appointmentId)
+    .eq("therapist_id", user.id);
+
+  if (error) redirect("/dashboard/citas?error=1");
+
+  await notifyAppointmentRescheduled({
+    appointmentId,
+    therapistId: user.id,
+    patientId: appointment.patient_id as string,
+    newScheduledAtIso,
+  });
+
+  revalidatePath("/dashboard/citas");
+  revalidatePath("/dashboard");
+  redirect("/dashboard/citas?reagendado=1");
 }

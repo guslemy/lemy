@@ -4,7 +4,14 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
-import { confirmAppointment, cancelAppointmentTherapist } from "./actions";
+import { getPatientInfoMap } from "@/lib/patient-info";
+import { PatientInfoPopup, RescheduleForm } from "./citas-client";
+import {
+  confirmAppointment,
+  cancelAppointmentTherapist,
+  savePatientNotes,
+  rescheduleAppointment,
+} from "./actions";
 
 // Vista del terapeuta: solicitudes pendientes de confirmar (Etapa D), sus
 // próximas sesiones ya confirmadas con el enlace de la videollamada, y su propia
@@ -73,9 +80,10 @@ export default async function CitasPage({
     confirmado?: string;
     cancelado?: string;
     error?: string;
+    reagendado?: string;
   }>;
 }) {
-  const { confirmado, cancelado, error } = await searchParams;
+  const { confirmado, cancelado, error, reagendado } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -107,6 +115,7 @@ export default async function CitasPage({
     : { data: [] };
 
   const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
+  const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
 
   const pending = appointments.filter((a) => a.status === "pending_payment");
   const confirmedList = appointments.filter((a) => a.status === "confirmed");
@@ -138,6 +147,11 @@ export default async function CitasPage({
           {cancelado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
               Cita cancelada.
+            </p>
+          )}
+          {reagendado === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Cita reagendada. Le avisamos a tu paciente del nuevo horario.
             </p>
           )}
           {error === "1" && (
@@ -175,7 +189,19 @@ export default async function CitasPage({
                   >
                     <div>
                       <p className="font-medium text-forest">
-                        {nameById.get(a.patient_id) ?? "Paciente"}
+                        <PatientInfoPopup
+                          patientId={a.patient_id}
+                          name={nameById.get(a.patient_id) ?? "Paciente"}
+                          info={
+                            patientInfoById.get(a.patient_id) ?? {
+                              email: null,
+                              phone: null,
+                              lastAppointmentIso: null,
+                              notes: null,
+                            }
+                          }
+                          saveNotesAction={savePatientNotes}
+                        />
                         <ModalityTag modality={a.modality} />
                       </p>
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
@@ -185,6 +211,7 @@ export default async function CitasPage({
                         <input type="hidden" name="appointment_id" value={a.id} />
                         <SubmitButton pendingText="Confirmando…">Confirmar y crear evento</SubmitButton>
                       </form>
+                      <RescheduleForm appointmentId={a.id} rescheduleAction={rescheduleAppointment} />
                       <CancelForm appointmentId={a.id} />
                     </div>
                   </div>
@@ -208,7 +235,19 @@ export default async function CitasPage({
                   >
                     <div>
                       <p className="font-medium text-forest">
-                        {nameById.get(a.patient_id) ?? "Paciente"}
+                        <PatientInfoPopup
+                          patientId={a.patient_id}
+                          name={nameById.get(a.patient_id) ?? "Paciente"}
+                          info={
+                            patientInfoById.get(a.patient_id) ?? {
+                              email: null,
+                              phone: null,
+                              lastAppointmentIso: null,
+                              notes: null,
+                            }
+                          }
+                          saveNotesAction={savePatientNotes}
+                        />
                         <ModalityTag modality={a.modality} />
                       </p>
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
@@ -228,7 +267,10 @@ export default async function CitasPage({
                         </p>
                       )}
                     </div>
-                    <CancelForm appointmentId={a.id} />
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <RescheduleForm appointmentId={a.id} rescheduleAction={rescheduleAppointment} />
+                      <CancelForm appointmentId={a.id} />
+                    </div>
                   </div>
                 ))}
               </div>

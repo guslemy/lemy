@@ -15,6 +15,7 @@ import {
   appointmentRequestedPatient,
   appointmentConfirmed,
   appointmentCancelledNotice,
+  appointmentRescheduled,
 } from "./emailTemplates";
 
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -260,5 +261,61 @@ export async function notifyAppointmentCancelled({
     });
   } catch (err) {
     console.error("Error notificando cancelación de cita:", err);
+  }
+}
+
+// Al reagendar (por ahora solo el terapeuta puede hacerlo desde su panel):
+// avisamos a la otra parte del nuevo horario. related_id se queda como el
+// appointment_id (igual que los demás tipos "appointment_*", para que
+// feed.ts pueda resolverlo contra la tabla appointments) — como
+// consecuencia, si la misma cita se reagenda más de una vez, solo el
+// primer reagendamiento dispara un aviso nuevo (el dedup de
+// notification_log es por tipo+related_id). Aceptable por ahora: es la
+// misma limitación que ya existe para el resto de los tipos.
+export async function notifyAppointmentRescheduled({
+  appointmentId,
+  therapistId,
+  patientId,
+  newScheduledAtIso,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  newScheduledAtIso: string;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const newWhenLabel = whenLabelFor(newScheduledAtIso);
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, patientEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      phonesById(supabase, [patientId]),
+      emailOf(supabase, patientId),
+    ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "el paciente";
+
+    const { subject, html } = appointmentRescheduled({
+      recipientName: patientName,
+      otherPartyName: therapistName,
+      newWhenLabel,
+    });
+
+    await dispatch({
+      supabase,
+      type: "appointment_rescheduled",
+      relatedId: appointmentId,
+      recipientId: patientId,
+      email: patientEmail,
+      phone: normalizePhone(phones.get(patientId)),
+      subject,
+      html,
+      whatsappTemplate: "lemy_appointment_rescheduled",
+      whatsappParams: [patientName, therapistName, newWhenLabel],
+    });
+  } catch (err) {
+    console.error("Error notificando reagendamiento de cita:", err);
   }
 }

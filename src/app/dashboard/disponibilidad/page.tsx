@@ -163,6 +163,32 @@ export default async function DisponibilidadPage({
             horarios.
           </p>
 
+          {/* Mockup — vista previa de cómo se va a ver, todavía no funciona.
+              Depende de definir el modelo de cobro por cita (Stripe Connect)
+              antes de construirla de verdad. */}
+          <div className="signature-corner mt-8 rounded-[28px] border border-dashed border-line bg-sage-white p-6">
+            <div className="flex items-center gap-2">
+              <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
+                Aprobación de citas
+              </p>
+              <span className="rounded-full bg-rose/20 px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.05em] text-rose-deep">
+                Próximamente
+              </span>
+            </div>
+            <label className="mt-3 flex items-start gap-3 opacity-60">
+              <input type="checkbox" disabled className="mt-1 h-4 w-4 rounded border-line" />
+              <span className="text-[0.9rem] text-[#3E4B44]">
+                Quiero aprobar cada solicitud antes de que se cree en mi calendario. Si lo desactivas,
+                tus pacientes van a poder pagar y agendar directo, y ese horario se libera de tu
+                disponibilidad en cuanto lo solicitan.
+              </span>
+            </label>
+            <p className="mt-3 text-[0.82rem] text-[#8B978F]">
+              Esta opción se activa junto con el cobro directo a pacientes por consulta — lo estamos
+              definiendo con Stripe.
+            </p>
+          </div>
+
           {guardado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
               Horario agregado.
