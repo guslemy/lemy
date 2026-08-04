@@ -104,6 +104,10 @@ export async function getNotificationFeed(
         return `Nueva solicitud de cita con ${patientName}${when ? ` para el ${when}` : ""}.`;
       case "appointment_requested_patient":
         return `Recibimos tu solicitud con ${therapistName}${when ? ` para el ${when}` : ""}.`;
+      case "appointment_confirmed_patient":
+        return `Tu cita del ${when} con ${therapistName} ha sido confirmada. Ve los detalles en “Tus citas”.`;
+      case "appointment_confirmed_therapist":
+        return `Confirmaste la cita del ${when} con ${patientName}.`;
       case "appointment_cancelled":
         return `Se canceló una cita${when ? ` del ${when}` : ""}.`;
       case "appointment_rescheduled":

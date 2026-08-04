@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Antes se mostraban TODOS los horarios de las próximas 2 semanas de un
 // jalón — abrumador para alguien que llega con poca energía. Ahora se elige
@@ -35,7 +35,24 @@ export function BookingCalendar({
   // solicitudes de golpe, ya que el usuario no tiene ninguna señal de que la
   // primera ya se está procesando. En cuanto se envía cualquiera, se
   // deshabilitan todos los botones de horario hasta que la página navegue.
-  const [submitting, setSubmitting] = useState(false);
+  // Se guarda CUÁL horario se envió (no solo un booleano) para que "Enviando…"
+  // solo aparezca en el botón que de verdad se apretó — los demás solo se
+  // ven deshabilitados, sin cambiar de texto.
+  const [submittingSlot, setSubmittingSlot] = useState<string | null>(null);
+
+  // Si la reserva falla (horario ocupado, error, etc.), requestAppointment
+  // redirige de vuelta a esta misma ruta (/terapeuta/[slug], solo cambian
+  // los query params) — Next.js reutiliza esta instancia del componente en
+  // vez de desmontarla, así que submittingSlot se quedaba en true para
+  // siempre y los botones parecían "atorados" en Enviando. `days` llega
+  // recalculado del servidor en cada navegación (nueva referencia aunque el
+  // contenido sea igual), así que sirve como señal de "ya se resolvió la
+  // navegación, lo que sea que haya pasado" para resetear el estado. En el
+  // caso de éxito no importa: la página se va a /gracias y este componente
+  // se desmonta por completo.
+  useEffect(() => {
+    setSubmittingSlot(null);
+  }, [days]);
 
   const selectedDay = days.find((d) => d.date === selectedDate) ?? null;
 
@@ -98,17 +115,17 @@ export function BookingCalendar({
               <form
                 key={slot.scheduledAtUtc}
                 action={requestAppointment}
-                onSubmit={() => setSubmitting(true)}
+                onSubmit={() => setSubmittingSlot(slot.scheduledAtUtc)}
               >
                 <input type="hidden" name="therapist_slug" value={therapistSlug} />
                 <input type="hidden" name="scheduled_at" value={slot.scheduledAtUtc} />
                 <input type="hidden" name="modality" value={modality} />
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submittingSlot !== null}
                   className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest hover:text-sage-white disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {submitting ? "Enviando…" : slot.startTime}
+                  {submittingSlot === slot.scheduledAtUtc ? "Enviando…" : slot.startTime}
                 </button>
               </form>
             ))}
