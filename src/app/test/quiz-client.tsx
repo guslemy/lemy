@@ -382,7 +382,7 @@ export function QuizClient({
                 {resultados.map((t) => (
                   <Link
                     key={t.slug}
-                    href={`/terapeuta/${t.slug}`}
+                    href={`/${t.slug}`}
                     className="signature-corner flex flex-col gap-4 rounded-[24px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)] sm:flex-row sm:items-center"
                   >
                     {t.photo_url ? (

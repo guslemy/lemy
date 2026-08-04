@@ -153,7 +153,7 @@ export default async function MisCitasPage({
                     <div>
                       {therapist ? (
                         <Link
-                          href={`/terapeuta/${therapist.slug}`}
+                          href={`/${therapist.slug}`}
                           className="font-medium text-forest hover:text-rose-deep"
                         >
                           {therapist.display_name}

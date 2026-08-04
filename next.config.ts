@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
       { source: "/blog", destination: "/biblioteca", permanent: true },
       { source: "/blog/:slug", destination: "/biblioteca/:slug", permanent: true },
       { source: "/encuentra", destination: "/test", permanent: true },
+      // El perfil público del terapeuta se movió a la raíz del dominio
+      // (lemy.mx/[slug]) para que sea un link corto tipo "linktr.ee/user" —
+      // este redirect conserva cualquier link ya compartido con la URL vieja.
+      { source: "/terapeuta/:slug", destination: "/:slug", permanent: true },
     ];
   },
 };

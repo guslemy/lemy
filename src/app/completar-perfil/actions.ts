@@ -39,13 +39,13 @@ export async function saveProfileAndContinue(formData: FormData) {
 
   if (nextSlug && nextScheduledAt) {
     const result = await requestAppointmentForUser(supabase, user.id, nextSlug, nextScheduledAt, nextModality);
-    revalidatePath(`/terapeuta/${nextSlug}`);
+    revalidatePath(`/${nextSlug}`);
     revalidatePath("/dashboard");
 
     if (!result.ok) {
       const param =
         result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
-      redirect(`/terapeuta/${nextSlug}?${param}`);
+      redirect(`/${nextSlug}?${param}`);
     }
     redirect(`/gracias/${result.appointmentId}`);
   }

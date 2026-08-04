@@ -41,15 +41,15 @@ export function BookingCalendar({
   const [submittingSlot, setSubmittingSlot] = useState<string | null>(null);
 
   // Si la reserva falla (horario ocupado, error, etc.), requestAppointment
-  // redirige de vuelta a esta misma ruta (/terapeuta/[slug], solo cambian
-  // los query params) — Next.js reutiliza esta instancia del componente en
-  // vez de desmontarla, así que submittingSlot se quedaba en true para
-  // siempre y los botones parecían "atorados" en Enviando. `days` llega
-  // recalculado del servidor en cada navegación (nueva referencia aunque el
-  // contenido sea igual), así que sirve como señal de "ya se resolvió la
-  // navegación, lo que sea que haya pasado" para resetear el estado. En el
-  // caso de éxito no importa: la página se va a /gracias y este componente
-  // se desmonta por completo.
+  // redirige de vuelta a esta misma ruta (/[slug], solo cambian los query
+  // params) — Next.js reutiliza esta instancia del componente en vez de
+  // desmontarla, así que submittingSlot se quedaba en true para siempre y
+  // los botones parecían "atorados" en Enviando. `days` llega recalculado
+  // del servidor en cada navegación (nueva referencia aunque el contenido
+  // sea igual), así que sirve como señal de "ya se resolvió la navegación,
+  // lo que sea que haya pasado" para resetear el estado. En el caso de
+  // éxito no importa: la página se va a /gracias y este componente se
+  // desmonta por completo.
   useEffect(() => {
     setSubmittingSlot(null);
   }, [days]);

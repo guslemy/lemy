@@ -140,7 +140,7 @@ export default async function GraciasPage({
             <Button href="/dashboard/mis-citas" variant="primary">
               Ir a mis citas
             </Button>
-            <Button href={`/terapeuta/${therapist.slug}`} variant="ghost">
+            <Button href={`/${therapist.slug}`} variant="ghost">
               Ver perfil de {therapistFirstName}
             </Button>
           </div>

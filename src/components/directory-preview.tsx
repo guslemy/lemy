@@ -91,7 +91,7 @@ export function DirectoryPreview({ therapists }: { therapists: DirectoryTherapis
           {visible.map((t, i) => (
             <Link
               key={t.slug}
-              href={`/terapeuta/${t.slug}`}
+              href={`/${t.slug}`}
               className="signature-corner rounded-[28px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
             >
               {t.photo_url ? (

@@ -14,10 +14,14 @@ import { EmailAuthForm } from "@/components/email-auth-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; flujo?: string }>;
 }) {
-  const { next } = await searchParams;
-  const isBookingFlow = Boolean(next && (next.startsWith("/terapeuta/") || next === "/completar-perfil"));
+  const { next, flujo } = await searchParams;
+  // El perfil del terapeuta ahora vive en la raíz (/[slug]), así que su URL
+  // ya no se distingue de cualquier otra ruta del sitio con un startsWith —
+  // por eso requestAppointment manda flujo=reserva explícito al redirigir
+  // aquí (ver src/app/[slug]/actions.ts).
+  const isBookingFlow = Boolean(flujo === "reserva" || next === "/completar-perfil");
 
   return (
     <>

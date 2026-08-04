@@ -21,11 +21,16 @@ export async function requestAppointment(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?next=/terapeuta/${therapistSlug}`);
+    // flujo=reserva le dice a /login que venimos de intentar agendar, para
+    // mostrar el copy correspondiente — antes se detectaba adivinando la
+    // forma de la URL en `next` (/terapeuta/...), pero ahora que el perfil
+    // vive en la raíz (/[slug]) esa URL es indistinguible de cualquier otra
+    // ruta del sitio, así que hace falta esta bandera explícita.
+    redirect(`/login?next=/${therapistSlug}&flujo=reserva`);
   }
 
   if (!therapistSlug || !scheduledAt) {
-    redirect(`/terapeuta/${therapistSlug}?error=1#agenda`);
+    redirect(`/${therapistSlug}?error=1#agenda`);
   }
 
   // Antes de reservar necesitamos nombre y teléfono del paciente (para poder
@@ -46,13 +51,13 @@ export async function requestAppointment(formData: FormData) {
 
   const result = await requestAppointmentForUser(supabase, user.id, therapistSlug, scheduledAt, modality);
 
-  revalidatePath(`/terapeuta/${therapistSlug}`);
+  revalidatePath(`/${therapistSlug}`);
   revalidatePath("/dashboard");
 
   if (!result.ok) {
     const param =
       result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
-    redirect(`/terapeuta/${therapistSlug}?${param}#agenda`);
+    redirect(`/${therapistSlug}?${param}#agenda`);
   }
 
   redirect(`/gracias/${result.appointmentId}`);

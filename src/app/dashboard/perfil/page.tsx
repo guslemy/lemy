@@ -109,6 +109,11 @@ export default async function EditarPerfilPage({
               Esa imagen pesa demasiado (máximo 5 MB).
             </p>
           )}
+          {error === "slug_reservado" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Esa URL ya la usa una página del sitio — elige otra para tu perfil.
+            </p>
+          )}
 
           <div className="signature-corner mt-9 rounded-[28px] border border-line bg-card p-7">
             <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
@@ -154,7 +159,7 @@ export default async function EditarPerfilPage({
                   />
                 </Field>
 
-                <Field label="URL de tu perfil" hint="lemy.mx/terapeuta/tu-slug">
+                <Field label="URL de tu perfil" hint="lemy.mx/tu-slug">
                   <input name="slug" defaultValue={therapist?.slug ?? ""} className="input-lemy" />
                 </Field>
 

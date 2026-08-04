@@ -94,7 +94,7 @@ export default async function DashboardPage({
                   Suscripción
                 </Button>
                 {therapist?.is_published && therapist?.slug && (
-                  <Button href={`/terapeuta/${therapist.slug}`} variant="ghost">
+                  <Button href={`/${therapist.slug}`} variant="ghost">
                     Ver mi perfil público
                   </Button>
                 )}

@@ -51,7 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const therapistEntries: MetadataRoute.Sitemap = (therapists ?? []).map((t) => ({
-    url: `${BASE_URL}/terapeuta/${t.slug}`,
+    url: `${BASE_URL}/${t.slug}`,
     changeFrequency: "weekly",
     priority: 0.8,
   }));

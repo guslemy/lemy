@@ -48,3 +48,6 @@ build.log
 
 # lo mismo, pero para /encuentra → /test
 /_old_encuentra_removed/
+
+# lo mismo, pero para /terapeuta/[slug] → /[slug] (perfil público en la raíz)
+/_old_terapeuta_removed/

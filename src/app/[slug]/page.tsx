@@ -13,11 +13,22 @@ import { getAvailableSlots } from "@/lib/availability";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
 
-// Perfil público de un terapeuta. Solo visible si is_published = true
-// (lo aplica la RLS "therapists_public_read" además del filtro explícito aquí).
+// Perfil público de un terapeuta, en la raíz del dominio (lemy.mx/[slug])
+// para que sea un link corto y "de bio" — tipo linktr.ee/usuario — en vez
+// de lemy.mx/terapeuta/usuario. Antes vivía en /terapeuta/[slug]; esa ruta
+// ahora es un redirect permanente hacia acá (ver next.config.ts). Solo
+// visible si is_published = true (lo aplica la RLS "therapists_public_read"
+// además del filtro explícito aquí).
 // Nota: no leemos therapist_credentials aquí — su RLS es owner-only, un
 // visitante anónimo nunca vería esas filas de todos modos. El badge de
 // "verificado" sale directo del campo verification_status en therapists.
+//
+// Al vivir en la raíz, este slug compite en teoría con cualquier otra ruta
+// de nivel superior (/buscar, /dashboard, etc.) — pero Next.js siempre
+// prioriza una ruta explícita sobre este catch-all, así que el sitio nunca
+// se rompe. Lo que sí se bloquea aparte es que un terapeuta pueda GUARDAR
+// uno de esos nombres como su propio slug (ver reserved-slugs.ts) — si no,
+// su perfil quedaría inalcanzable sin ningún aviso.
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -153,7 +164,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     name: therapist.display_name,
     jobTitle: "Psicoterapeuta",
     description: therapist.bio ?? therapist.tagline ?? undefined,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/terapeuta/${therapist.slug}`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/${therapist.slug}`,
     knowsAbout: specialties.map((s) => s.nombre_coloquial),
     address: therapist.city
       ? { "@type": "PostalAddress", addressLocality: therapist.city, addressCountry: "MX" }
@@ -171,13 +182,9 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
       <QuizFloatingTab />
 
       <main>
-        <section className="px-6 py-16 sm:px-8 md:py-20">
+        <section className="px-6 pt-8 pb-16 sm:px-8 sm:pt-10 md:pb-20">
           <div className="mx-auto max-w-[1180px]">
-            <Link href="/buscar" className="text-[0.85rem] font-medium text-forest hover:text-rose-deep">
-              ← Volver al buscador
-            </Link>
-
-            <ScrollReveal className="mt-6">
+            <ScrollReveal>
               <div className="signature-corner mx-auto max-w-[480px] rounded-[36px] border border-line bg-card p-8 text-center sm:p-10">
                 {therapist.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element

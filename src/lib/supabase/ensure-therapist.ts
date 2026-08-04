@@ -1,15 +1,17 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { slugify } from "@/lib/slugify";
+import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
 // Genera un slug único para un terapeuta, agregando un sufijo numérico si ya
-// existe (o si el propio terapeuta lo está cambiando y choca con otro).
+// existe (o si el propio terapeuta lo está cambiando y choca con otro), o si
+// coincide con una ruta reservada del sitio (ver reserved-slugs.ts).
 export async function uniqueTherapistSlug(
   supabase: SupabaseClient,
   name: string,
   ownId: string
 ): Promise<string> {
   const base = slugify(name) || "terapeuta";
-  let candidate = base;
+  let candidate = RESERVED_SLUGS.has(base) ? `${base}-terapia` : base;
   let attempt = 1;
 
   while (attempt < 25) {

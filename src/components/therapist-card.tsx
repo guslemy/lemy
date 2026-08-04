@@ -42,7 +42,7 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
 
   return (
     <Link
-      href={`/terapeuta/${t.slug}`}
+      href={`/${t.slug}`}
       className="signature-corner block rounded-[28px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
     >
       {t.photo_url ? (

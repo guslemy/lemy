@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/slugify";
 import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure-therapist";
+import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { FOUNDING_MEMBER_LIMIT, TRIAL_DAYS } from "@/lib/stripe";
 
 // Deja pasar "instagram.com/tu_usuario" sin obligar a que escriban
@@ -123,6 +124,9 @@ export async function saveTherapistProfile(formData: FormData) {
   }
 
   let slug = slugify(String(formData.get("slug") || "") || display_name);
+  if (RESERVED_SLUGS.has(slug)) {
+    redirect("/dashboard/perfil?error=slug_reservado");
+  }
   const { data: clash } = await supabase
     .from("therapists")
     .select("id")
@@ -174,7 +178,7 @@ export async function saveTherapistProfile(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
   revalidatePath("/buscar");
-  revalidatePath(`/terapeuta/${slug}`);
+  revalidatePath(`/${slug}`);
 
   if (blockedBySubscription) {
     redirect("/dashboard/perfil?error=suscripcion");
