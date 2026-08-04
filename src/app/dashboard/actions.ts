@@ -7,6 +7,14 @@ import { slugify } from "@/lib/slugify";
 import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure-therapist";
 import { FOUNDING_MEMBER_LIMIT, TRIAL_DAYS } from "@/lib/stripe";
 
+// Deja pasar "instagram.com/tu_usuario" sin obligar a que escriban
+// "https://" a mano — si ya trae protocolo, no lo toca.
+function normalizeUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 // Paso 1 del onboarding: alguien con cuenta de paciente decide activarse
 // como terapeuta. Cambia el rol, crea el registro base en `therapists`, le
 // da 15 días de prueba gratis, y si es de los primeros 30 en activarse lo
@@ -84,6 +92,11 @@ export async function saveTherapistProfile(formData: FormData) {
   const wantsPublished = formData.get("is_published") === "on";
   const phone = String(formData.get("phone") || "").trim() || null;
 
+  const instagram_url = normalizeUrl(String(formData.get("instagram_url") || ""));
+  const facebook_url = normalizeUrl(String(formData.get("facebook_url") || ""));
+  const tiktok_url = normalizeUrl(String(formData.get("tiktok_url") || ""));
+  const whatsapp_public = String(formData.get("whatsapp_public") || "").trim() || null;
+
   await supabase.from("profiles").update({ phone }).eq("id", user.id);
 
   // No se puede publicar sin prueba vigente ni suscripción activa — evita
@@ -135,6 +148,10 @@ export async function saveTherapistProfile(formData: FormData) {
       is_in_person_available,
       address,
       is_published,
+      instagram_url,
+      facebook_url,
+      tiktok_url,
+      whatsapp_public,
     })
     .eq("id", user.id);
 

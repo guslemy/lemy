@@ -56,7 +56,7 @@ export default async function EditarPerfilPage({
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url"
+        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -177,6 +177,56 @@ export default async function EditarPerfilPage({
                     className="input-lemy"
                   />
                 </Field>
+              </div>
+            </div>
+
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Redes sociales
+              </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                Aparecen como íconos justo debajo de tu foto en tu perfil público — ideal para poner tu
+                link de Lemy en tu bio de Instagram o TikTok. Deja en blanco lo que no uses.
+              </p>
+              <div className="space-y-4">
+                <Field
+                  label="WhatsApp para contactarte"
+                  hint="El botón de 'Contactar por WhatsApp' de tu perfil público usa este número — puede ser el mismo de arriba o uno distinto de tu consultorio"
+                >
+                  <input
+                    name="whatsapp_public"
+                    type="tel"
+                    defaultValue={therapist?.whatsapp_public ?? profile?.phone ?? ""}
+                    placeholder="9511234567"
+                    className="input-lemy"
+                  />
+                </Field>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Field label="Instagram">
+                    <input
+                      name="instagram_url"
+                      defaultValue={therapist?.instagram_url ?? ""}
+                      placeholder="instagram.com/tu_usuario"
+                      className="input-lemy"
+                    />
+                  </Field>
+                  <Field label="Facebook">
+                    <input
+                      name="facebook_url"
+                      defaultValue={therapist?.facebook_url ?? ""}
+                      placeholder="facebook.com/tu_pagina"
+                      className="input-lemy"
+                    />
+                  </Field>
+                  <Field label="TikTok">
+                    <input
+                      name="tiktok_url"
+                      defaultValue={therapist?.tiktok_url ?? ""}
+                      placeholder="tiktok.com/@tu_usuario"
+                      className="input-lemy"
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
 

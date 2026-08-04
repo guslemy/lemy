@@ -8,6 +8,7 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
+import { InstagramIcon, FacebookIcon, TikTokIcon, WhatsAppIcon } from "@/components/social-icons";
 import { getAvailableSlots } from "@/lib/availability";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
@@ -46,6 +47,10 @@ type TherapistDetail = {
   price_min: number | null;
   price_max: number | null;
   verification_status: string;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  tiktok_url: string | null;
+  whatsapp_public: string | null;
   therapist_specialties: { specialty: CatalogItem | null }[] | null;
   therapist_approaches: { approach: CatalogItem | null }[] | null;
 };
@@ -57,6 +62,7 @@ async function getTherapist(slug: string) {
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        is_online_available, is_in_person_available, price_min, price_max, verification_status,
+       instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) )`
     )
@@ -65,6 +71,16 @@ async function getTherapist(slug: string) {
     .maybeSingle();
 
   return data as unknown as TherapistDetail | null;
+}
+
+// wa.me necesita el número en formato internacional sin signos — asumimos
+// México (52) para los de 10 dígitos, igual que normalizePhone en
+// notifications/engine.ts (pero sin importar ese módulo aquí, que además
+// trae de arrastre clientes de Resend/WhatsApp server-only).
+function whatsappLink(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  const withCountry = digits.length === 10 ? `52${digits}` : digits;
+  return `https://wa.me/${withCountry}`;
 }
 
 function initialsFrom(name: string) {
@@ -162,39 +178,99 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
             </Link>
 
             <ScrollReveal className="mt-6">
+              <div className="signature-corner mx-auto max-w-[480px] rounded-[36px] border border-line bg-card p-8 text-center sm:p-10">
+                {therapist.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={therapist.photo_url}
+                    alt=""
+                    className="mx-auto h-[130px] w-[130px] rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="mx-auto flex h-[130px] w-[130px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-4xl font-semibold text-white">
+                    {initialsFrom(therapist.display_name)}
+                  </div>
+                )}
+
+                {(therapist.instagram_url || therapist.facebook_url || therapist.tiktok_url) && (
+                  <div className="mt-4 flex justify-center gap-2.5">
+                    {therapist.instagram_url && (
+                      <a
+                        href={therapist.instagram_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Instagram"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/[0.08] text-forest transition-colors hover:bg-forest hover:text-sage-white"
+                      >
+                        <InstagramIcon />
+                      </a>
+                    )}
+                    {therapist.facebook_url && (
+                      <a
+                        href={therapist.facebook_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Facebook"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/[0.08] text-forest transition-colors hover:bg-forest hover:text-sage-white"
+                      >
+                        <FacebookIcon />
+                      </a>
+                    )}
+                    {therapist.tiktok_url && (
+                      <a
+                        href={therapist.tiktok_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="TikTok"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/[0.08] text-forest transition-colors hover:bg-forest hover:text-sage-white"
+                      >
+                        <TikTokIcon />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                <h1 className="mt-4.5 font-display text-[1.5rem] text-forest">{therapist.display_name}</h1>
+                {therapist.tagline && (
+                  <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
+                )}
+                {therapist.verification_status === "verified" && (
+                  <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
+                    ✓ Cédula verificada
+                  </p>
+                )}
+                {therapist.is_in_person_available && (therapist.zona || therapist.city) && (
+                  <p className="mt-2 text-[0.85rem] text-[#5A665F]">
+                    📍 {[therapist.zona, therapist.city].filter(Boolean).join(", ")}
+                  </p>
+                )}
+
+                <div className="mx-auto mt-6 flex max-w-[300px] flex-col gap-2.5">
+                  <Button href="#agenda" variant="primary" className="w-full">
+                    Agendar consulta
+                  </Button>
+                  {therapist.whatsapp_public && (
+                    <a
+                      href={whatsappLink(therapist.whatsapp_public)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1fbd59] active:scale-95"
+                    >
+                      <WhatsAppIcon />
+                      Contactar por WhatsApp
+                    </a>
+                  )}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal className="mt-8">
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
-                  {therapist.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={therapist.photo_url}
-                      alt=""
-                      className="h-[150px] w-[150px] rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-[150px] w-[150px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-4xl font-semibold text-white">
-                      {initialsFrom(therapist.display_name)}
-                    </div>
-                  )}
-                  <h1 className="mt-4.5 font-display text-[1.4rem] text-forest">{therapist.display_name}</h1>
-                  {therapist.tagline && (
-                    <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
-                  )}
-                  {therapist.verification_status === "verified" && (
-                    <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
-                      ✓ Cédula verificada
-                    </p>
-                  )}
-
-                  <div className="mt-5.5 space-y-2.5 text-[0.88rem] text-[#3E4B44]">
-                    {therapist.is_in_person_available && (therapist.zona || therapist.city) && (
-                      <div>
-                        <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
-                          Ubicación
-                        </strong>
-                        {[therapist.zona, therapist.city].filter(Boolean).join(", ")}
-                      </div>
-                    )}
+                  <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                    Datos generales
+                  </h4>
+                  <div className="space-y-2.5 text-[0.88rem] text-[#3E4B44]">
                     <div>
                       <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
                         Modalidad
@@ -222,10 +298,6 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       {priceLabel(therapist.price_min, therapist.price_max)}
                     </div>
                   </div>
-
-                  <Button href="#agenda" variant="primary" className="mt-6 w-full">
-                    Agendar consulta
-                  </Button>
                 </div>
 
                 <div>
