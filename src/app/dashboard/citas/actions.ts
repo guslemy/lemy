@@ -124,6 +124,14 @@ export async function confirmAppointment(formData: FormData) {
       meetingLink = created.meetingLink;
     } catch (err) {
       console.error("Error creando evento en Google Calendar, se usa la sala de respaldo:", err);
+      // El refresh token que teníamos guardado ya no sirve (expiró, se
+      // revocó, etc.) — corregimos el flag para que el terapeuta vea el
+      // aviso de "reconectar" en su perfil en vez de creer que sigue
+      // conectado cuando en realidad ya no está pasando nada.
+      await serviceClient
+        .from("therapists")
+        .update({ google_calendar_connected: false })
+        .eq("id", user.id);
     }
   }
 

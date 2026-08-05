@@ -37,10 +37,11 @@ export const TRIAL_DAYS = 15;
 // se queda con una comisión vía application_fee_amount. Gustavo eligió un
 // modelo de fijo + porcentaje (como cobra el propio Stripe) — los números
 // exactos quedan en variables de entorno para poder ajustarlos sin tocar
-// código ni redeploy de más. Default conservador mientras confirma cifras.
+// código ni redeploy de más. $5 MXN + 3% confirmado por Gustavo para el
+// lanzamiento (2026-08-05).
 // ─────────────────────────────────────────────
-const CONNECT_FEE_FIXED_MXN_CENTS = Number(process.env.STRIPE_CONNECT_FEE_FIXED_MXN_CENTS ?? 1000); // $10 MXN
-const CONNECT_FEE_PERCENT = Number(process.env.STRIPE_CONNECT_FEE_PERCENT ?? 8); // 8%
+const CONNECT_FEE_FIXED_MXN_CENTS = Number(process.env.STRIPE_CONNECT_FEE_FIXED_MXN_CENTS ?? 500); // $5 MXN
+const CONNECT_FEE_PERCENT = Number(process.env.STRIPE_CONNECT_FEE_PERCENT ?? 3); // 3%
 
 // priceMxn viene de therapists.price_min (numeric MXN, ej. 600.00).
 // Devuelve la comisión de Lemy en centavos, para pasarla directo a

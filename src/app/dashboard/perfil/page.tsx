@@ -10,6 +10,7 @@ import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
 import { PhotoUploadField } from "@/components/photo-upload-field";
+import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import { saveTherapistProfile, uploadTherapistPhoto } from "../actions";
 
@@ -27,9 +28,9 @@ function initialsFrom(name: string) {
 export default async function EditarPerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; foto_guardada?: string }>;
+  searchParams: Promise<{ error?: string; foto_guardada?: string; google_reconectado?: string }>;
 }) {
-  const { error, foto_guardada } = await searchParams;
+  const { error, foto_guardada, google_reconectado } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,7 +57,7 @@ export default async function EditarPerfilPage({
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public"
+        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -141,6 +142,30 @@ export default async function EditarPerfilPage({
                 </SubmitButton>
               </form>
             </div>
+          </div>
+
+          {foto_guardada !== "1" && google_reconectado === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, tu Google Calendar quedó reconectado.
+            </p>
+          )}
+
+          <div className="signature-corner mt-6 rounded-[28px] border border-line bg-card p-7">
+            <h2 className="mb-3 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+              Google Calendar
+            </h2>
+            {therapist?.google_calendar_connected ? (
+              <p className="text-[0.88rem] text-forest">✓ Conectado — tus citas confirmadas crean el evento y el Meet automáticamente.</p>
+            ) : (
+              <>
+                <p className="mb-4 text-[0.88rem] text-[#42504A]">
+                  No está conectado (o dejó de funcionar). Mientras tanto, tus citas se confirman igual
+                  con una sala de videollamada de respaldo — pero conectarlo te crea el evento real en tu
+                  calendario y el Meet automáticamente.
+                </p>
+                <GoogleCalendarConnectButton label="Conectar Google Calendar" />
+              </>
+            )}
           </div>
 
           <ProfileForm action={saveTherapistProfile}>
