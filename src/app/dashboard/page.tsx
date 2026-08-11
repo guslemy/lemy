@@ -134,6 +134,10 @@ export default async function DashboardPage({
                 Comparte tu link personal. En cuanto la persona que invitaste empiece a pagar su
                 suscripción, tu siguiente mensualidad baja 30%.
               </p>
+              <p className="mt-2 text-[0.8rem] text-rose-deep">
+                Para poder aprovechar este descuento, tu propia suscripción debe estar activa (no
+                solo en periodo de prueba) en el momento en que tu invitado se suscriba.
+              </p>
               <CopyLinkBox
                 link={`${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/api/ref?code=${therapist.slug}`}
               />

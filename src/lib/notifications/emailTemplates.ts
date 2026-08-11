@@ -277,6 +277,7 @@ export function referralInvite(params: { name: string; referralLink: string }) {
         <li style="margin-bottom: 6px;">Tú obtienes <strong>30% de descuento en tu siguiente mensualidad</strong>.</li>
         <li style="margin-bottom: 6px;">Ella o él obtiene <strong>30% de descuento durante sus primeros 2 meses</strong>.</li>
       </ul>
+      <p style="font-size: 13px; color: #8B978F;">Para poder aprovechar tu descuento, tu propia suscripción debe estar activa (no solo en periodo de prueba) en el momento en que tu invitado se suscriba.</p>
       <p style="word-break: break-all; background: #F5F1E8; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #2F5233;">${referralLink}</p>
       <p><a href="https://lemy.mx/dashboard" style="color: #2F5233;">Ir a mi panel →</a></p>
     `),
