@@ -32,10 +32,12 @@ export default async function DashboardPage({
   const { data: therapist } = isTherapist
     ? await supabase
         .from("therapists")
-        .select("slug, display_name, is_published")
+        .select("slug, display_name, is_published, subscription_status")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
+
+  const sinPlan = isTherapist && therapist?.subscription_status !== "active";
 
   return (
     <>
@@ -52,6 +54,17 @@ export default async function DashboardPage({
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
               Guardamos tus cambios.
             </p>
+          )}
+
+          {sinPlan && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-4">
+              <p className="text-[0.9rem] text-rose-deep">
+                Actualmente no cuentas con un plan. Elígelo y comienza a recibir pacientes ya.
+              </p>
+              <Button href="/dashboard/suscripcion" variant="primary">
+                Elegir plan
+              </Button>
+            </div>
           )}
 
           {isAdmin ? (

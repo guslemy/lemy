@@ -77,3 +77,36 @@ export async function createSubscriptionCheckout(formData: FormData) {
   if (!session.url) redirect("/dashboard/suscripcion?error=1");
   redirect(session.url);
 }
+
+// Manda al terapeuta al Billing Portal de Stripe (hospedado por ellos) para
+// que pueda cambiar de plan, actualizar su tarjeta, ver facturas o darse de
+// baja por su cuenta — antes no existía ninguna forma de cancelar dentro de
+// Lemy. Necesita que ya exista un Customer de Stripe (o sea, que alguna vez
+// haya iniciado una suscripción); si nunca lo ha hecho, no hay nada que
+// gestionar todavía.
+//
+// OJO para Gustavo: en modo Live, el Billing Portal necesita configurarse
+// una vez desde Stripe (Settings → Billing → Customer portal → Activate)
+// antes de que este botón funcione — si no, Stripe regresa un error.
+export async function openBillingPortal() {
+  const stripe = getStripe();
+  const { supabase, user } = await requireTherapist();
+
+  const { data: therapist } = await supabase
+    .from("therapists")
+    .select("stripe_billing_customer_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!therapist?.stripe_billing_customer_id) {
+    redirect("/dashboard/suscripcion?error=sin_suscripcion");
+  }
+
+  const base = await siteUrl();
+  const session = await stripe.billingPortal.sessions.create({
+    customer: therapist.stripe_billing_customer_id,
+    return_url: `${base}/dashboard/suscripcion`,
+  });
+
+  redirect(session.url);
+}

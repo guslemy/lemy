@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
-import { createSubscriptionCheckout } from "./actions";
+import { createSubscriptionCheckout, openBillingPortal } from "./actions";
 
 // Estado de la suscripción del terapeuta: prueba gratis, activa, vencida, o
 // sin empezar. El botón de cada plan dispara un Checkout real de Stripe.
@@ -23,6 +23,7 @@ export default async function SuscripcionPage({
   searchParams: Promise<{ ok?: string; cancelado?: string; error?: string }>;
 }) {
   const { ok, cancelado, error } = await searchParams;
+  const sinSuscripcion = error === "sin_suscripcion";
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +39,9 @@ export default async function SuscripcionPage({
 
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("trial_ends_at, is_founding_member, subscription_status, subscription_plan")
+    .select(
+      "trial_ends_at, is_founding_member, subscription_status, subscription_plan, stripe_billing_customer_id"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -76,6 +79,19 @@ export default async function SuscripcionPage({
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               Algo no salió bien con Stripe, intenta de nuevo.
             </p>
+          )}
+          {sinSuscripcion && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Todavía no tienes una suscripción que gestionar — elige un plan primero.
+            </p>
+          )}
+
+          {therapist?.stripe_billing_customer_id && (
+            <form action={openBillingPortal} className="mt-6">
+              <Button type="submit" variant="ghost">
+                Gestionar mi suscripción (cambiar plan, tarjeta o darme de baja)
+              </Button>
+            </form>
           )}
 
           {therapist?.is_founding_member && !subscriptionActive && (
