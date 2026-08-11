@@ -10,6 +10,11 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
     .maybeSingle();
 
   if (!existingProfile) {
+    // Cualquier cuenta con correo @lemy.mx es del equipo — entra directo
+    // como admin, sin que Gustavo tenga que ponerlo a mano en Supabase cada
+    // vez que alguien nuevo del equipo se registra.
+    const isLemyTeam = (user.email ?? "").toLowerCase().endsWith("@lemy.mx");
+
     await supabase.from("profiles").insert({
       id: user.id,
       full_name: user.user_metadata?.full_name ?? user.email,
@@ -17,7 +22,7 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
       // Google normalmente no manda teléfono, pero por si algún proveedor sí
       // lo trae (o si signUp con correo/contraseña lo pasó en options.data).
       phone: user.user_metadata?.phone ?? null,
-      role: "patient", // por default; el cambio a "therapist" se hace en onboarding
+      role: isLemyTeam ? "admin" : "patient", // por default paciente; therapist se activa en onboarding
     });
   }
 }
