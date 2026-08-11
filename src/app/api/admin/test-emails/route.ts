@@ -27,12 +27,20 @@ export const dynamic = "force-dynamic";
 //   GET /api/admin/test-emails?to=correo@ejemplo.com
 //   Header: Authorization: Bearer <TEST_EMAILS_SECRET>
 export async function GET(req: Request) {
+  const url = new URL(req.url);
   const authHeader = req.headers.get("authorization");
-  if (!process.env.TEST_EMAILS_SECRET || authHeader !== `Bearer ${process.env.TEST_EMAILS_SECRET}`) {
+  // Acepta el secreto por header (uso normal, vía curl/Postman) o por query
+  // param ?secret= (para poder dispararlo con una simple visita de URL,
+  // desde entornos que no dejan mandar headers personalizados).
+  const secretOk =
+    process.env.TEST_EMAILS_SECRET &&
+    (authHeader === `Bearer ${process.env.TEST_EMAILS_SECRET}` ||
+      url.searchParams.get("secret") === process.env.TEST_EMAILS_SECRET);
+  if (!secretOk) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const to = new URL(req.url).searchParams.get("to");
+  const to = url.searchParams.get("to");
   if (!to) {
     return NextResponse.json({ error: "falta ?to=correo@ejemplo.com" }, { status: 400 });
   }
