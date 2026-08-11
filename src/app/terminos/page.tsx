@@ -57,23 +57,40 @@ export default function TerminosPage() {
               El acceso a funciones de terapeuta (perfil publicado, agenda) depende de mantener una
               prueba gratuita vigente o una suscripción activa, según los planes vigentes en tu panel.
             </p>
+            <p>
+              Lemy se reserva el derecho de suspender o cancelar cualquier cuenta de terapeuta que, a
+              su juicio o perspectiva, represente algún riesgo, contenga información no verídica, o
+              haga un uso indebido de la plataforma.
+            </p>
+            <p>
+              El contenido que cada terapeuta publica en su perfil profesional (biografía, formación,
+              enfoque, tarifas y demás información) es responsabilidad exclusiva de esa persona; Lemy
+              no participa en su redacción ni garantiza su exactitud más allá de la verificación de
+              cédula profesional.
+            </p>
           </Section>
 
           <Section title="4. Agendar y cancelar sesiones">
             <p>
-              Al solicitar una cita, el terapeuta debe confirmarla para que quede agendada en firme.
-              Cualquiera de las dos partes puede cancelar desde su panel; la otra parte recibe aviso
-              de inmediato. Lemy puede mostrar la tasa de cancelación de un terapeuta como parte de la
-              transparencia del directorio.
+              En algunos casos, al solicitar una cita, el terapeuta debe confirmarla para que quede
+              agendada en firme. Cualquiera de las dos partes puede cancelar desde su panel; la otra
+              parte recibe aviso de inmediato. Al igual que la tasa de cancelación de un terapeuta,
+              Lemy puede mostrar las reseñas y calificaciones que los pacientes dejan sobre él, con
+              fines de transparencia dentro del directorio.
             </p>
           </Section>
 
           <Section title="5. Pagos">
             <p>
               Los pagos de suscripción de terapeutas se procesan a través de Stripe, conforme a los
-              precios y condiciones mostrados en el panel al momento de suscribirse. Lemy no participa
-              hoy en el cobro de las sesiones entre paciente y terapeuta; eso se acuerda directamente
-              entre ambos, salvo que se indique lo contrario en el futuro.
+              precios y condiciones mostrados en el panel al momento de suscribirse.
+            </p>
+            <p>
+              Los pagos de las sesiones entre paciente y terapeuta se procesan a través de Stripe
+              Connect: el pago del paciente se deposita directamente en la cuenta del terapeuta, quien
+              es el responsable ante la ley de emitir el comprobante fiscal correspondiente por su
+              servicio. Lemy cobra una comisión (fija más un porcentaje) sobre cada sesión pagada a
+              través de la plataforma, que se descuenta automáticamente al momento del cobro.
             </p>
           </Section>
 
@@ -104,16 +121,9 @@ export default function TerminosPage() {
           <Section title="9. Ley aplicable">
             <p>
               Estos términos se rigen por las leyes de los Estados Unidos Mexicanos. Cualquier
-              controversia se someterá a los tribunales competentes en Oaxaca, México.
+              controversia se someterá a los tribunales competentes en la Ciudad de México.
             </p>
           </Section>
-
-          <p className="mt-12 rounded-2xl border border-line bg-card px-5 py-4 text-[0.85rem] text-[#5A665F]">
-            Este documento es un borrador funcional para cubrir lo básico de operar el directorio y
-            los requisitos de verificación de Google. Antes de publicarlo como definitivo, se
-            recomienda que un abogado lo revise y confirme la razón social exacta y cualquier detalle
-            específico del negocio.
-          </p>
         </div>
       </main>
       <SiteFooter />
