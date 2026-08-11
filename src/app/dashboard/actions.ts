@@ -7,7 +7,7 @@ import { slugify } from "@/lib/slugify";
 import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure-therapist";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { FOUNDING_MEMBER_LIMIT, TRIAL_DAYS } from "@/lib/stripe";
-import { dispatch, emailOf } from "@/lib/notifications/engine";
+import { dispatch } from "@/lib/notifications/engine";
 import { therapistWelcome } from "@/lib/notifications/emailTemplates";
 
 // Deja pasar "instagram.com/tu_usuario" sin obligar a que escriban
@@ -58,8 +58,15 @@ export async function becomeTherapist() {
     // Correo 1 de la secuencia de onboarding: cuenta creada, sin pago
     // todavía — invita a elegir plan con la tabla comparativa. No debe
     // bloquear la activación de la cuenta si falla.
+    //
+    // OJO: no usar emailOf(supabase, user.id) aquí — ese helper llama
+    // auth.admin.getUserById, que requiere la service_role key. Este
+    // `supabase` es el cliente de sesión normal (clave anónima), así que esa
+    // llamada fallaría en silencio (sin lanzar error) y el correo nunca se
+    // mandaría. Como el usuario ya está autenticado en esta misma función,
+    // user.email ya trae el dato — no hace falta ninguna llamada extra.
     try {
-      const email = await emailOf(supabase, user.id);
+      const email = user.email ?? null;
       const { subject, html } = therapistWelcome({
         name: existing?.display_name || user.user_metadata?.full_name || "ahí",
       });
