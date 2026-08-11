@@ -3,7 +3,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, STRIPE_PRICE_BASE, STRIPE_PRICE_PLUS, STRIPE_COUPON_FOUNDER } from "@/lib/stripe";
+import {
+  getStripe,
+  STRIPE_PRICE_BASE,
+  STRIPE_PRICE_PLUS,
+  STRIPE_COUPON_FOUNDER,
+  STRIPE_COUPON_REFERRAL_NEW_USER,
+} from "@/lib/stripe";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -40,7 +46,7 @@ export async function createSubscriptionCheckout(formData: FormData) {
 
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("stripe_billing_customer_id, is_founding_member, display_name")
+    .select("stripe_billing_customer_id, is_founding_member, display_name, referred_by")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -60,14 +66,21 @@ export async function createSubscriptionCheckout(formData: FormData) {
 
   const base = await siteUrl();
 
+  // Stripe Checkout solo permite un descuento a la vez. Prioridad: cupón de
+  // fundador (30% x3 meses + precio bloqueado 1 año) por encima del de
+  // referido nuevo (30% x2 meses) — en la práctica casi no se cruzan, pero
+  // si alguien es ambas cosas, se queda con el beneficio mayor.
+  const discounts = therapist?.is_founding_member && STRIPE_COUPON_FOUNDER
+    ? [{ coupon: STRIPE_COUPON_FOUNDER }]
+    : therapist?.referred_by && STRIPE_COUPON_REFERRAL_NEW_USER
+      ? [{ coupon: STRIPE_COUPON_REFERRAL_NEW_USER }]
+      : undefined;
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    discounts:
-      therapist?.is_founding_member && STRIPE_COUPON_FOUNDER
-        ? [{ coupon: STRIPE_COUPON_FOUNDER }]
-        : undefined,
+    discounts,
     success_url: `${base}/dashboard/suscripcion?ok=1`,
     cancel_url: `${base}/dashboard/suscripcion?cancelado=1`,
     metadata: { lemy_user_id: user.id, plan },

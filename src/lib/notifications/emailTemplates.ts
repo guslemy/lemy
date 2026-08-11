@@ -261,6 +261,28 @@ export function therapistOnboardingChecklist(params: { name: string; profileUrl:
   };
 }
 
+// 3 días después de crear la cuenta, solo a terapeutas que ya tienen
+// suscripción activa (pagada) — les recuerda su código de referidos y el
+// beneficio para ambos lados (30% x 1 mes para quien invita, 30% x 2 meses
+// para la persona invitada). Se dispara desde el barrido del cron.
+export function referralInvite(params: { name: string; referralLink: string }) {
+  const { name, referralLink } = params;
+  return {
+    subject: "Invita a otros terapeutas y ahorra en tu mensualidad",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>¿Sabías que puedes ahorrar en tu suscripción a Lemy solo por invitar a otros terapeutas?</p>
+      <p>Comparte tu link personal. En cuanto la persona que invitaste active su suscripción:</p>
+      <ul style="padding-left: 18px; color: #3E4B44;">
+        <li style="margin-bottom: 6px;">Tú obtienes <strong>30% de descuento en tu siguiente mensualidad</strong>.</li>
+        <li style="margin-bottom: 6px;">Ella o él obtiene <strong>30% de descuento durante sus primeros 2 meses</strong>.</li>
+      </ul>
+      <p style="word-break: break-all; background: #F5F1E8; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #2F5233;">${referralLink}</p>
+      <p><a href="https://lemy.mx/dashboard" style="color: #2F5233;">Ir a mi panel →</a></p>
+    `),
+  };
+}
+
 export function appointmentReminder(params: {
   name: string;
   otherPartyName: string;

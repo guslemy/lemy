@@ -7,6 +7,7 @@ import {
   renewalReminder,
   appointmentReminder,
   therapistOnboardingChecklist,
+  referralInvite,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -199,6 +200,45 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     await dispatch({
       supabase,
       type: "therapist_onboarding_checklist",
+      relatedId: t.id as string,
+      recipientId: t.id as string,
+      email,
+      phone: null,
+      subject,
+      html,
+      emailOnly: true,
+    });
+    sent += 1;
+  }
+
+  // Correo de "invita y ahorra": 3 días después de crear la cuenta, solo a
+  // quienes ya tienen suscripción activa (pagada) — recordatorio de su
+  // código de referidos. Tolerancia de 1 día porque es un disparador a
+  // escala de días, igual que los de renovación.
+  const { data: referralCandidates } = await supabase
+    .from("therapists")
+    .select("id, display_name, slug, created_at")
+    .not("created_at", "is", null)
+    .eq("subscription_status", "active");
+
+  checked += referralCandidates?.length ?? 0;
+
+  for (const t of referralCandidates ?? []) {
+    const createdAtMs = new Date(t.created_at as string).getTime();
+    const target = createdAtMs + 3 * DAY_MS;
+    if (!isDue(target, DAY_MS, now)) continue;
+
+    const email = await emailOf(supabase, t.id as string);
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
+    const referralLink = `${siteUrl}/api/ref?code=${t.slug}`;
+    const { subject, html } = referralInvite({
+      name: t.display_name as string,
+      referralLink,
+    });
+
+    await dispatch({
+      supabase,
+      type: "referral_invite",
       relatedId: t.id as string,
       recipientId: t.id as string,
       email,
