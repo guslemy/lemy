@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { createSubscriptionCheckout, openBillingPortal } from "./actions";
+import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
 
 // Estado de la suscripción del terapeuta: prueba gratis, activa, vencida, o
 // sin empezar. El botón de cada plan dispara un Checkout real de Stripe.
@@ -127,6 +128,14 @@ export default async function SuscripcionPage({
                 Plan {PLAN_LABELS.base}
               </p>
               <p className="mt-2 font-display text-[1.6rem] text-forest">$249 MXN/mes</p>
+              <ul className="mt-4 space-y-2 text-[0.85rem] text-[#3E4B44]">
+                {PLAN_FEATURES_BASE.map((feature) => (
+                  <li key={feature} className="flex gap-2">
+                    <span className="text-forest">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
               <form action={createSubscriptionCheckout} className="mt-5">
                 <input type="hidden" name="plan" value="base" />
                 <Button type="submit" variant="primary" className="w-full">
@@ -140,6 +149,14 @@ export default async function SuscripcionPage({
                 Plan {PLAN_LABELS.plus}
               </p>
               <p className="mt-2 font-display text-[1.6rem] text-forest">$399 MXN/mes</p>
+              <ul className="mt-4 space-y-2 text-[0.85rem] text-[#3E4B44]">
+                {PLAN_FEATURES_PLUS.map((feature) => (
+                  <li key={feature} className="flex gap-2">
+                    <span className="text-forest">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
               <form action={createSubscriptionCheckout} className="mt-5">
                 <input type="hidden" name="plan" value="plus" />
                 <Button type="submit" variant="primary" className="w-full">
