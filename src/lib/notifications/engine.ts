@@ -156,28 +156,44 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       const target = trialEndsAt - days * DAY_MS;
       if (!isDue(target, DAY_MS, now)) continue;
 
-      const email = await emailOf(supabase, t.id as string);
-      const { subject, html } = trialEnding({ name: t.display_name as string, daysLeft: days });
+      // Try/catch por registro: si un terapeuta con datos raros truena aquí,
+      // no debe tumbar el resto de la corrida — antes un solo error a medio
+      // barrido dejaba sin correo a todos los que le tocaba procesarse
+      // después, aunque el cron "funcionara" en general.
+      try {
+        const email = await emailOf(supabase, t.id as string);
+        const { subject, html } = trialEnding({ name: t.display_name as string, daysLeft: days });
 
-      await dispatch({
-        supabase,
-        type,
-        relatedId: t.id as string,
-        recipientId: t.id as string,
-        email,
-        phone: normalizePhone(trialPhones.get(t.id as string)),
-        subject,
-        html,
-        whatsappTemplate: `lemy_${type}`,
-        whatsappParams: [t.display_name as string, String(days)],
-      });
-      sent += 1;
+        await dispatch({
+          supabase,
+          type,
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email,
+          phone: normalizePhone(trialPhones.get(t.id as string)),
+          subject,
+          html,
+          whatsappTemplate: `lemy_${type}`,
+          whatsappParams: [t.display_name as string, String(days)],
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(`Error en barrido (${type} → therapist ${t.id}):`, err);
+      }
     }
   }
 
   // Correo 3 de onboarding de terapeuta: 10 minutos después de activar la
-  // cuenta (checklist + compartir perfil). Tolerancia de 20 min porque el
-  // cron corre cada 15 — sin eso, una corrida tardía se saltaría la ventana.
+  // cuenta (checklist + compartir perfil).
+  //
+  // Tolerancia amplia (3 horas) a propósito: el cron corre vía GitHub
+  // Actions cada 15 min, pero GitHub NO garantiza esa puntualidad — las
+  // corridas programadas se pueden atrasar o hasta saltarse por completo en
+  // momentos de carga alta (documentado por GitHub). Con una ventana de solo
+  // 20 min, cualquier atraso mayor perdía el correo para siempre (sin
+  // reintento). Como este correo es un empujón suave de onboarding y no algo
+  // con fecha límite real, es preferible que llegue unas horas tarde a que
+  // no llegue nunca.
   const { data: newTherapists } = await supabase
     .from("therapists")
     .select("id, display_name, slug, created_at")
@@ -188,27 +204,31 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
   for (const t of newTherapists ?? []) {
     const createdAtMs = new Date(t.created_at as string).getTime();
     const target = createdAtMs + 10 * 60 * 1000;
-    if (!isDue(target, 20 * 60 * 1000, now)) continue;
+    if (!isDue(target, 3 * HOUR_MS, now)) continue;
 
-    const email = await emailOf(supabase, t.id as string);
-    const profileUrl = `https://lemy.mx/${t.slug}`;
-    const { subject, html } = therapistOnboardingChecklist({
-      name: t.display_name as string,
-      profileUrl,
-    });
+    try {
+      const email = await emailOf(supabase, t.id as string);
+      const profileUrl = `https://lemy.mx/${t.slug}`;
+      const { subject, html } = therapistOnboardingChecklist({
+        name: t.display_name as string,
+        profileUrl,
+      });
 
-    await dispatch({
-      supabase,
-      type: "therapist_onboarding_checklist",
-      relatedId: t.id as string,
-      recipientId: t.id as string,
-      email,
-      phone: null,
-      subject,
-      html,
-      emailOnly: true,
-    });
-    sent += 1;
+      await dispatch({
+        supabase,
+        type: "therapist_onboarding_checklist",
+        relatedId: t.id as string,
+        recipientId: t.id as string,
+        email,
+        phone: null,
+        subject,
+        html,
+        emailOnly: true,
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (therapist_onboarding_checklist → therapist ${t.id}):`, err);
+    }
   }
 
   // Correo de "invita y ahorra": 3 días después de crear la cuenta, solo a
@@ -228,26 +248,30 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     const target = createdAtMs + 3 * DAY_MS;
     if (!isDue(target, DAY_MS, now)) continue;
 
-    const email = await emailOf(supabase, t.id as string);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
-    const referralLink = `${siteUrl}/api/ref?code=${t.slug}`;
-    const { subject, html } = referralInvite({
-      name: t.display_name as string,
-      referralLink,
-    });
+    try {
+      const email = await emailOf(supabase, t.id as string);
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
+      const referralLink = `${siteUrl}/api/ref?code=${t.slug}`;
+      const { subject, html } = referralInvite({
+        name: t.display_name as string,
+        referralLink,
+      });
 
-    await dispatch({
-      supabase,
-      type: "referral_invite",
-      relatedId: t.id as string,
-      recipientId: t.id as string,
-      email,
-      phone: null,
-      subject,
-      html,
-      emailOnly: true,
-    });
-    sent += 1;
+      await dispatch({
+        supabase,
+        type: "referral_invite",
+        relatedId: t.id as string,
+        recipientId: t.id as string,
+        email,
+        phone: null,
+        subject,
+        html,
+        emailOnly: true,
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (referral_invite → therapist ${t.id}):`, err);
+    }
   }
 
   // 3 y 4. Renovación de suscripción: 3 días antes (solo correo) y 1 día
@@ -265,50 +289,54 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     const periodEnd = new Date(t.subscription_current_period_end as string).getTime();
     if (now >= periodEnd) continue;
 
-    const email = await emailOf(supabase, t.id as string);
-    const phone = normalizePhone(activePhones.get(t.id as string));
+    try {
+      const email = await emailOf(supabase, t.id as string);
+      const phone = normalizePhone(activePhones.get(t.id as string));
 
-    const target3d = periodEnd - 3 * DAY_MS;
-    if (isDue(target3d, DAY_MS, now)) {
-      const { subject, html } = renewalReminder({
-        name: t.display_name as string,
-        daysLeft: 3,
-        plan: t.subscription_plan as string | null,
-      });
-      await dispatch({
-        supabase,
-        type: "renewal_3d",
-        relatedId: t.id as string,
-        recipientId: t.id as string,
-        email,
-        phone: null,
-        subject,
-        html,
-        emailOnly: true,
-      });
-      sent += 1;
-    }
+      const target3d = periodEnd - 3 * DAY_MS;
+      if (isDue(target3d, DAY_MS, now)) {
+        const { subject, html } = renewalReminder({
+          name: t.display_name as string,
+          daysLeft: 3,
+          plan: t.subscription_plan as string | null,
+        });
+        await dispatch({
+          supabase,
+          type: "renewal_3d",
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email,
+          phone: null,
+          subject,
+          html,
+          emailOnly: true,
+        });
+        sent += 1;
+      }
 
-    const target1d = periodEnd - 1 * DAY_MS;
-    if (isDue(target1d, DAY_MS, now)) {
-      const { subject, html } = renewalReminder({
-        name: t.display_name as string,
-        daysLeft: 1,
-        plan: t.subscription_plan as string | null,
-      });
-      await dispatch({
-        supabase,
-        type: "renewal_1d",
-        relatedId: t.id as string,
-        recipientId: t.id as string,
-        email,
-        phone,
-        subject,
-        html,
-        whatsappTemplate: "lemy_renewal_1d",
-        whatsappParams: [t.display_name as string],
-      });
-      sent += 1;
+      const target1d = periodEnd - 1 * DAY_MS;
+      if (isDue(target1d, DAY_MS, now)) {
+        const { subject, html } = renewalReminder({
+          name: t.display_name as string,
+          daysLeft: 1,
+          plan: t.subscription_plan as string | null,
+        });
+        await dispatch({
+          supabase,
+          type: "renewal_1d",
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email,
+          phone,
+          subject,
+          html,
+          whatsappTemplate: "lemy_renewal_1d",
+          whatsappParams: [t.display_name as string],
+        });
+        sent += 1;
+      }
+    } catch (err) {
+      console.error(`Error en barrido (renewal → therapist ${t.id}):`, err);
     }
   }
 
@@ -343,36 +371,41 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
 
     const patient = patientById.get(a.patient_id as string);
     const therapistName = therapistNameById.get(a.therapist_id as string) ?? "tu terapeuta";
-    const email = await emailOf(supabase, a.patient_id as string);
 
-    for (const [type, offsetMs, whenLabel, waTemplate] of [
-      ["appointment_1d", DAY_MS, "mañana", "lemy_appointment_1d"],
-      ["appointment_1h", HOUR_MS, "en 1 hora", "lemy_appointment_1h"],
-    ] as const) {
-      const target = scheduledAt - offsetMs;
-      const tolerance = offsetMs === HOUR_MS ? 2 * HOUR_MS : DAY_MS;
-      if (!isDue(target, tolerance, now)) continue;
+    try {
+      const email = await emailOf(supabase, a.patient_id as string);
 
-      const { subject, html } = appointmentReminder({
-        name: patient?.full_name ?? "paciente",
-        otherPartyName: therapistName,
-        whenLabel,
-        meetingLink: a.meeting_link as string | null,
-      });
+      for (const [type, offsetMs, whenLabel, waTemplate] of [
+        ["appointment_1d", DAY_MS, "mañana", "lemy_appointment_1d"],
+        ["appointment_1h", HOUR_MS, "en 1 hora", "lemy_appointment_1h"],
+      ] as const) {
+        const target = scheduledAt - offsetMs;
+        const tolerance = offsetMs === HOUR_MS ? 2 * HOUR_MS : DAY_MS;
+        if (!isDue(target, tolerance, now)) continue;
 
-      await dispatch({
-        supabase,
-        type,
-        relatedId: a.id as string,
-        recipientId: a.patient_id as string,
-        email,
-        phone: normalizePhone(patient?.phone as string | null | undefined),
-        subject,
-        html,
-        whatsappTemplate: waTemplate,
-        whatsappParams: [patient?.full_name ?? "paciente", therapistName],
-      });
-      sent += 1;
+        const { subject, html } = appointmentReminder({
+          name: patient?.full_name ?? "paciente",
+          otherPartyName: therapistName,
+          whenLabel,
+          meetingLink: a.meeting_link as string | null,
+        });
+
+        await dispatch({
+          supabase,
+          type,
+          relatedId: a.id as string,
+          recipientId: a.patient_id as string,
+          email,
+          phone: normalizePhone(patient?.phone as string | null | undefined),
+          subject,
+          html,
+          whatsappTemplate: waTemplate,
+          whatsappParams: [patient?.full_name ?? "paciente", therapistName],
+        });
+        sent += 1;
+      }
+    } catch (err) {
+      console.error(`Error en barrido (appointment reminder → appointment ${a.id}):`, err);
     }
   }
 
