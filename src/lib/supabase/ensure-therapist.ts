@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import { slugify } from "@/lib/slugify";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
@@ -45,9 +46,31 @@ export async function ensureTherapistShell(supabase: SupabaseClient, user: User)
   const baseName = (user.user_metadata?.full_name as string | undefined) ?? "Terapeuta";
   const slug = await uniqueTherapistSlug(supabase, baseName, user.id);
 
+  // Programa de referidos: si esta persona llegó con un link tipo
+  // lemy.mx/api/ref?code=<slug>, hay una cookie con el slug de quien la
+  // invitó — la resolvemos aquí, en el único momento en que de verdad se
+  // crea la fila (esta función es idempotente, no vuelve a correr después).
+  let referredBy: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    const refCode = cookieStore.get("lemy_ref")?.value;
+    if (refCode && refCode !== slug) {
+      const { data: referrer } = await supabase
+        .from("therapists")
+        .select("id")
+        .eq("slug", refCode)
+        .maybeSingle();
+      referredBy = referrer?.id ?? null;
+    }
+  } catch {
+    // cookies() puede no estar disponible en algún contexto — nunca debe
+    // tumbar la creación de la cuenta por esto.
+  }
+
   await supabase.from("therapists").insert({
     id: user.id,
     slug,
     display_name: baseName,
+    referred_by: referredBy,
   });
 }

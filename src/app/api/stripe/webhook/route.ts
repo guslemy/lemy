@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, STRIPE_COUPON_REFERRAL } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 
 // Fuente de verdad para el estado real de la suscripción: nunca confiamos
@@ -38,6 +38,8 @@ export async function POST(req: Request) {
               subscription_current_period_end: currentPeriodEndIso(subscription),
             })
             .eq("id", userId);
+
+          await grantReferralBonusIfNeeded(stripe, supabase, userId);
         }
         break;
       }
@@ -76,6 +78,44 @@ function currentPeriodEndIso(subscription: Stripe.Subscription): string | null {
   const item = subscription.items.data[0];
   const unixSeconds = item?.current_period_end;
   return unixSeconds ? new Date(unixSeconds * 1000).toISOString() : null;
+}
+
+// Si quien acaba de activar su suscripción llegó por un link de referido
+// (therapists.referred_by) y todavía no le hemos dado el bono a quien lo
+// invitó, le engancha el cupón de 30% (una sola factura) a la suscripción
+// del referente. Solo se dispara una vez por referido — referral_bonus_granted
+// evita que se repita si cancela y se vuelve a suscribir después.
+async function grantReferralBonusIfNeeded(
+  stripe: Stripe,
+  supabase: ReturnType<typeof createServiceClient>,
+  referredUserId: string
+) {
+  if (!STRIPE_COUPON_REFERRAL) return;
+
+  const { data: referred } = await supabase
+    .from("therapists")
+    .select("referred_by, referral_bonus_granted")
+    .eq("id", referredUserId)
+    .maybeSingle();
+
+  if (!referred?.referred_by || referred.referral_bonus_granted) return;
+
+  const { data: referrer } = await supabase
+    .from("therapists")
+    .select("stripe_billing_subscription_id")
+    .eq("id", referred.referred_by)
+    .maybeSingle();
+
+  if (!referrer?.stripe_billing_subscription_id) return;
+
+  await stripe.subscriptions.update(referrer.stripe_billing_subscription_id, {
+    discounts: [{ coupon: STRIPE_COUPON_REFERRAL }],
+  });
+
+  await supabase
+    .from("therapists")
+    .update({ referral_bonus_granted: true })
+    .eq("id", referredUserId);
 }
 
 function mapStripeStatus(status: Stripe.Subscription.Status): string {

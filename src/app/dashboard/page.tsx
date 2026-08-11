@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { CopyLinkBox } from "@/components/copy-link-box";
 import { becomeTherapist } from "./actions";
 
 // Bifurca por rol: si ya es terapeuta, muestra el estado de su perfil; si es
@@ -119,7 +120,27 @@ export default async function DashboardPage({
                 )}
               </div>
             </div>
-          ) : (
+          ) : null}
+
+          {isTherapist && therapist?.slug && (
+            <div className="signature-corner mt-6 rounded-[28px] border border-line bg-card p-7">
+              <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
+                Invita y ahorra
+              </p>
+              <h2 className="mt-2 text-[1.2rem] text-forest">
+                Invita a otras y otros terapeutas a Lemy
+              </h2>
+              <p className="mt-2 text-[0.92rem] text-[#42504A]">
+                Comparte tu link personal. En cuanto la persona que invitaste empiece a pagar su
+                suscripción, tu siguiente mensualidad baja 30%.
+              </p>
+              <CopyLinkBox
+                link={`${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/api/ref?code=${therapist.slug}`}
+              />
+            </div>
+          )}
+
+          {!isAdmin && !isTherapist && (
             <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
                 ¿Eres terapeuta?

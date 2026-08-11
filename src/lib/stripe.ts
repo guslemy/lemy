@@ -26,6 +26,11 @@ export function getStripe(): Stripe {
 export const STRIPE_PRICE_BASE = process.env.STRIPE_PRICE_BASE!;
 export const STRIPE_PRICE_PLUS = process.env.STRIPE_PRICE_PLUS!;
 export const STRIPE_COUPON_FOUNDER = process.env.STRIPE_COUPON_FOUNDER;
+// Cupón de 30% "once" (aplica solo a la siguiente factura) que se le
+// engancha a la suscripción de quien invitó, cuando su referido empieza a
+// pagar de verdad — ver programa de referidos en dashboard/actions.ts y el
+// webhook de suscripciones.
+export const STRIPE_COUPON_REFERRAL = process.env.STRIPE_COUPON_REFERRAL;
 
 export const FOUNDING_MEMBER_LIMIT = 30;
 export const TRIAL_DAYS = 15;
