@@ -7,11 +7,15 @@ import { ensurePatientShell } from "@/lib/supabase/ensure-patient";
 import { requestAppointmentForUser } from "@/lib/appointments";
 import { startAppointmentCheckout } from "@/lib/appointment-checkout";
 import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
+import { notifyAppointmentRequested } from "@/lib/notifications/instant";
 
-// Solicitud de reserva por parte del paciente. La cita se crea en
-// "pending_payment" y de inmediato se manda a pagar (Direct charge a la
-// cuenta de Stripe Connect del terapeuta) — recién cuando el webhook
-// confirma el pago se notifica al terapeuta y puede confirmar la sesión.
+// Solicitud de reserva por parte del paciente. Si el terapeuta tiene Stripe
+// Connect activo, la cita se crea en "pending_payment" y de inmediato se
+// manda a pagar (Direct charge a su cuenta) — recién cuando el webhook
+// confirma el pago se notifica al terapeuta y puede confirmar la sesión. Si
+// el terapeuta NO tiene Connect activo (cobra en efectivo o por su cuenta),
+// no hay paso de pago: se notifica de inmediato y queda lista para que el
+// terapeuta la confirme, igual que antes se hacía solo tras el pago.
 export async function requestAppointment(formData: FormData) {
   const therapistSlug = String(formData.get("therapist_slug") || "");
   const scheduledAt = String(formData.get("scheduled_at") || "");
@@ -60,6 +64,16 @@ export async function requestAppointment(formData: FormData) {
     const param =
       result.reason === "taken" ? "ocupado=1" : result.reason === "self" ? "propio=1" : "error=1";
     redirect(`/${therapistSlug}?${param}#agenda`);
+  }
+
+  if (!result.needsPayment) {
+    await notifyAppointmentRequested({
+      appointmentId: result.appointmentId,
+      therapistId: result.therapistId,
+      patientId: user.id,
+      scheduledAtIso: scheduledAt,
+    });
+    redirect(`/${therapistSlug}?solicitado=1#agenda`);
   }
 
   const checkoutUrl = await startAppointmentCheckout(result.appointmentId);

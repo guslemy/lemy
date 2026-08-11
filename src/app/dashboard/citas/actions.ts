@@ -53,9 +53,11 @@ export async function confirmAppointment(formData: FormData) {
   if (appointment.status !== "pending_payment") {
     redirect("/dashboard/citas?error=1");
   }
-  // No se puede confirmar una cita cuyo pago no llegó a completarse — el
-  // paciente pudo haber cerrado Stripe Checkout a medias.
-  if (appointment.payment_status !== "paid") {
+  // No se puede confirmar una cita con pago por tarjeta pendiente — el
+  // paciente pudo haber cerrado Stripe Checkout a medias. Las citas en
+  // efectivo (terapeuta sin Stripe Connect activo, payment_status
+  // "efectivo") nunca pasan por Checkout, así que se confirman igual.
+  if (appointment.payment_status !== "paid" && appointment.payment_status !== "efectivo") {
     redirect("/dashboard/citas?error=1");
   }
 

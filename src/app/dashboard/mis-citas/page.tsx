@@ -166,7 +166,7 @@ export default async function MisCitasPage({
                       )}
                       <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                       <p className="mt-1 font-mono text-[0.72rem] uppercase tracking-[0.06em] text-[#8B978F]">
-                        {a.status === "pending_payment" && a.payment_status !== "paid"
+                        {a.status === "pending_payment" && a.payment_status === "pending"
                           ? "Pago no completado"
                           : (STATUS_LABEL[a.status] ?? a.status)}
                         {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}

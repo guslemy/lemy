@@ -7,11 +7,12 @@ import { BackToDashboard } from "@/components/back-to-dashboard";
 import { connectStripeAccount, syncStripeConnectStatus } from "./actions";
 
 // Estado de la cuenta de Stripe Connect del terapeuta — de aquí depende si
-// puede recibir cobros por cita (ver /[slug]: el botón de agendar se oculta
-// si stripe_connect_charges_enabled es false). El pago es directo a la
-// cuenta del terapeuta (Direct charge), Lemy solo se queda con una comisión
-// (application_fee_amount) — el terapeuta es quien factura/reporta ante el
-// SAT, no nosotros.
+// puede cobrar sus sesiones con tarjeta a través de Lemy (ver /[slug]: sin
+// esto conectado, el paciente igual puede agendar, solo que el pago se
+// acuerda en efectivo o por su cuenta con el terapeuta). El pago con tarjeta
+// es directo a la cuenta del terapeuta (Direct charge), Lemy solo se queda
+// con una comisión (application_fee_amount) — el terapeuta es quien
+// factura/reporta ante el SAT, no nosotros.
 export default async function PagosPage({
   searchParams,
 }: {
@@ -81,8 +82,9 @@ export default async function PagosPage({
             Estado: <strong>{statusLabel}</strong>
             {!chargesEnabled && (
               <p className="mt-1 text-[0.85rem]">
-                Mientras no termines esto, tu perfil no podrá recibir citas nuevas — los pacientes verán
-                tu página, pero no podrán agendar hasta que actives tus cobros.
+                Puedes seguir recibiendo citas sin esto — tus pacientes verán en tu página que el pago se
+                acuerda directamente contigo (por ejemplo, en efectivo). Conecta tu cuenta cuando quieras
+                empezar a cobrar con tarjeta a través de Lemy.
               </p>
             )}
           </div>

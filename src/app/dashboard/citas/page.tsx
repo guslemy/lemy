@@ -118,12 +118,14 @@ export default async function CitasPage({
   const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
   const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
 
-  // Solo se muestran como "por confirmar" las que sí llegaron a pagarse —
-  // una reserva que se quedó a medias en Stripe Checkout (el paciente cerró
-  // la pestaña, la tarjeta falló, etc.) no debe aparecer aquí ni generar
-  // ninguna expectativa de que hay que confirmar algo.
+  // Se muestran como "por confirmar" las que ya llegaron a pagarse por
+  // tarjeta, o las que son en efectivo (nunca pasan por Stripe Checkout, así
+  // que no hay nada que esperar). Lo que NO se muestra es una reserva con
+  // pago por tarjeta que se quedó a medias (el paciente cerró la pestaña, la
+  // tarjeta falló, etc.) — esa no debe generar ninguna expectativa de que
+  // hay que confirmar algo.
   const pending = appointments.filter(
-    (a) => a.status === "pending_payment" && a.payment_status === "paid"
+    (a) => a.status === "pending_payment" && (a.payment_status === "paid" || a.payment_status === "efectivo")
   );
   const confirmedList = appointments.filter((a) => a.status === "confirmed");
   const cancelledList = appointments.filter((a) => a.status === "cancelled");

@@ -401,12 +401,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 )}
 
-                {!therapist.stripe_connect_charges_enabled ? (
-                  <p className="mt-5 text-[0.92rem] text-[#42504A]">
-                    {therapist.display_name.split(" ")[0]} está terminando de activar sus cobros — vuelve
-                    a revisar en un rato para poder agendar.
-                  </p>
-                ) : !therapist.is_online_available && !therapist.is_in_person_available ? (
+                {!therapist.is_online_available && !therapist.is_in_person_available ? (
                   <p className="mt-5 text-[0.92rem] text-[#42504A]">
                     {therapist.display_name.split(" ")[0]} tiene la agenda llena por ahora — no está
                     aceptando citas nuevas en este momento.
@@ -418,6 +413,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 ) : (
                   <div className="mt-6">
+                    {!therapist.stripe_connect_charges_enabled && (
+                      <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                        El pago de esta sesión se acuerda directamente con{" "}
+                        {therapist.display_name.split(" ")[0]} (por ejemplo, en efectivo).
+                      </p>
+                    )}
                     <BookingCalendar
                       days={days}
                       therapistSlug={therapist.slug}

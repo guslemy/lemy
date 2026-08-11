@@ -5,7 +5,7 @@ export type CancelRole = "patient" | "therapist";
 export type Modality = "online" | "presencial";
 
 export type RequestAppointmentResult =
-  | { ok: true; appointmentId: string }
+  | { ok: true; appointmentId: string; therapistId: string; needsPayment: boolean }
   | { ok: false; reason: "not_found" | "taken" | "self" };
 
 // Lógica compartida para crear una solicitud de cita — la usan tanto
@@ -22,7 +22,7 @@ export async function requestAppointmentForUser(
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available"
+      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available, stripe_connect_account_id, stripe_connect_charges_enabled"
     )
     .eq("slug", therapistSlug)
     .eq("is_published", true)
@@ -57,6 +57,16 @@ export async function requestAppointmentForUser(
 
   const price = therapist.price_min ?? therapist.price_max ?? 0;
 
+  // No todos los terapeutas cobran con tarjeta a través de Lemy — muchos
+  // acuerdan el pago en efectivo directamente con su paciente. Solo se manda
+  // a Stripe Checkout si el terapeuta de verdad tiene Connect activo; si no,
+  // la cita queda con payment_status "efectivo" y avanza igual sin bloquear
+  // nada (ver [slug]/actions.ts, que decide con needsPayment qué camino
+  // seguir después de esta función).
+  const needsPayment = Boolean(
+    therapist.stripe_connect_account_id && therapist.stripe_connect_charges_enabled
+  );
+
   const { data: inserted } = await supabase
     .from("appointments")
     .insert({
@@ -66,7 +76,7 @@ export async function requestAppointmentForUser(
       duration_min: therapist.session_duration_min ?? 50,
       modality,
       status: "pending_payment",
-      payment_status: "pending",
+      payment_status: needsPayment ? "pending" : "efectivo",
       price,
     })
     .select("id")
@@ -74,11 +84,13 @@ export async function requestAppointmentForUser(
 
   if (!inserted?.id) return { ok: false, reason: "not_found" };
 
-  // Ya no se notifica aquí — la cita todavía no está pagada. La notificación
-  // de "nueva solicitud" se dispara desde el webhook de Stripe en cuanto se
-  // confirma el pago (ver api/stripe/webhook/route.ts), para no avisarle al
-  // terapeuta de reservas que el paciente nunca llegó a pagar.
-  return { ok: true, appointmentId: inserted.id };
+  // Si sí requiere pago, ya no se notifica aquí — la cita todavía no está
+  // pagada. La notificación de "nueva solicitud" se dispara desde el webhook
+  // de Stripe en cuanto se confirma el pago (ver api/stripe/webhook-connect/
+  // route.ts), para no avisarle al terapeuta de reservas que el paciente
+  // nunca llegó a pagar. Si NO requiere pago (efectivo), quien llama a esta
+  // función es responsable de notificar de inmediato — ver [slug]/actions.ts.
+  return { ok: true, appointmentId: inserted.id, therapistId: therapist.id, needsPayment };
 }
 
 // Cancela una cita en nombre de quien la pide, siempre y cuando esa persona
