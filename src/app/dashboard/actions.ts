@@ -7,6 +7,8 @@ import { slugify } from "@/lib/slugify";
 import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure-therapist";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { FOUNDING_MEMBER_LIMIT, TRIAL_DAYS } from "@/lib/stripe";
+import { dispatch, emailOf } from "@/lib/notifications/engine";
+import { therapistWelcome } from "@/lib/notifications/emailTemplates";
 
 // Deja pasar "instagram.com/tu_usuario" sin obligar a que escriban
 // "https://" a mano — si ya trae protocolo, no lo toca.
@@ -33,12 +35,12 @@ export async function becomeTherapist() {
 
   const { data: existing } = await supabase
     .from("therapists")
-    .select("trial_ends_at")
+    .select("trial_ends_at, display_name")
     .eq("id", user.id)
     .maybeSingle();
 
   // Solo la primera vez: si ya tenía trial asignado (reactivación), no lo
-  // reiniciamos.
+  // reiniciamos ni volvemos a mandar el correo de bienvenida.
   if (!existing?.trial_ends_at) {
     const { count: founderCount } = await supabase
       .from("therapists")
@@ -52,6 +54,29 @@ export async function becomeTherapist() {
       .from("therapists")
       .update({ trial_ends_at: trialEndsAt, is_founding_member: isFounder })
       .eq("id", user.id);
+
+    // Correo 1 de la secuencia de onboarding: cuenta creada, sin pago
+    // todavía — invita a elegir plan con la tabla comparativa. No debe
+    // bloquear la activación de la cuenta si falla.
+    try {
+      const email = await emailOf(supabase, user.id);
+      const { subject, html } = therapistWelcome({
+        name: existing?.display_name || user.user_metadata?.full_name || "ahí",
+      });
+      await dispatch({
+        supabase,
+        type: "therapist_welcome",
+        relatedId: user.id,
+        recipientId: user.id,
+        email,
+        phone: null,
+        subject,
+        html,
+        emailOnly: true,
+      });
+    } catch (err) {
+      console.error("Error mandando correo de bienvenida de terapeuta:", err);
+    }
   }
 
   revalidatePath("/dashboard");

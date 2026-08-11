@@ -1,6 +1,8 @@
 // Plantillas de correo — texto plano/HTML simple, tono cálido y coloquial
 // consistente con el resto de Lemy. Cada función regresa { subject, html }.
 
+import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
+
 const BRAND = "Lemy";
 
 function wrap(bodyHtml: string) {
@@ -148,6 +150,113 @@ export function appointmentRescheduled(params: {
     html: wrap(`
       <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
       <p>${otherPartyName} movió la cita a un nuevo horario: <strong>${newWhenLabel}</strong>.</p>
+    `),
+  };
+}
+
+// Tabla comparativa en HTML de tabla (no flex/grid — la mayoría de clientes
+// de correo los ignoran) para el correo de bienvenida de terapeuta nuevo.
+function planComparisonTable() {
+  const extrasPlus = PLAN_FEATURES_PLUS.slice(1); // se salta el "Todo lo anterior, más:"
+  const rows = [...PLAN_FEATURES_BASE.map((f) => ({ label: f, base: true, plus: true }))];
+  for (const f of extrasPlus) rows.push({ label: f, base: false, plus: true });
+
+  const check = (yes: boolean) =>
+    `<td style="padding: 6px 8px; text-align: center; color: ${yes ? "#2F5233" : "#D8DED9"};">${yes ? "✓" : "—"}</td>`;
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;">
+      <thead>
+        <tr>
+          <td style="padding: 6px 8px;"></td>
+          <td style="padding: 6px 8px; text-align: center; font-weight: 600; color: #1F2A22;">Empieza<br/>$249</td>
+          <td style="padding: 6px 8px; text-align: center; font-weight: 600; color: #1F2A22;">Gestiona<br/>$399</td>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows
+          .map(
+            (r) => `
+          <tr style="border-top: 1px solid #E7E2D8;">
+            <td style="padding: 6px 8px; color: #3E4B44;">${r.label}</td>
+            ${check(r.base)}
+            ${check(r.plus)}
+          </tr>`
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+// Bienvenida al crear la cuenta de terapeuta (sin pago todavía) — invita a
+// elegir un plan con la tabla comparativa completa. Se dispara una sola vez,
+// justo cuando se activa la cuenta de terapeuta (ver becomeTherapist).
+export function therapistWelcome(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: `¡Bienvenido a Lemy, ${name.split(" ")[0]}!`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Tu cuenta de terapeuta en Lemy ya está lista. Tienes 15 días de prueba gratis para armar tu
+      perfil y ver cómo funciona todo, sin compromiso.</p>
+      <p>Cuando quieras dar el siguiente paso, así se comparan los dos planes:</p>
+      ${planComparisonTable()}
+      <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Elegir mi plan →</a></p>
+    `),
+  };
+}
+
+// Bienvenida al momento en que la suscripción se activa con pago real
+// (webhook de Stripe). El contenido varía según el plan al que se
+// suscribió — solo se invita a hacer upgrade si se quedó en Empieza,
+// nunca si ya está en el plan más alto.
+export function subscriptionWelcome(params: { name: string; plan: "base" | "plus" }) {
+  const { name, plan } = params;
+  const planLabel = plan === "plus" ? "Gestiona" : "Empieza";
+  const features = plan === "plus" ? PLAN_FEATURES_PLUS : PLAN_FEATURES_BASE;
+
+  return {
+    subject: `¡Bienvenido al plan ${planLabel} de Lemy!`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Tu suscripción al plan <strong>${planLabel}</strong> ya está activa. Esto es lo que tienes disponible:</p>
+      <ul style="padding-left: 18px; color: #3E4B44;">
+        ${features.map((f) => `<li style="margin-bottom: 6px;">${f}</li>`).join("")}
+      </ul>
+      ${
+        plan === "base"
+          ? `<p>Cuando quieras más control — expediente clínico completo, cobros en línea y recordatorios por
+             WhatsApp — puedes hacer upgrade a Gestiona cuando gustes, sin perder nada de lo que ya tienes.</p>
+             <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Ver el plan Gestiona →</a></p>`
+          : `<p>Gracias por confiar en Lemy para hacer crecer tu práctica.</p>`
+      }
+    `),
+  };
+}
+
+// 10 minutos después de activar la cuenta de terapeuta — checklist rápido
+// para dejar todo listo, más un link de WhatsApp pre-armado para compartir
+// el perfil público (no se puede copiar al portapapeles desde un correo,
+// así que en su lugar se prellena el mensaje de WhatsApp con el link).
+export function therapistOnboardingChecklist(params: { name: string; profileUrl: string }) {
+  const { name, profileUrl } = params;
+  const waText = encodeURIComponent(
+    `Ya estoy en Lemy — aquí puedes agendar una consulta conmigo: ${profileUrl}`
+  );
+  return {
+    subject: "Comienza a recibir pacientes hoy mismo",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Unos últimos pasos para dejar tu cuenta lista y empezar a recibir pacientes:</p>
+      <ol style="padding-left: 18px; color: #3E4B44;">
+        <li style="margin-bottom: 8px;">Date una vuelta por tu panel para ubicarte.</li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Configura tu perfil profesional →</a></li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Conecta tu Google Calendar →</a></li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/pagos" style="color: #2F5233;">Activa tus cobros con tarjeta →</a></li>
+      </ol>
+      <p>Y ya que tu perfil esté listo, compártelo con quien quieras:</p>
+      <p><a href="https://wa.me/?text=${waText}" style="color: #2F5233;">Compartir mi perfil por WhatsApp →</a></p>
     `),
   };
 }

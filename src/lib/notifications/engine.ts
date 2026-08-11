@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
-import { trialEnding, renewalReminder, appointmentReminder } from "./emailTemplates";
+import {
+  trialEnding,
+  renewalReminder,
+  appointmentReminder,
+  therapistOnboardingChecklist,
+} from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -167,6 +172,42 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       });
       sent += 1;
     }
+  }
+
+  // Correo 3 de onboarding de terapeuta: 10 minutos después de activar la
+  // cuenta (checklist + compartir perfil). Tolerancia de 20 min porque el
+  // cron corre cada 15 — sin eso, una corrida tardía se saltaría la ventana.
+  const { data: newTherapists } = await supabase
+    .from("therapists")
+    .select("id, display_name, slug, created_at")
+    .not("created_at", "is", null);
+
+  checked += newTherapists?.length ?? 0;
+
+  for (const t of newTherapists ?? []) {
+    const createdAtMs = new Date(t.created_at as string).getTime();
+    const target = createdAtMs + 10 * 60 * 1000;
+    if (!isDue(target, 20 * 60 * 1000, now)) continue;
+
+    const email = await emailOf(supabase, t.id as string);
+    const profileUrl = `https://lemy.mx/${t.slug}`;
+    const { subject, html } = therapistOnboardingChecklist({
+      name: t.display_name as string,
+      profileUrl,
+    });
+
+    await dispatch({
+      supabase,
+      type: "therapist_onboarding_checklist",
+      relatedId: t.id as string,
+      recipientId: t.id as string,
+      email,
+      phone: null,
+      subject,
+      html,
+      emailOnly: true,
+    });
+    sent += 1;
   }
 
   // 3 y 4. Renovación de suscripción: 3 días antes (solo correo) y 1 día

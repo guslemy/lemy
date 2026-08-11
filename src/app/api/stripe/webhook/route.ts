@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, STRIPE_COUPON_REFERRAL } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
+import { dispatch, emailOf } from "@/lib/notifications/engine";
+import { subscriptionWelcome } from "@/lib/notifications/emailTemplates";
 
 // Fuente de verdad para el estado real de la suscripción: nunca confiamos
 // solo en lo que devuelve el Checkout — Stripe puede fallar un cobro, un
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
         const plan = session.metadata?.plan ?? null;
         if (userId && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(String(session.subscription));
-          await supabase
+          const { data: updated } = await supabase
             .from("therapists")
             .update({
               stripe_billing_subscription_id: subscription.id,
@@ -37,9 +39,35 @@ export async function POST(req: Request) {
               subscription_plan: plan,
               subscription_current_period_end: currentPeriodEndIso(subscription),
             })
-            .eq("id", userId);
+            .eq("id", userId)
+            .select("display_name")
+            .maybeSingle();
 
           await grantReferralBonusIfNeeded(stripe, supabase, userId);
+
+          // Correo 2 de la secuencia de onboarding: ya pagó de verdad —
+          // bienvenida ajustada al plan que eligió (con invitación a upgrade
+          // solo si se quedó en Empieza).
+          try {
+            const email = await emailOf(supabase, userId);
+            const { subject, html } = subscriptionWelcome({
+              name: updated?.display_name || "ahí",
+              plan: plan === "plus" ? "plus" : "base",
+            });
+            await dispatch({
+              supabase,
+              type: "subscription_welcome",
+              relatedId: userId,
+              recipientId: userId,
+              email,
+              phone: null,
+              subject,
+              html,
+              emailOnly: true,
+            });
+          } catch (err) {
+            console.error("Error mandando correo de bienvenida de suscripción:", err);
+          }
         }
         break;
       }
