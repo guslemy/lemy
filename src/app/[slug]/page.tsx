@@ -59,6 +59,8 @@ type TherapistDetail = {
   price_max: number | null;
   verification_status: string;
   stripe_connect_charges_enabled: boolean;
+  accepts_card_payment: boolean;
+  accepts_cash_payment: boolean;
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
@@ -74,7 +76,7 @@ async function getTherapist(slug: string) {
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        is_online_available, is_in_person_available, price_min, price_max, verification_status,
-       stripe_connect_charges_enabled,
+       stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) )`
@@ -152,6 +154,15 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     label: formatSlotDate(date),
     slots: daySlots.map((s) => ({ startTime: s.startTime, scheduledAtUtc: s.scheduledAtUtc })),
   }));
+
+  // "Acepta tarjeta" no basta con que el terapeuta lo haya marcado en
+  // /dashboard/pagos — hasta que Stripe Connect está de verdad activo no se
+  // le puede ofrecer esa opción al paciente (mismo criterio que
+  // lib/appointments.ts al validar del lado del servidor).
+  const cardAvailable = Boolean(
+    therapist.accepts_card_payment && therapist.stripe_connect_charges_enabled
+  );
+  const cashAvailable = therapist.accepts_cash_payment !== false;
 
   const specialties = (therapist.therapist_specialties ?? [])
     .map((s) => s.specialty)
@@ -413,7 +424,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   </p>
                 ) : (
                   <div className="mt-6">
-                    {!therapist.stripe_connect_charges_enabled && (
+                    {!cardAvailable && (
                       <p className="mb-4 text-[0.85rem] text-[#7C877F]">
                         El pago de esta sesión se acuerda directamente con{" "}
                         {therapist.display_name.split(" ")[0]} (por ejemplo, en efectivo).
@@ -422,8 +433,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     <BookingCalendar
                       days={days}
                       therapistSlug={therapist.slug}
+                      therapistName={therapist.display_name}
+                      priceLabel={priceLabel(therapist.price_min, therapist.price_max)}
                       onlineAvailable={therapist.is_online_available}
                       inPersonAvailable={therapist.is_in_person_available}
+                      cardAvailable={cardAvailable}
+                      cashAvailable={cashAvailable}
                       requestAppointment={requestAppointment}
                     />
                   </div>

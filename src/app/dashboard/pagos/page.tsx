@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
-import { connectStripeAccount, syncStripeConnectStatus } from "./actions";
+import { connectStripeAccount, syncStripeConnectStatus, updatePaymentMethods } from "./actions";
 
 // Estado de la cuenta de Stripe Connect del terapeuta — de aquí depende si
 // puede cobrar sus sesiones con tarjeta a través de Lemy (ver /[slug]: sin
@@ -16,9 +16,9 @@ import { connectStripeAccount, syncStripeConnectStatus } from "./actions";
 export default async function PagosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ return?: string; refresh?: string }>;
+  searchParams: Promise<{ return?: string; refresh?: string; error_metodos?: string; metodos_guardados?: string }>;
 }) {
-  const { return: justReturned } = await searchParams;
+  const { return: justReturned, error_metodos, metodos_guardados } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,7 +39,7 @@ export default async function PagosPage({
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_details_submitted"
+      "stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_details_submitted, accepts_card_payment, accepts_cash_payment"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -47,6 +47,8 @@ export default async function PagosPage({
   const chargesEnabled = Boolean(therapist?.stripe_connect_charges_enabled);
   const detailsSubmitted = Boolean(therapist?.stripe_connect_details_submitted);
   const hasAccount = Boolean(therapist?.stripe_connect_account_id);
+  const acceptsCard = therapist?.accepts_card_payment !== false;
+  const acceptsCash = therapist?.accepts_cash_payment !== false;
 
   const statusLabel = chargesEnabled
     ? "Conectado"
@@ -87,6 +89,52 @@ export default async function PagosPage({
                 empezar a cobrar con tarjeta a través de Lemy.
               </p>
             )}
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-line bg-card p-6">
+            <h2 className="mb-1 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+              Métodos de pago que aceptas
+            </h2>
+            <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+              Tus pacientes verán estas opciones al reservar. Marcar &quot;tarjeta&quot; no cobra nada
+              todavía — solo aparece disponible de verdad una vez que termines de conectar tu cuenta
+              de Stripe abajo.
+            </p>
+
+            {metodos_guardados === "1" && (
+              <p className="mb-4 rounded-2xl border border-line bg-forest/[0.06] px-4 py-2.5 text-[0.85rem] text-forest">
+                Guardado.
+              </p>
+            )}
+            {error_metodos === "1" && (
+              <p className="mb-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-4 py-2.5 text-[0.85rem] text-rose-deep">
+                Necesitas dejar marcado al menos un método de pago.
+              </p>
+            )}
+
+            <form action={updatePaymentMethods} className="space-y-3">
+              <label className="flex items-center gap-2.5 text-[0.9rem] text-[#3E4B44]">
+                <input
+                  type="checkbox"
+                  name="accepts_card_payment"
+                  defaultChecked={acceptsCard}
+                  className="h-4 w-4 rounded border-line accent-forest"
+                />
+                Tarjeta (a través de Lemy)
+              </label>
+              <label className="flex items-center gap-2.5 text-[0.9rem] text-[#3E4B44]">
+                <input
+                  type="checkbox"
+                  name="accepts_cash_payment"
+                  defaultChecked={acceptsCash}
+                  className="h-4 w-4 rounded border-line accent-forest"
+                />
+                Efectivo / acordado directo con el paciente
+              </label>
+              <Button type="submit" variant="ghost" className="mt-1">
+                Guardar métodos de pago
+              </Button>
+            </form>
           </div>
 
           <div className="mt-6 rounded-2xl border border-line bg-card p-6">

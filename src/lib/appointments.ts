@@ -6,6 +6,8 @@ export type CancelRole = "patient" | "therapist";
 
 export type Modality = "online" | "presencial";
 
+export type PaymentMethod = "card" | "cash";
+
 export type RequestAppointmentResult =
   | { ok: true; appointmentId: string; therapistId: string; needsPayment: boolean }
   | { ok: false; reason: "not_found" | "taken" | "self" };
@@ -19,12 +21,13 @@ export async function requestAppointmentForUser(
   userId: string,
   therapistSlug: string,
   scheduledAt: string,
-  requestedModality: Modality
+  requestedModality: Modality,
+  requestedPaymentMethod: PaymentMethod = "cash"
 ): Promise<RequestAppointmentResult> {
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available, stripe_connect_account_id, stripe_connect_charges_enabled"
+      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available, stripe_connect_account_id, stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment"
     )
     .eq("slug", therapistSlug)
     .eq("is_published", true)
@@ -59,15 +62,33 @@ export async function requestAppointmentForUser(
 
   const price = therapist.price_min ?? therapist.price_max ?? 0;
 
-  // No todos los terapeutas cobran con tarjeta a través de Lemy — muchos
-  // acuerdan el pago en efectivo directamente con su paciente. Solo se manda
-  // a Stripe Checkout si el terapeuta de verdad tiene Connect activo; si no,
-  // la cita queda con payment_status "efectivo" y avanza igual sin bloquear
-  // nada (ver [slug]/actions.ts, que decide con needsPayment qué camino
-  // seguir después de esta función).
-  const needsPayment = Boolean(
-    therapist.stripe_connect_account_id && therapist.stripe_connect_charges_enabled
+  // El terapeuta elige en /dashboard/pagos qué métodos acepta
+  // (accepts_card_payment / accepts_cash_payment), pero "acepta tarjeta" es
+  // solo su intención — de verdad puede cobrar con tarjeta a través de Lemy
+  // hasta que además tiene Stripe Connect activo. Combinamos ambas cosas
+  // aquí para no confiar ciegamente en lo que mandó el formulario (el
+  // paciente eligió su método en el popup de confirmación, pero la UI ya
+  // debería haberle ocultado la opción que no aplica).
+  const cardAvailable = Boolean(
+    therapist.accepts_card_payment &&
+      therapist.stripe_connect_account_id &&
+      therapist.stripe_connect_charges_enabled
   );
+  const cashAvailable = therapist.accepts_cash_payment !== false;
+
+  let paymentMethod: PaymentMethod = requestedPaymentMethod;
+  if (paymentMethod === "card" && !cardAvailable) {
+    paymentMethod = cashAvailable ? "cash" : "card";
+  } else if (paymentMethod === "cash" && !cashAvailable) {
+    paymentMethod = cardAvailable ? "card" : "cash";
+  }
+
+  // Si el método que quedó es "tarjeta", se manda a Stripe Checkout (Direct
+  // charge a la cuenta del terapeuta); si es "efectivo", la cita queda con
+  // payment_status "efectivo" y avanza igual sin bloquear nada (ver
+  // [slug]/actions.ts, que decide con needsPayment qué camino seguir
+  // después de esta función).
+  const needsPayment = paymentMethod === "card";
 
   const { data: inserted } = await supabase
     .from("appointments")

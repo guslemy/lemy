@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
 
@@ -27,6 +28,29 @@ async function siteUrl() {
   const host = h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
   return host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
+}
+
+// Guarda qué métodos de pago acepta el terapeuta (checkboxes en
+// /dashboard/pagos). "Tarjeta" es solo la intención — [slug]/page.tsx y
+// lib/appointments.ts siguen exigiendo stripe_connect_charges_enabled antes
+// de ofrecérsela de verdad al paciente. Nunca se permite dejar los dos sin
+// marcar: un terapeuta sin ningún método quedaría inagendable.
+export async function updatePaymentMethods(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const acceptsCard = formData.get("accepts_card_payment") === "on";
+  const acceptsCash = formData.get("accepts_cash_payment") === "on";
+
+  if (!acceptsCard && !acceptsCash) {
+    redirect("/dashboard/pagos?error_metodos=1");
+  }
+
+  await supabase
+    .from("therapists")
+    .update({ accepts_card_payment: acceptsCard, accepts_cash_payment: acceptsCash })
+    .eq("id", user.id);
+
+  revalidatePath("/dashboard/pagos");
+  redirect("/dashboard/pagos?metodos_guardados=1");
 }
 
 // Crea (si hace falta) la cuenta Express de Stripe Connect del terapeuta y
