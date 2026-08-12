@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getAccessToken, createCalendarEvent } from "@/lib/google-calendar";
+import { getAccessToken, createCalendarEvent, updateCalendarEvent } from "@/lib/google-calendar";
 import { fallbackMeetingLink } from "@/lib/video-link";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
 import {
@@ -225,7 +225,12 @@ export async function savePatientNotes(formData: FormData) {
 
 // Reagenda una cita propia a un nuevo horario. No hay pago por cita hoy
 // (solo suscripción del terapeuta), así que no aplica ningún reembolso —
-// simplemente se mueve la fecha y se avisa al paciente.
+// simplemente se mueve la fecha y se avisa al paciente. Si la cita ya
+// estaba confirmada con un evento real de Google Calendar, ese evento se
+// mueve también (PATCH, no se recrea — se conserva el mismo Meet). Si nunca
+// hubo evento de Google (cita aún no confirmada, o se confirmó con la sala
+// de respaldo Jitsi), no hay nada que mover ahí: el link de Jitsi es fijo
+// por cita, no depende de la fecha.
 export async function rescheduleAppointment(formData: FormData) {
   const { supabase, user } = await requireTherapist();
   const appointmentId = String(formData.get("appointment_id") || "");
@@ -235,7 +240,7 @@ export async function rescheduleAppointment(formData: FormData) {
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, status")
+    .select("id, therapist_id, patient_id, status, duration_min, google_calendar_event_id")
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
     .maybeSingle();
@@ -257,6 +262,39 @@ export async function rescheduleAppointment(formData: FormData) {
     .eq("therapist_id", user.id);
 
   if (error) redirect("/dashboard/citas?error=1");
+
+  const eventId = appointment.google_calendar_event_id as string | null;
+  if (eventId) {
+    const serviceClient = createServiceClient();
+    try {
+      const { data: refreshToken } = await serviceClient.rpc("get_google_refresh_token", {
+        p_user_id: user.id,
+      });
+      if (refreshToken) {
+        const accessToken = await getAccessToken(refreshToken);
+        const newEndIso = new Date(
+          new Date(newScheduledAtIso).getTime() + (appointment.duration_min as number) * 60 * 1000
+        ).toISOString();
+        await updateCalendarEvent({
+          accessToken,
+          eventId,
+          startIso: newScheduledAtIso,
+          endIso: newEndIso,
+        });
+      }
+    } catch (err) {
+      // No bloqueamos el reagendamiento por esto — la fecha ya quedó
+      // actualizada en Lemy y el paciente ya recibirá el aviso con el nuevo
+      // horario abajo. Si el refresh token ya no sirve, igual que en
+      // confirmAppointment, apagamos el flag para que el terapeuta vea que
+      // debe reconectar Google.
+      console.error("Error moviendo el evento en Google Calendar al reagendar:", err);
+      await serviceClient
+        .from("therapists")
+        .update({ google_calendar_connected: false })
+        .eq("id", user.id);
+    }
+  }
 
   await notifyAppointmentRescheduled({
     appointmentId,

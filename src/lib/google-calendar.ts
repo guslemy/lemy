@@ -108,6 +108,35 @@ export async function createCalendarEvent(
   };
 }
 
+// Mueve un evento ya existente a un nuevo horario (usado al reagendar una
+// cita ya confirmada) — PATCH en vez de recrear el evento, así se conserva
+// el mismo Meet, los mismos invitados y el historial del evento. Google le
+// manda el aviso de cambio de horario a ambos (sendUpdates=all), igual que
+// al crearlo.
+export async function updateCalendarEvent(input: {
+  accessToken: string;
+  eventId: string;
+  startIso: string;
+  endIso: string;
+}): Promise<void> {
+  const res = await fetch(`${EVENTS_URL}/${input.eventId}?sendUpdates=all`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      start: { dateTime: input.startIso },
+      end: { dateTime: input.endIso },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new GoogleCalendarError(`No se pudo actualizar el evento en Google Calendar: ${body}`);
+  }
+}
+
 export type BusyRange = { start: string; end: string };
 
 // Consulta qué rangos aparecen como "ocupado" en el calendario principal
