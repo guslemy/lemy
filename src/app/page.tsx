@@ -348,7 +348,7 @@ export default async function HomePage() {
                     que la persona correcta te encuentre, no cualquiera.
                   </p>
                   <div className="mt-7 flex flex-wrap gap-3.5">
-                    <Button href="/login" variant="rose">
+                    <Button href="/login?flujo=terapeuta" variant="rose">
                       Crear mi perfil
                     </Button>
                     <Button href="#perfil" variant="outline-light">

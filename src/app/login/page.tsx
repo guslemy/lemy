@@ -22,6 +22,12 @@ export default async function LoginPage({
   // por eso requestAppointment manda flujo=reserva explícito al redirigir
   // aquí (ver src/app/[slug]/actions.ts).
   const isBookingFlow = Boolean(flujo === "reserva" || next === "/completar-perfil");
+  // flujo=terapeuta lo manda el botón "Crear mi perfil" (ver app/page.tsx) —
+  // es la única señal de intención que tenemos ANTES de que exista una
+  // cuenta con rol therapist, así que es lo que decide si vale la pena
+  // pedir el scope de Calendar de una vez (ver GoogleLoginButton). Nadie más
+  // debería recibir esa pantalla de permisos de Google.
+  const wantsTherapist = flujo === "terapeuta";
 
   return (
     <>
@@ -41,11 +47,13 @@ export default async function LoginPage({
           </p>
 
           <div className="signature-corner mt-8 flex flex-col items-center gap-5 rounded-[28px] border border-line bg-card p-7">
-            <GoogleLoginButton next={next} />
-            <p className="max-w-sm text-[0.78rem] text-[#7C877F]">
-              Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no
-              vamos a poder crear tus citas automáticamente ahí.
-            </p>
+            <GoogleLoginButton next={next} includeCalendarScopes={wantsTherapist} />
+            {wantsTherapist && (
+              <p className="max-w-sm text-[0.78rem] text-[#7C877F]">
+                Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no
+                vamos a poder crear tus citas automáticamente ahí.
+              </p>
+            )}
 
             <div className="flex w-full items-center gap-3 text-[0.78rem] text-[#9AA59D]">
               <div className="h-px flex-1 bg-line" />

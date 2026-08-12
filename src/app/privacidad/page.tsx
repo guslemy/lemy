@@ -115,13 +115,6 @@ export default function AvisoPrivacidadPage() {
               publicarán en esta misma página con su fecha de actualización.
             </p>
           </Section>
-
-          <p className="mt-12 rounded-2xl border border-line bg-card px-5 py-4 text-[0.85rem] text-[#5A665F]">
-            Este aviso es un borrador funcional pensado para cubrir los elementos que exige la
-            LFPDPPP y los requisitos de verificación de Google. Antes de publicarlo como definitivo,
-            se recomienda que un abogado lo revise y confirme la razón social exacta y cualquier
-            detalle específico del negocio.
-          </p>
         </div>
       </main>
       <SiteFooter />
