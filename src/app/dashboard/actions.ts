@@ -90,7 +90,12 @@ export async function becomeTherapist() {
   redirect("/dashboard/perfil");
 }
 
-// Paso 2: guarda todo el perfil (datos básicos + especialidades + enfoques).
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+// Paso 2: guarda todo el perfil (datos básicos + especialidades + enfoques
+// + foto, si viene una nueva en el mismo submit). Antes la foto se subía con
+// un botón "Subir foto" aparte — Gustavo pidió que se guarde junto con todo
+// lo demás, con un solo click en "Guardar cambios".
 // El propio terapeuta decide cuándo marcar "is_published".
 export async function saveTherapistProfile(formData: FormData) {
   const supabase = await createClient();
@@ -98,6 +103,38 @@ export async function saveTherapistProfile(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Foto de perfil (opcional): si viene un archivo nuevo, se valida y sube
+  // primero — falla rápido antes de tocar el resto del perfil, igual que
+  // antes cuando era su propia acción. Si no viene archivo (el terapeuta
+  // solo editó texto), photo_url queda undefined y no se toca la columna.
+  let photo_url: string | undefined;
+  const photoFile = formData.get("photo") as File | null;
+  if (photoFile && photoFile.size > 0) {
+    if (!photoFile.type.startsWith("image/")) {
+      redirect("/dashboard/perfil?error=foto");
+    }
+    if (photoFile.size > MAX_PHOTO_BYTES) {
+      redirect("/dashboard/perfil?error=foto_grande");
+    }
+
+    const ext = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/foto.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("therapist-photos")
+      .upload(path, photoFile, { upsert: true, contentType: photoFile.type });
+
+    if (uploadError) {
+      console.error("Error subiendo foto de perfil:", uploadError);
+      redirect("/dashboard/perfil?error=foto");
+    }
+
+    const { data: publicUrlData } = supabase.storage.from("therapist-photos").getPublicUrl(path);
+    // Le pegamos la hora como query param para reventar el caché del
+    // navegador cuando alguien reemplaza su foto con la misma ruta.
+    photo_url = `${publicUrlData.publicUrl}?v=${Date.now()}`;
+  }
 
   const display_name = String(formData.get("display_name") || "").trim() || "Terapeuta";
   const tagline = String(formData.get("tagline") || "").trim() || null;
@@ -188,6 +225,7 @@ export async function saveTherapistProfile(formData: FormData) {
       facebook_url,
       tiktok_url,
       whatsapp_public,
+      ...(photo_url ? { photo_url } : {}),
     })
     .eq("id", user.id);
 
@@ -210,60 +248,11 @@ export async function saveTherapistProfile(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
   revalidatePath("/buscar");
+  revalidatePath("/test");
   revalidatePath(`/${slug}`);
 
   if (blockedBySubscription) {
     redirect("/dashboard/perfil?error=suscripcion");
   }
   redirect("/dashboard?guardado=1");
-}
-
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-
-// Sube la foto de perfil a Supabase Storage (bucket "therapist-photos",
-// ver migración 0015) y guarda la URL pública en therapists.photo_url.
-// La ruta siempre es "<user.id>/foto.<ext>" con upsert — así una foto
-// nueva reemplaza la anterior en vez de acumular archivos huérfanos.
-export async function uploadTherapistPhoto(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const file = formData.get("photo") as File | null;
-  if (!file || file.size === 0) {
-    redirect("/dashboard/perfil?error=foto");
-  }
-  if (!file.type.startsWith("image/")) {
-    redirect("/dashboard/perfil?error=foto");
-  }
-  if (file.size > MAX_PHOTO_BYTES) {
-    redirect("/dashboard/perfil?error=foto_grande");
-  }
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${user.id}/foto.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("therapist-photos")
-    .upload(path, file, { upsert: true, contentType: file.type });
-
-  if (uploadError) {
-    console.error("Error subiendo foto de perfil:", uploadError);
-    redirect("/dashboard/perfil?error=foto");
-  }
-
-  const { data: publicUrlData } = supabase.storage.from("therapist-photos").getPublicUrl(path);
-  // Le pegamos la hora como query param para reventar el caché del
-  // navegador cuando alguien reemplaza su foto con la misma ruta.
-  const photo_url = `${publicUrlData.publicUrl}?v=${Date.now()}`;
-
-  await supabase.from("therapists").update({ photo_url }).eq("id", user.id);
-
-  revalidatePath("/dashboard/perfil");
-  revalidatePath("/dashboard");
-  revalidatePath("/buscar");
-  revalidatePath("/test");
-  redirect("/dashboard/perfil?foto_guardada=1");
 }

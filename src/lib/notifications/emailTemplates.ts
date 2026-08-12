@@ -10,6 +10,7 @@ function wrap(bodyHtml: string) {
     <p style="font-family: monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #B4574B;">${BRAND}</p>
     ${bodyHtml}
     <p style="margin-top: 32px; font-size: 13px; color: #8B978F;">— El equipo de Lemy</p>
+    <p style="margin-top: 8px; font-size: 12px; color: #B7C0BA;">Este es un correo automático, no respondas a este mensaje. Si necesitas ayuda, escríbenos a hola@lemy.mx.</p>
   </div>`;
 }
 
@@ -158,8 +159,8 @@ export function appointmentRescheduled(params: {
 // de correo los ignoran) para el correo de bienvenida de terapeuta nuevo.
 function planComparisonTable() {
   const extrasPlus = PLAN_FEATURES_PLUS.slice(1); // se salta el "Todo lo anterior, más:"
-  const rows = [...PLAN_FEATURES_BASE.map((f) => ({ label: f, base: true, plus: true }))];
-  for (const f of extrasPlus) rows.push({ label: f, base: false, plus: true });
+  const rows = [...PLAN_FEATURES_BASE.map((f) => ({ label: f.label, base: true, plus: true }))];
+  for (const f of extrasPlus) rows.push({ label: f.label, base: false, plus: true });
 
   const check = (yes: boolean) =>
     `<td style="padding: 6px 8px; text-align: center; color: ${yes ? "#2F5233" : "#D8DED9"};">${yes ? "✓" : "—"}</td>`;
@@ -222,7 +223,7 @@ export function subscriptionWelcome(params: { name: string; plan: "base" | "plus
       <h1 style="font-size: 20px;">Hola, ${name}</h1>
       <p>Tu suscripción al plan <strong>${planLabel}</strong> ya está activa. Esto es lo que tienes disponible:</p>
       <ul style="padding-left: 18px; color: #3E4B44;">
-        ${features.map((f) => `<li style="margin-bottom: 6px;">${f}</li>`).join("")}
+        ${features.map((f) => `<li style="margin-bottom: 6px;">${f.label}</li>`).join("")}
       </ul>
       ${
         plan === "base"

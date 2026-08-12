@@ -214,11 +214,13 @@ export default async function HomePage() {
               </div>
 
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {CATEGORIES.map((cat) => (
+                {CATEGORIES.map((cat, i) => (
                   <a
                     key={cat.title}
                     href="#directorio"
-                    className="rounded-[18px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
+                    className={`rounded-[18px] border border-line p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)] ${
+                      i % 2 === 1 ? "bg-forest/[0.04]" : "bg-card"
+                    }`}
                   >
                     <p className="font-mono text-[0.7rem] tracking-[0.08em] text-rose-deep">{cat.eyebrow}</p>
                     <h3 className="mt-2 text-[1.2rem] text-forest">{cat.title}</h3>

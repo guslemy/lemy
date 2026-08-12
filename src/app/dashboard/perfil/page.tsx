@@ -5,14 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
-import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
-import { saveTherapistProfile, uploadTherapistPhoto } from "../actions";
+import { saveTherapistProfile } from "../actions";
 
 function initialsFrom(name: string) {
   return name
@@ -28,9 +27,9 @@ function initialsFrom(name: string) {
 export default async function EditarPerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; foto_guardada?: string; google_reconectado?: string }>;
+  searchParams: Promise<{ error?: string; google_reconectado?: string }>;
 }) {
-  const { error, foto_guardada, google_reconectado } = await searchParams;
+  const { error, google_reconectado } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -95,11 +94,6 @@ export default async function EditarPerfilPage({
               .
             </p>
           )}
-          {foto_guardada === "1" && (
-            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
-              Listo, actualizamos tu foto.
-            </p>
-          )}
           {error === "foto" && (
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               No pudimos subir esa imagen. Revisa que sea un archivo de imagen válido.
@@ -116,35 +110,7 @@ export default async function EditarPerfilPage({
             </p>
           )}
 
-          <div className="signature-corner mt-9 rounded-[28px] border border-line bg-card p-7">
-            <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
-              Tu foto
-            </h2>
-            <div className="flex flex-wrap items-center gap-5">
-              {therapist?.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={therapist.photo_url}
-                  alt=""
-                  className="h-20 w-20 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-xl font-semibold text-white">
-                  {initialsFrom(therapist?.display_name || "Tu Nombre")}
-                </div>
-              )}
-              <form action={uploadTherapistPhoto} className="flex flex-1 flex-wrap items-center gap-3">
-                <div className="min-w-[240px] flex-1">
-                  <PhotoUploadField />
-                </div>
-                <SubmitButton pendingText="Subiendo…" variant="ghost">
-                  Subir foto
-                </SubmitButton>
-              </form>
-            </div>
-          </div>
-
-          {foto_guardada !== "1" && google_reconectado === "1" && (
+          {google_reconectado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
               Listo, tu Google Calendar quedó reconectado.
             </p>
@@ -169,6 +135,32 @@ export default async function EditarPerfilPage({
           </div>
 
           <ProfileForm action={saveTherapistProfile}>
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Tu foto
+              </h2>
+              <div className="flex flex-wrap items-center gap-5">
+                {therapist?.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={therapist.photo_url}
+                    alt=""
+                    className="h-20 w-20 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-xl font-semibold text-white">
+                    {initialsFrom(therapist?.display_name || "Tu Nombre")}
+                  </div>
+                )}
+                <div className="min-w-[240px] flex-1">
+                  <PhotoUploadField />
+                </div>
+              </div>
+              <p className="mt-3 text-[0.78rem] text-[#7C877F]">
+                Se guarda junto con el resto de tu perfil al dar clic en &ldquo;Guardar cambios&rdquo;.
+              </p>
+            </div>
+
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
               <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                 Lo básico

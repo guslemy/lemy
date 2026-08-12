@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { InstagramIcon, FacebookIcon, TikTokIcon, WhatsAppIcon } from "@/components/social-icons";
+import { ShareProfileButton } from "@/components/share-profile-button";
 import { getAvailableSlots } from "@/lib/availability";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
@@ -58,6 +59,7 @@ type TherapistDetail = {
   price_min: number | null;
   price_max: number | null;
   verification_status: string;
+  created_at: string;
   stripe_connect_charges_enabled: boolean;
   accepts_card_payment: boolean;
   accepts_cash_payment: boolean;
@@ -75,7 +77,7 @@ async function getTherapist(slug: string) {
     .from("therapists")
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
-       is_online_available, is_in_person_available, price_min, price_max, verification_status,
+       is_online_available, is_in_person_available, price_min, price_max, verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
@@ -163,6 +165,22 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     therapist.accepts_card_payment && therapist.stripe_connect_charges_enabled
   );
   const cashAvailable = therapist.accepts_cash_payment !== false;
+
+  // Contador "Sesiones / Reviews / Años" del perfil público. Sesiones y
+  // años ya están conectados a datos reales; reviews se deja en 0 a
+  // propósito — no existe todavía un sistema de calificaciones (ver
+  // pendiente de "ratings de terapeutas"), y mostrar un número inventado
+  // ahí sería engañoso para quien visita el perfil. En cuanto exista la
+  // tabla de reviews, este query se agrega igual que el de sesiones.
+  const { count: sessionsCount } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("therapist_id", therapist.id)
+    .eq("status", "completed");
+
+  const yearsOnLemy = Math.floor(
+    (Date.now() - new Date(therapist.created_at).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+  );
 
   const specialties = (therapist.therapist_specialties ?? [])
     .map((s) => s.specialty)
@@ -254,11 +272,33 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                 {therapist.tagline && (
                   <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
                 )}
-                {therapist.verification_status === "verified" && (
-                  <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
-                    ✓ Cédula verificada
-                  </p>
-                )}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+                  {therapist.verification_status === "verified" && (
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
+                      ✓ Cédula verificada
+                    </p>
+                  )}
+                  <div className="flex items-center gap-4 text-center">
+                    <div>
+                      <p className="font-display text-[1.15rem] text-forest">{sessionsCount ?? 0}</p>
+                      <p className="font-mono text-[0.65rem] uppercase tracking-[0.06em] text-[#8B978F]">
+                        Sesiones
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-display text-[1.15rem] text-forest">0</p>
+                      <p className="font-mono text-[0.65rem] uppercase tracking-[0.06em] text-[#8B978F]">
+                        Reviews
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-display text-[1.15rem] text-forest">{yearsOnLemy}</p>
+                      <p className="font-mono text-[0.65rem] uppercase tracking-[0.06em] text-[#8B978F]">
+                        Años
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 {therapist.is_in_person_available && (therapist.zona || therapist.city) && (
                   <p className="mt-2 text-[0.85rem] text-[#5A665F]">
                     📍 {[therapist.zona, therapist.city].filter(Boolean).join(", ")}
@@ -280,6 +320,10 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       Contactar por WhatsApp
                     </a>
                   )}
+                  <ShareProfileButton
+                    profileUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx"}/${therapist.slug}`}
+                    therapistName={therapist.display_name}
+                  />
                 </div>
               </div>
             </ScrollReveal>

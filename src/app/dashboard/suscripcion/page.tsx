@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { createSubscriptionCheckout, openBillingPortal } from "./actions";
 import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
+import { PlanFeatureItem } from "@/components/plan-feature-item";
 
 // Estado de la suscripción del terapeuta: prueba gratis, activa, vencida, o
 // sin empezar. El botón de cada plan dispara un Checkout real de Stripe.
@@ -97,8 +98,9 @@ export default async function SuscripcionPage({
 
           {therapist?.is_founding_member && !subscriptionActive && (
             <p className="mt-5 rounded-2xl border border-rose-deep/30 bg-rose/10 px-5 py-3 text-[0.85rem] text-rose-deep">
-              Eres terapeuta fundador: al suscribirte se aplica 30% de descuento durante 3 meses, y tu
-              precio queda bloqueado por 1 año.
+              Eres Terapeuta fundador: recibe 30% de descuento durante tus primeros 3 meses. Después
+              continuarás con la tarifa vigente al momento de tu contratación, la cual se mantendrá sin
+              incrementos durante 1 año.
             </p>
           )}
 
@@ -130,10 +132,7 @@ export default async function SuscripcionPage({
               <p className="mt-2 font-display text-[1.6rem] text-forest">$249 MXN/mes</p>
               <ul className="mt-4 space-y-2 text-[0.85rem] text-[#3E4B44]">
                 {PLAN_FEATURES_BASE.map((feature) => (
-                  <li key={feature} className="flex gap-2">
-                    <span className="text-forest">✓</span>
-                    <span>{feature}</span>
-                  </li>
+                  <PlanFeatureItem key={feature.label} feature={feature} />
                 ))}
               </ul>
               <form action={createSubscriptionCheckout} className="mt-5">
@@ -151,10 +150,7 @@ export default async function SuscripcionPage({
               <p className="mt-2 font-display text-[1.6rem] text-forest">$399 MXN/mes</p>
               <ul className="mt-4 space-y-2 text-[0.85rem] text-[#3E4B44]">
                 {PLAN_FEATURES_PLUS.map((feature) => (
-                  <li key={feature} className="flex gap-2">
-                    <span className="text-forest">✓</span>
-                    <span>{feature}</span>
-                  </li>
+                  <PlanFeatureItem key={feature.label} feature={feature} />
                 ))}
               </ul>
               <form action={createSubscriptionCheckout} className="mt-5">

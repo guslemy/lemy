@@ -71,7 +71,6 @@ export function PhotoUploadField() {
         type="file"
         name="photo"
         accept="image/*"
-        required
         className="sr-only"
         onChange={handlePick}
       />
