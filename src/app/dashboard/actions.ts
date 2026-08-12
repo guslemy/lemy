@@ -141,16 +141,34 @@ export async function saveTherapistProfile(formData: FormData) {
   const bio = String(formData.get("bio") || "").trim() || null;
   const city = String(formData.get("city") || "").trim() || "Oaxaca";
   const zona = String(formData.get("zona") || "").trim() || null;
+  const country = String(formData.get("country") || "").trim() || "México";
+  const state = String(formData.get("state") || "").trim() || null;
 
-  const languagesRaw = String(formData.get("languages") || "").trim();
-  const languages = languagesRaw
-    ? languagesRaw.split(",").map((s) => s.trim()).filter(Boolean)
-    : ["Español"];
+  // Idiomas: checkboxes fijos (ver lib/perfil-catalogos.ts) + un campo libre
+  // "Otro" para lo que no esté en la lista — se guardan juntos en el mismo
+  // text[] de siempre.
+  const languagesChecked = formData.getAll("languages").map(String);
+  const languagesOtro = String(formData.get("languages_otro") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const languagesCombined = [...languagesChecked, ...languagesOtro];
+  const languages = languagesCombined.length ? languagesCombined : ["Español"];
 
-  const nichesRaw = String(formData.get("client_niches") || "").trim();
-  const client_niches = nichesRaw
-    ? nichesRaw.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
+  // "A quién atiendes" pasó de texto libre a checkboxes de rango de edad
+  // (población atendida, ver Notion). Mismo campo client_niches de siempre.
+  const client_niches = formData.getAll("client_niches").map(String);
+  const therapy_types = formData.getAll("therapy_types").map(String);
+
+  const gender = String(formData.get("gender") || "").trim() || null;
+  const profession = String(formData.get("profession") || "").trim() || null;
+  const professional_license_number =
+    String(formData.get("professional_license_number") || "").trim() || null;
+  const university = String(formData.get("university") || "").trim() || null;
+  const graduation_year = formData.get("graduation_year")
+    ? Number(formData.get("graduation_year"))
+    : null;
+  const birth_date = String(formData.get("birth_date") || "").trim() || null;
 
   const price_min = formData.get("price_min") ? Number(formData.get("price_min")) : null;
   const price_max = formData.get("price_max") ? Number(formData.get("price_max")) : null;
@@ -213,6 +231,15 @@ export async function saveTherapistProfile(formData: FormData) {
       bio,
       city,
       zona,
+      country,
+      state,
+      gender,
+      birth_date,
+      profession,
+      professional_license_number,
+      university,
+      graduation_year,
+      therapy_types,
       languages,
       client_niches,
       price_min,

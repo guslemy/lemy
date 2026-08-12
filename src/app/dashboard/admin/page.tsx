@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
-import { deactivateUser, reactivateUser } from "./actions";
+import { deactivateUser, reactivateUser, setVerificationStatus } from "./actions";
 
 // Panel de administración — solo visible para profiles.role = 'admin'
 // (Gustavo tiene que ponerse ese rol a mano una vez desde Supabase, ver
@@ -17,9 +17,15 @@ import { deactivateUser, reactivateUser } from "./actions";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; desactivado?: string; reactivado?: string; error?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    desactivado?: string;
+    reactivado?: string;
+    verificacion_actualizada?: string;
+    error?: string;
+  }>;
 }) {
-  const { q, desactivado, reactivado, error } = await searchParams;
+  const { q, desactivado, reactivado, verificacion_actualizada, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -43,7 +49,7 @@ export default async function AdminPage({
   const { data: therapistRows } = await serviceClient
     .from("therapists")
     .select(
-      "id, slug, subscription_status, subscription_plan, stripe_connect_charges_enabled, is_published"
+      "id, slug, subscription_status, subscription_plan, stripe_connect_charges_enabled, is_published, verification_status"
     );
   const therapistById = new Map((therapistRows ?? []).map((t) => [t.id, t]));
 
@@ -102,6 +108,11 @@ export default async function AdminPage({
               Cuenta reactivada.
             </p>
           )}
+          {verificacion_actualizada === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Verificación actualizada.
+            </p>
+          )}
           {error === "self" && (
             <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               No puedes desactivar tu propia cuenta de admin desde aquí.
@@ -133,6 +144,7 @@ export default async function AdminPage({
                   <th className="px-4 py-3">Rol</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Suscripción / Stripe</th>
+                  <th className="px-4 py-3">Verificación</th>
                   <th className="px-4 py-3">Acción</th>
                 </tr>
               </thead>
@@ -159,6 +171,41 @@ export default async function AdminPage({
                         </>
                       ) : (
                         "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.therapist ? (
+                        r.therapist.verification_status === "verified" ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-forest">✓ Verificado</span>
+                            <form action={setVerificationStatus}>
+                              <input type="hidden" name="therapist_id" value={r.id} />
+                              <input type="hidden" name="status" value="pending" />
+                              <button
+                                type="submit"
+                                className="text-[0.78rem] text-[#7C877F] underline underline-offset-2 hover:text-forest"
+                              >
+                                Quitar
+                              </button>
+                            </form>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#8B978F]">No verificado</span>
+                            <form action={setVerificationStatus}>
+                              <input type="hidden" name="therapist_id" value={r.id} />
+                              <input type="hidden" name="status" value="verified" />
+                              <button
+                                type="submit"
+                                className="rounded-full border border-forest/30 px-3 py-1 text-[0.78rem] font-medium text-forest hover:bg-forest/[0.06]"
+                              >
+                                Marcar verificado
+                              </button>
+                            </form>
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-[#B7C0BB]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

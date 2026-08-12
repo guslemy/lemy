@@ -54,6 +54,8 @@ type TherapistDetail = {
   bio: string | null;
   languages: string[] | null;
   client_niches: string[] | null;
+  therapy_types: string[] | null;
+  profession: string | null;
   is_online_available: boolean;
   is_in_person_available: boolean;
   price_min: number | null;
@@ -77,6 +79,7 @@ async function getTherapist(slug: string) {
     .from("therapists")
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
+       therapy_types, profession,
        is_online_available, is_in_person_available, price_min, price_max, verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
@@ -269,13 +272,20 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                 )}
 
                 <h1 className="mt-4.5 font-display text-[1.5rem] text-forest">{therapist.display_name}</h1>
+                {therapist.profession && (
+                  <p className="mt-0.5 text-[0.82rem] text-[#7C877F]">{therapist.profession}</p>
+                )}
                 {therapist.tagline && (
                   <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                  {therapist.verification_status === "verified" && (
+                  {therapist.verification_status === "verified" ? (
                     <p className="inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
                       ✓ Cédula verificada
+                    </p>
+                  ) : (
+                    <p className="inline-flex items-center gap-1.5 rounded-full bg-[#8B978F]/10 px-3 py-1 font-mono text-[0.72rem] text-[#7C877F]">
+                      Perfil no verificado
                     </p>
                   )}
                   <div className="flex items-center gap-4 text-center">
@@ -418,7 +428,22 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                         A quién atiende
                       </h4>
-                      <p className="text-[0.96rem] text-[#37433D]">{therapist.client_niches.join(", ")}</p>
+                      <p className="mb-6.5 text-[0.96rem] text-[#37433D]">
+                        {therapist.client_niches.join(", ")}
+                      </p>
+                    </>
+                  )}
+
+                  {therapist.therapy_types && therapist.therapy_types.length > 0 && (
+                    <>
+                      <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                        Tipo de terapia
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {therapist.therapy_types.map((t) => (
+                          <Tag key={t}>{t}</Tag>
+                        ))}
+                      </div>
                     </>
                   )}
                 </div>

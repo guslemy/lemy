@@ -52,3 +52,30 @@ export async function reactivateUser(formData: FormData) {
   revalidatePath("/dashboard/admin");
   redirect("/dashboard/admin?reactivado=1");
 }
+
+// El badge de "Cédula verificada" / "Perfil no verificado" en el perfil
+// público NO está ligado a que el terapeuta haya subido documentos — se
+// habilita a mano, aquí, después de que alguien del equipo los revisó por
+// fuera. La subida de documentos + panel de revisión con permisos @lemy.mx
+// llega en una fase aparte; por ahora este toggle es solo para admins.
+export async function setVerificationStatus(formData: FormData) {
+  await requireAdmin();
+  const targetId = String(formData.get("therapist_id") || "");
+  const status = String(formData.get("status") || "");
+  if (!targetId || !["verified", "pending", "rejected"].includes(status)) {
+    redirect("/dashboard/admin?error=1");
+  }
+
+  const serviceClient = createServiceClient();
+  await serviceClient
+    .from("therapists")
+    .update({
+      verification_status: status,
+      verified_at: status === "verified" ? new Date().toISOString() : null,
+    })
+    .eq("id", targetId);
+
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/perfil");
+  redirect("/dashboard/admin?verificacion_actualizada=1");
+}

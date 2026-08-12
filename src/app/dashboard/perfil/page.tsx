@@ -11,6 +11,13 @@ import { ModalityFields } from "@/components/therapist-modality-fields";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
+import {
+  GENEROS,
+  PROFESIONES,
+  POBLACION_ATENDIDA,
+  TIPOS_DE_TERAPIA,
+  IDIOMAS_FIJOS,
+} from "@/lib/perfil-catalogos";
 import { saveTherapistProfile } from "../actions";
 
 function initialsFrom(name: string) {
@@ -56,7 +63,7 @@ export default async function EditarPerfilPage({
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected"
+        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -204,6 +211,88 @@ export default async function EditarPerfilPage({
 
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
               <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Datos personales
+              </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                La fecha de nacimiento es solo para validación interna — nunca se muestra en tu perfil
+                público.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Género">
+                  <select
+                    name="gender"
+                    defaultValue={therapist?.gender ?? ""}
+                    className="input-lemy"
+                  >
+                    <option value="">Selecciona…</option>
+                    {GENEROS.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Fecha de nacimiento">
+                  <input
+                    type="date"
+                    name="birth_date"
+                    defaultValue={therapist?.birth_date ?? ""}
+                    className="input-lemy"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Información profesional
+              </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                El número de cédula que escribes aquí es solo informativo por ahora — más adelante,
+                cuando subamos la verificación de documentos, lo confirmaremos contra tu cédula real.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Profesión">
+                  <select
+                    name="profession"
+                    defaultValue={therapist?.profession ?? ""}
+                    className="input-lemy"
+                  >
+                    <option value="">Selecciona…</option>
+                    {PROFESIONES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Número de cédula profesional">
+                  <input
+                    name="professional_license_number"
+                    defaultValue={therapist?.professional_license_number ?? ""}
+                    className="input-lemy"
+                  />
+                </Field>
+                <Field label="Universidad">
+                  <input
+                    name="university"
+                    defaultValue={therapist?.university ?? ""}
+                    className="input-lemy"
+                  />
+                </Field>
+                <Field label="Año de egreso">
+                  <input
+                    type="number"
+                    name="graduation_year"
+                    defaultValue={therapist?.graduation_year ?? ""}
+                    className="input-lemy"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                 Redes sociales
               </h2>
               <p className="mb-4 text-[0.85rem] text-[#7C877F]">
@@ -258,25 +347,17 @@ export default async function EditarPerfilPage({
               </h2>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="País">
+                  <input name="country" defaultValue={therapist?.country ?? "México"} className="input-lemy" />
+                </Field>
+                <Field label="Estado">
+                  <input name="state" defaultValue={therapist?.state ?? ""} className="input-lemy" />
+                </Field>
                 <Field label="Ciudad">
                   <input name="city" defaultValue={therapist?.city ?? "Oaxaca"} className="input-lemy" />
                 </Field>
                 <Field label="Zona (opcional)">
                   <input name="zona" defaultValue={therapist?.zona ?? ""} className="input-lemy" />
-                </Field>
-                <Field label="Idiomas" hint="Separados por coma">
-                  <input
-                    name="languages"
-                    defaultValue={(therapist?.languages ?? ["Español"]).join(", ")}
-                    className="input-lemy"
-                  />
-                </Field>
-                <Field label="A quién atiendes" hint="Ej. adultos, parejas, adolescentes">
-                  <input
-                    name="client_niches"
-                    defaultValue={(therapist?.client_niches ?? []).join(", ")}
-                    className="input-lemy"
-                  />
                 </Field>
                 <Field label="Tarifa mínima (MXN)">
                   <input
@@ -294,6 +375,70 @@ export default async function EditarPerfilPage({
                     className="input-lemy"
                   />
                 </Field>
+              </div>
+
+              <div className="mt-5">
+                <span className="mb-2 block text-[0.85rem] font-medium text-forest">Idiomas</span>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {IDIOMAS_FIJOS.map((idioma) => (
+                    <label key={idioma} className="flex items-center gap-2 text-[0.85rem] text-[#3E4B44]">
+                      <input
+                        type="checkbox"
+                        name="languages"
+                        value={idioma}
+                        defaultChecked={(therapist?.languages ?? ["Español"]).includes(idioma)}
+                        className="h-4 w-4 accent-forest"
+                      />
+                      {idioma}
+                    </label>
+                  ))}
+                </div>
+                <input
+                  name="languages_otro"
+                  defaultValue={(therapist?.languages ?? [])
+                    .filter((l: string) => !(IDIOMAS_FIJOS as readonly string[]).includes(l))
+                    .join(", ")}
+                  placeholder="Otro idioma (separados por coma)"
+                  className="input-lemy mt-2.5"
+                />
+              </div>
+
+              <div className="mt-5">
+                <span className="mb-2 block text-[0.85rem] font-medium text-forest">
+                  Población que atiendes
+                </span>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {POBLACION_ATENDIDA.map((p) => (
+                    <label key={p} className="flex items-center gap-2.5 text-[0.85rem] text-[#3E4B44]">
+                      <input
+                        type="checkbox"
+                        name="client_niches"
+                        value={p}
+                        defaultChecked={(therapist?.client_niches ?? []).includes(p)}
+                        className="h-4 w-4 accent-forest"
+                      />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <span className="mb-2 block text-[0.85rem] font-medium text-forest">Tipo de terapia</span>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {TIPOS_DE_TERAPIA.map((t) => (
+                    <label key={t} className="flex items-center gap-2 text-[0.85rem] text-[#3E4B44]">
+                      <input
+                        type="checkbox"
+                        name="therapy_types"
+                        value={t}
+                        defaultChecked={(therapist?.therapy_types ?? []).includes(t)}
+                        className="h-4 w-4 accent-forest"
+                      />
+                      {t}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <ModalityFields
