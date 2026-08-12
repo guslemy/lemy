@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 
 // Dos widgets chicos que necesitan estado local: el popup de datos del
@@ -120,6 +120,19 @@ export function PatientInfoPopup({
   );
 }
 
+// Recordatorio antes de mandar la acción — ninguna de las dos (reagendar,
+// cancelar) le avisa automáticamente al paciente por WhatsApp de inmediato
+// en todos los casos (el correo/WhatsApp puede tardar o no llegar), así que
+// vale más que el terapeuta ya haya avisado por su cuenta antes de que esto
+// quede en firme del lado de Lemy.
+function confirmBeforeSubmit(message: string) {
+  return (e: FormEvent<HTMLFormElement>) => {
+    if (!window.confirm(message)) {
+      e.preventDefault();
+    }
+  };
+}
+
 export function RescheduleForm({
   appointmentId,
   rescheduleAction,
@@ -142,7 +155,13 @@ export function RescheduleForm({
   }
 
   return (
-    <form action={rescheduleAction} className="flex items-center gap-2">
+    <form
+      action={rescheduleAction}
+      onSubmit={confirmBeforeSubmit(
+        "Recuerda verificar con tu paciente que le funcione este nuevo horario antes de confirmarlo."
+      )}
+      className="flex items-center gap-2"
+    >
       <input type="hidden" name="appointment_id" value={appointmentId} />
       <input
         type="datetime-local"
@@ -160,6 +179,38 @@ export function RescheduleForm({
         type="button"
         onClick={() => setOpen(false)}
         className="text-[0.78rem] text-[#8B978F] hover:text-forest"
+      >
+        Cancelar
+      </button>
+    </form>
+  );
+}
+
+export function CancelForm({
+  appointmentId,
+  cancelAction,
+}: {
+  appointmentId: string;
+  cancelAction: (formData: FormData) => void;
+}) {
+  return (
+    <form
+      action={cancelAction}
+      onSubmit={confirmBeforeSubmit(
+        "Recuerda avisarle a tu paciente que vas a cancelar esta cita antes de confirmarlo."
+      )}
+      className="flex items-center gap-2"
+    >
+      <input type="hidden" name="appointment_id" value={appointmentId} />
+      <input
+        type="text"
+        name="reason"
+        placeholder="Motivo (opcional)"
+        className="input-lemy w-[140px] py-1.5 text-[0.8rem]"
+      />
+      <button
+        type="submit"
+        className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
       >
         Cancelar
       </button>

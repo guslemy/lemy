@@ -26,6 +26,10 @@ export type IcsEventInput = {
   organizerName: string;
   attendeeEmail: string;
   attendeeName: string;
+  // Mismo UID + SEQUENCE más alto le indica a Gmail/Outlook/Apple Mail que
+  // este .ics es una ACTUALIZACIÓN del evento que ya tenían agendado (por
+  // un reagendamiento), no un evento nuevo por separado. 0 = evento original.
+  sequence?: number;
 };
 
 export function buildIcsEvent(input: IcsEventInput): string {
@@ -47,7 +51,7 @@ export function buildIcsEvent(input: IcsEventInput): string {
     `ORGANIZER;CN=${escapeIcsText(input.organizerName)}:mailto:${input.organizerEmail}`,
     `ATTENDEE;CN=${escapeIcsText(input.attendeeName)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${input.attendeeEmail}`,
     "STATUS:CONFIRMED",
-    "SEQUENCE:0",
+    `SEQUENCE:${input.sequence ?? 0}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ];

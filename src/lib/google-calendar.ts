@@ -137,6 +137,28 @@ export async function updateCalendarEvent(input: {
   }
 }
 
+// Borra un evento ya existente (usado al cancelar una cita ya confirmada) —
+// así no se queda fantasma en el calendario del terapeuta después de que la
+// cita se cancela en Lemy. Google le manda el aviso de cancelación al
+// paciente igual que a cualquier invitado (sendUpdates=all).
+export async function deleteCalendarEvent(input: {
+  accessToken: string;
+  eventId: string;
+}): Promise<void> {
+  const res = await fetch(`${EVENTS_URL}/${input.eventId}?sendUpdates=all`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${input.accessToken}` },
+  });
+
+  // 404/410 significa que el evento ya no existe (por ejemplo si el
+  // terapeuta ya lo había borrado a mano desde Calendar) — no es un error
+  // real, ya se logró lo que se quería.
+  if (!res.ok && res.status !== 404 && res.status !== 410) {
+    const body = await res.text();
+    throw new GoogleCalendarError(`No se pudo borrar el evento en Google Calendar: ${body}`);
+  }
+}
+
 export type BusyRange = { start: string; end: string };
 
 // Consulta qué rangos aparecen como "ocupado" en el calendario principal

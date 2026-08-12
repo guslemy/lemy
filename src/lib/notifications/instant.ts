@@ -277,22 +277,35 @@ export async function notifyAppointmentRescheduled({
   therapistId,
   patientId,
   newScheduledAtIso,
+  durationMin,
+  modality,
+  meetingLink,
+  address,
 }: {
   appointmentId: string;
   therapistId: string;
   patientId: string;
   newScheduledAtIso: string;
+  durationMin: number;
+  modality: "online" | "presencial";
+  meetingLink: string | null;
+  address: string | null;
 }) {
   try {
     const supabase = createServiceClient();
     const newWhenLabel = whenLabelFor(newScheduledAtIso);
+    const newEndIso = new Date(
+      new Date(newScheduledAtIso).getTime() + durationMin * 60 * 1000
+    ).toISOString();
 
-    const [{ data: therapistRow }, { data: patientProfile }, phones, patientEmail] = await Promise.all([
-      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
-      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
-      phonesById(supabase, [patientId]),
-      emailOf(supabase, patientId),
-    ]);
+    const [{ data: therapistRow }, { data: patientProfile }, phones, therapistEmail, patientEmail] =
+      await Promise.all([
+        supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+        phonesById(supabase, [patientId]),
+        emailOf(supabase, therapistId),
+        emailOf(supabase, patientId),
+      ]);
 
     const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
     const patientName = (patientProfile?.full_name as string | undefined) ?? "el paciente";
@@ -303,6 +316,34 @@ export async function notifyAppointmentRescheduled({
       newWhenLabel,
     });
 
+    // Mismo UID que el .ics original (buildIcsEvent siempre usa
+    // `${appointmentId}@lemy.mx`) con SEQUENCE más alto — así el cliente de
+    // correo del paciente lo reconoce como una actualización del evento que
+    // ya tenía agendado, no como uno nuevo aparte.
+    let attachments: { filename: string; content: string }[] | undefined;
+    if (therapistEmail && patientEmail) {
+      const modalityLabel = modality === "online" ? "en línea" : "presencial";
+      const icsContent = buildIcsEvent({
+        uid: appointmentId,
+        summary: `Sesión Lemy (${modalityLabel}) — ${therapistName} y ${patientName}`,
+        description:
+          modality === "online"
+            ? `Sesión en línea agendada a través de Lemy.${meetingLink ? ` Link: ${meetingLink}` : ""}`
+            : "Sesión presencial agendada a través de Lemy.",
+        location: modality === "presencial" ? address : null,
+        startIso: newScheduledAtIso,
+        endIso: newEndIso,
+        organizerEmail: therapistEmail,
+        organizerName: therapistName,
+        attendeeEmail: patientEmail,
+        attendeeName: patientName,
+        sequence: 1,
+      });
+      attachments = [
+        { filename: "cita-lemy.ics", content: Buffer.from(icsContent, "utf-8").toString("base64") },
+      ];
+    }
+
     await dispatch({
       supabase,
       type: "appointment_rescheduled",
@@ -312,6 +353,7 @@ export async function notifyAppointmentRescheduled({
       phone: normalizePhone(phones.get(patientId)),
       subject,
       html,
+      attachments,
       whatsappTemplate: "lemy_appointment_rescheduled",
       whatsappParams: [patientName, therapistName, newWhenLabel],
     });

@@ -240,7 +240,9 @@ export async function rescheduleAppointment(formData: FormData) {
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, status, duration_min, google_calendar_event_id")
+    .select(
+      "id, therapist_id, patient_id, status, duration_min, google_calendar_event_id, modality, meeting_link, location_address"
+    )
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
     .maybeSingle();
@@ -301,6 +303,10 @@ export async function rescheduleAppointment(formData: FormData) {
     therapistId: user.id,
     patientId: appointment.patient_id as string,
     newScheduledAtIso,
+    durationMin: appointment.duration_min as number,
+    modality: appointment.modality === "presencial" ? "presencial" : "online",
+    meetingLink: appointment.meeting_link as string | null,
+    address: appointment.location_address as string | null,
   });
 
   revalidatePath("/dashboard/citas");

@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { getPatientInfoMap } from "@/lib/patient-info";
-import { PatientInfoPopup, RescheduleForm } from "./citas-client";
+import { PatientInfoPopup, RescheduleForm, CancelForm } from "./citas-client";
 import {
   confirmAppointment,
   cancelAppointmentTherapist,
@@ -54,25 +54,6 @@ function formatOaxaca(iso: string) {
   return `${weekday} ${d}/${m} · ${hh}:${mm}`;
 }
 
-function CancelForm({ appointmentId }: { appointmentId: string }) {
-  return (
-    <form action={cancelAppointmentTherapist} className="flex items-center gap-2">
-      <input type="hidden" name="appointment_id" value={appointmentId} />
-      <input
-        type="text"
-        name="reason"
-        placeholder="Motivo (opcional)"
-        className="input-lemy w-[140px] py-1.5 text-[0.8rem]"
-      />
-      <button
-        type="submit"
-        className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
-      >
-        Cancelar
-      </button>
-    </form>
-  );
-}
 
 export default async function CitasPage({
   searchParams,
@@ -221,7 +202,7 @@ export default async function CitasPage({
                         <SubmitButton pendingText="Confirmando…">Confirmar y crear evento</SubmitButton>
                       </form>
                       <RescheduleForm appointmentId={a.id} rescheduleAction={rescheduleAppointment} />
-                      <CancelForm appointmentId={a.id} />
+                      <CancelForm appointmentId={a.id} cancelAction={cancelAppointmentTherapist} />
                     </div>
                   </div>
                 ))}
@@ -278,7 +259,7 @@ export default async function CitasPage({
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
                       <RescheduleForm appointmentId={a.id} rescheduleAction={rescheduleAppointment} />
-                      <CancelForm appointmentId={a.id} />
+                      <CancelForm appointmentId={a.id} cancelAction={cancelAppointmentTherapist} />
                     </div>
                   </div>
                 ))}

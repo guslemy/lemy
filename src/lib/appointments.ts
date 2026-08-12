@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getAccessToken, deleteCalendarEvent } from "@/lib/google-calendar";
 
 export type CancelRole = "patient" | "therapist";
 
@@ -114,7 +116,7 @@ export async function cancelAppointmentAsParticipant(
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, status, therapist_id, patient_id, scheduled_at")
+    .select("id, status, therapist_id, patient_id, scheduled_at, google_calendar_event_id")
     .eq("id", appointmentId)
     .eq(column, userId)
     .maybeSingle();
@@ -136,6 +138,32 @@ export async function cancelAppointmentAsParticipant(
     .eq(column, userId);
 
   if (error) return { ok: false };
+
+  // Si había un evento real en Google Calendar, lo borramos también — si
+  // no, se queda fantasma ahí aunque la cita ya esté cancelada en Lemy.
+  // get_google_refresh_token solo se puede llamar con el cliente de
+  // servicio (revoke a public/anon/authenticated en
+  // 0007_google_calendar_tokens.sql), y el calendario siempre es el del
+  // terapeuta sin importar quién de los dos haya cancelado.
+  const eventId = appointment.google_calendar_event_id as string | null;
+  if (eventId) {
+    const serviceClient = createServiceClient();
+    try {
+      const { data: refreshToken } = await serviceClient.rpc("get_google_refresh_token", {
+        p_user_id: appointment.therapist_id,
+      });
+      if (refreshToken) {
+        const accessToken = await getAccessToken(refreshToken);
+        await deleteCalendarEvent({ accessToken, eventId });
+      }
+    } catch (err) {
+      console.error("Error borrando el evento en Google Calendar al cancelar:", err);
+      await serviceClient
+        .from("therapists")
+        .update({ google_calendar_connected: false })
+        .eq("id", appointment.therapist_id);
+    }
+  }
 
   return {
     ok: true,
