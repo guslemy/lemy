@@ -19,21 +19,28 @@ insert into storage.buckets (id, name, public)
 values ('therapist-documents', 'therapist-documents', false)
 on conflict (id) do nothing;
 
+-- drop + create (no "create policy if not exists" en Postgres) para que
+-- este archivo se pueda volver a correr sin tronar si una corrida anterior
+-- ya alcanzó a crear alguna de estas políticas.
+drop policy if exists "therapist_documents_owner_read" on storage.objects;
 create policy "therapist_documents_owner_read" on storage.objects
   for select using (
     bucket_id = 'therapist-documents' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "therapist_documents_owner_insert" on storage.objects;
 create policy "therapist_documents_owner_insert" on storage.objects
   for insert with check (
     bucket_id = 'therapist-documents' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "therapist_documents_owner_update" on storage.objects;
 create policy "therapist_documents_owner_update" on storage.objects
   for update using (
     bucket_id = 'therapist-documents' and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "therapist_documents_owner_delete" on storage.objects;
 create policy "therapist_documents_owner_delete" on storage.objects
   for delete using (
     bucket_id = 'therapist-documents' and (storage.foldername(name))[1] = auth.uid()::text
