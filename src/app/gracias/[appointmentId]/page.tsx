@@ -137,7 +137,7 @@ export default async function GraciasPage({
           </div>
 
           <div className="mt-9 flex flex-wrap gap-3">
-            <Button href="/dashboard/mis-citas" variant="primary">
+            <Button href="/dashboard" variant="primary">
               Ir a mis citas
             </Button>
             <Button href={`/${therapist.slug}`} variant="ghost">

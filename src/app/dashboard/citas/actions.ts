@@ -40,7 +40,7 @@ async function requireTherapist() {
 export async function confirmAppointment(formData: FormData) {
   const { supabase, user } = await requireTherapist();
   const appointmentId = String(formData.get("appointment_id") || "");
-  if (!appointmentId) redirect("/dashboard/citas?error=1");
+  if (!appointmentId) redirect("/dashboard?tab=citas&citas_error=1");
 
   const { data: appointment } = await supabase
     .from("appointments")
@@ -49,16 +49,16 @@ export async function confirmAppointment(formData: FormData) {
     .eq("therapist_id", user.id)
     .maybeSingle();
 
-  if (!appointment) redirect("/dashboard/citas?error=1");
+  if (!appointment) redirect("/dashboard?tab=citas&citas_error=1");
   if (appointment.status !== "pending_payment") {
-    redirect("/dashboard/citas?error=1");
+    redirect("/dashboard?tab=citas&citas_error=1");
   }
   // No se puede confirmar una cita con pago por tarjeta pendiente — el
   // paciente pudo haber cerrado Stripe Checkout a medias. Las citas en
   // efectivo (terapeuta sin Stripe Connect activo, payment_status
   // "efectivo") nunca pasan por Checkout, así que se confirman igual.
   if (appointment.payment_status !== "paid" && appointment.payment_status !== "efectivo") {
-    redirect("/dashboard/citas?error=1");
+    redirect("/dashboard?tab=citas&citas_error=1");
   }
 
   const modality: "online" | "presencial" = appointment.modality === "presencial" ? "presencial" : "online";
@@ -84,7 +84,7 @@ export async function confirmAppointment(formData: FormData) {
   const therapistEmail = user.email;
 
   if (!patientEmail || !therapistEmail) {
-    redirect("/dashboard/citas?error=1");
+    redirect("/dashboard?tab=citas&citas_error=1");
   }
 
   const { data: patientProfile } = await supabase
@@ -166,9 +166,8 @@ export async function confirmAppointment(formData: FormData) {
     address,
   });
 
-  revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
-  redirect("/dashboard/citas?confirmado=1");
+  redirect("/dashboard?tab=citas&citas_confirmado=1");
 }
 
 // El terapeuta cancela una cita propia (pendiente o ya confirmada). No borra
@@ -197,9 +196,8 @@ export async function cancelAppointmentTherapist(formData: FormData) {
     });
   }
 
-  revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
-  redirect(result.ok ? "/dashboard/citas?cancelado=1" : "/dashboard/citas?error=1");
+  redirect(result.ok ? "/dashboard?tab=citas&citas_cancelado=1" : "/dashboard?tab=citas&citas_error=1");
 }
 
 // Guarda las notas privadas del terapeuta sobre un paciente — no redirige
@@ -219,7 +217,7 @@ export async function savePatientNotes(formData: FormData) {
       { onConflict: "therapist_id,patient_id" }
     );
 
-  revalidatePath("/dashboard/citas");
+  revalidatePath("/dashboard");
   revalidatePath(`/dashboard/pacientes/${patientId}`);
 }
 
@@ -236,7 +234,7 @@ export async function rescheduleAppointment(formData: FormData) {
   const appointmentId = String(formData.get("appointment_id") || "");
   const newLocalDatetime = String(formData.get("new_scheduled_at") || ""); // "YYYY-MM-DDTHH:mm", hora de Oaxaca
 
-  if (!appointmentId || !newLocalDatetime) redirect("/dashboard/citas?error=1");
+  if (!appointmentId || !newLocalDatetime) redirect("/dashboard?tab=citas&citas_error=1");
 
   const { data: appointment } = await supabase
     .from("appointments")
@@ -248,13 +246,13 @@ export async function rescheduleAppointment(formData: FormData) {
     .maybeSingle();
 
   if (!appointment || appointment.status === "cancelled" || appointment.status === "completed") {
-    redirect("/dashboard/citas?error=1");
+    redirect("/dashboard?tab=citas&citas_error=1");
   }
 
   // Oaxaca no observa horario de verano — el offset -06:00 es constante.
   const newScheduledAtIso = new Date(`${newLocalDatetime}:00-06:00`).toISOString();
   if (Number.isNaN(new Date(newScheduledAtIso).getTime())) {
-    redirect("/dashboard/citas?error=1");
+    redirect("/dashboard?tab=citas&citas_error=1");
   }
 
   const { error } = await supabase
@@ -263,7 +261,7 @@ export async function rescheduleAppointment(formData: FormData) {
     .eq("id", appointmentId)
     .eq("therapist_id", user.id);
 
-  if (error) redirect("/dashboard/citas?error=1");
+  if (error) redirect("/dashboard?tab=citas&citas_error=1");
 
   const eventId = appointment.google_calendar_event_id as string | null;
   if (eventId) {
@@ -309,7 +307,6 @@ export async function rescheduleAppointment(formData: FormData) {
     address: appointment.location_address as string | null,
   });
 
-  revalidatePath("/dashboard/citas");
   revalidatePath("/dashboard");
-  redirect("/dashboard/citas?reagendado=1");
+  redirect("/dashboard?tab=citas&citas_reagendado=1");
 }

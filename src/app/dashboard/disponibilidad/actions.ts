@@ -37,7 +37,7 @@ export async function addAvailabilitySlot(formData: FormData) {
     !end_time ||
     start_time >= end_time
   ) {
-    redirect("/dashboard/disponibilidad?error=1");
+    redirect("/dashboard?tab=disponibilidad&disp_error=1");
   }
 
   await supabase.from("availability_slots").insert({
@@ -48,8 +48,8 @@ export async function addAvailabilitySlot(formData: FormData) {
     is_recurring: true,
   });
 
-  revalidatePath("/dashboard/disponibilidad");
-  redirect("/dashboard/disponibilidad?guardado=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=disponibilidad&disp_guardado=1");
 }
 
 export async function deleteAvailabilitySlot(formData: FormData) {
@@ -60,8 +60,8 @@ export async function deleteAvailabilitySlot(formData: FormData) {
     await supabase.from("availability_slots").delete().eq("id", id).eq("therapist_id", user.id);
   }
 
-  revalidatePath("/dashboard/disponibilidad");
-  redirect("/dashboard/disponibilidad?eliminado=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=disponibilidad&disp_eliminado=1");
 }
 
 const MAX_LEAD_DAYS = 365;
@@ -105,7 +105,7 @@ export async function updateBookingLead(formData: FormData) {
     !["horas", "dias", "semanas", "meses"].includes(unit) ||
     leadDays(amount, unit) > MAX_LEAD_DAYS
   ) {
-    redirect("/dashboard/disponibilidad?error=anticipacion");
+    redirect("/dashboard?tab=disponibilidad&disp_error=anticipacion");
   }
 
   await supabase
@@ -113,9 +113,9 @@ export async function updateBookingLead(formData: FormData) {
     .update({ booking_lead_amount: amount, booking_lead_unit: unit })
     .eq("id", user.id);
 
-  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
   revalidatePath("/terapeuta");
-  redirect("/dashboard/disponibilidad?guardado_anticipacion=1");
+  redirect("/dashboard?tab=disponibilidad&disp_guardado_anticipacion=1");
 }
 
 const SESSION_DURATIONS = [30, 45, 50, 60, 75, 90];
@@ -131,7 +131,7 @@ export async function updateSessionSettings(formData: FormData) {
   const buffer_min = Number(formData.get("buffer_min"));
 
   if (!SESSION_DURATIONS.includes(session_duration_min) || !BUFFER_OPTIONS.includes(buffer_min)) {
-    redirect("/dashboard/disponibilidad?error=duracion");
+    redirect("/dashboard?tab=disponibilidad&disp_error=duracion");
   }
 
   await supabase
@@ -139,9 +139,9 @@ export async function updateSessionSettings(formData: FormData) {
     .update({ session_duration_min, buffer_min })
     .eq("id", user.id);
 
-  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
   revalidatePath("/terapeuta");
-  redirect("/dashboard/disponibilidad?guardado_duracion=1");
+  redirect("/dashboard?tab=disponibilidad&disp_guardado_duracion=1");
 }
 
 const MAX_WINDOW_DAYS = 365;
@@ -167,7 +167,7 @@ export async function updateBookingMax(formData: FormData) {
     !["dias", "semanas", "meses"].includes(unit) ||
     windowDays(amount, unit) > MAX_WINDOW_DAYS
   ) {
-    redirect("/dashboard/disponibilidad?error=ventana_maxima");
+    redirect("/dashboard?tab=disponibilidad&disp_error=ventana_maxima");
   }
 
   await supabase
@@ -175,9 +175,9 @@ export async function updateBookingMax(formData: FormData) {
     .update({ booking_max_amount: amount, booking_max_unit: unit })
     .eq("id", user.id);
 
-  revalidatePath("/dashboard/disponibilidad");
+  revalidatePath("/dashboard");
   revalidatePath("/terapeuta");
-  redirect("/dashboard/disponibilidad?guardado_ventana_maxima=1");
+  redirect("/dashboard?tab=disponibilidad&disp_guardado_ventana_maxima=1");
 }
 
 // Bloqueos puntuales: vacaciones, una comida familiar, un jueves libre.
@@ -199,7 +199,7 @@ export async function addBlockedSlot(formData: FormData) {
   const end_at = endDate ? oaxacaLocalStringToUtcIso(`${endDate}T${endTime}`) : null;
 
   if (!start_at || !end_at || new Date(start_at).getTime() >= new Date(end_at).getTime()) {
-    redirect("/dashboard/disponibilidad?error=bloqueo");
+    redirect("/dashboard?tab=disponibilidad&disp_error=bloqueo");
   }
 
   await supabase.from("therapist_blocked_slots").insert({
@@ -209,8 +209,8 @@ export async function addBlockedSlot(formData: FormData) {
     reason,
   });
 
-  revalidatePath("/dashboard/disponibilidad");
-  redirect("/dashboard/disponibilidad?bloqueado=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=disponibilidad&disp_bloqueado=1");
 }
 
 export async function deleteBlockedSlot(formData: FormData) {
@@ -221,6 +221,6 @@ export async function deleteBlockedSlot(formData: FormData) {
     await supabase.from("therapist_blocked_slots").delete().eq("id", id).eq("therapist_id", user.id);
   }
 
-  revalidatePath("/dashboard/disponibilidad");
-  redirect("/dashboard/disponibilidad?desbloqueado=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=disponibilidad&disp_desbloqueado=1");
 }

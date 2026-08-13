@@ -88,7 +88,7 @@ export async function setVerificationStatus(formData: FormData) {
     .eq("id", targetId);
 
   revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/perfil");
+  revalidatePath("/dashboard");
   redirect("/dashboard/admin?tab=verificaciones&verificacion_actualizada=1");
 }
 
@@ -139,6 +139,6 @@ export async function rejectVerification(formData: FormData) {
   }
 
   revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/perfil");
+  revalidatePath("/dashboard");
   redirect("/dashboard/admin?tab=verificaciones&verificacion_actualizada=1");
 }

@@ -81,13 +81,13 @@ export async function createSubscriptionCheckout(formData: FormData) {
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     discounts,
-    success_url: `${base}/dashboard/suscripcion?ok=1`,
-    cancel_url: `${base}/dashboard/suscripcion?cancelado=1`,
+    success_url: `${base}/dashboard?tab=suscripcion&sus_ok=1`,
+    cancel_url: `${base}/dashboard?tab=suscripcion&sus_cancelado=1`,
     metadata: { lemy_user_id: user.id, plan },
     subscription_data: { metadata: { lemy_user_id: user.id, plan } },
   });
 
-  if (!session.url) redirect("/dashboard/suscripcion?error=1");
+  if (!session.url) redirect("/dashboard?tab=suscripcion&sus_error=1");
   redirect(session.url);
 }
 
@@ -112,13 +112,13 @@ export async function openBillingPortal() {
     .maybeSingle();
 
   if (!therapist?.stripe_billing_customer_id) {
-    redirect("/dashboard/suscripcion?error=sin_suscripcion");
+    redirect("/dashboard?tab=suscripcion&sus_error=sin_suscripcion");
   }
 
   const base = await siteUrl();
   const session = await stripe.billingPortal.sessions.create({
     customer: therapist.stripe_billing_customer_id,
-    return_url: `${base}/dashboard/suscripcion`,
+    return_url: `${base}/dashboard?tab=suscripcion`,
   });
 
   redirect(session.url);

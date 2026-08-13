@@ -87,7 +87,7 @@ export async function becomeTherapist() {
   }
 
   revalidatePath("/dashboard");
-  redirect("/dashboard/perfil");
+  redirect("/dashboard?tab=perfil");
 }
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -112,10 +112,10 @@ export async function saveTherapistProfile(formData: FormData) {
   const photoFile = formData.get("photo") as File | null;
   if (photoFile && photoFile.size > 0) {
     if (!photoFile.type.startsWith("image/")) {
-      redirect("/dashboard/perfil?error=foto");
+      redirect("/dashboard?tab=perfil&perfil_error=foto");
     }
     if (photoFile.size > MAX_PHOTO_BYTES) {
-      redirect("/dashboard/perfil?error=foto_grande");
+      redirect("/dashboard?tab=perfil&perfil_error=foto_grande");
     }
 
     const ext = photoFile.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -127,7 +127,7 @@ export async function saveTherapistProfile(formData: FormData) {
 
     if (uploadError) {
       console.error("Error subiendo foto de perfil:", uploadError);
-      redirect("/dashboard/perfil?error=foto");
+      redirect("/dashboard?tab=perfil&perfil_error=foto");
     }
 
     const { data: publicUrlData } = supabase.storage.from("therapist-photos").getPublicUrl(path);
@@ -212,7 +212,7 @@ export async function saveTherapistProfile(formData: FormData) {
 
   let slug = slugify(String(formData.get("slug") || "") || display_name);
   if (RESERVED_SLUGS.has(slug)) {
-    redirect("/dashboard/perfil?error=slug_reservado");
+    redirect("/dashboard?tab=perfil&perfil_error=slug_reservado");
   }
   const { data: clash } = await supabase
     .from("therapists")
@@ -323,15 +323,14 @@ export async function saveTherapistProfile(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/perfil");
   revalidatePath("/buscar");
   revalidatePath("/test");
   revalidatePath(`/${slug}`);
 
   if (blockedBySubscription) {
-    redirect("/dashboard/perfil?error=suscripcion");
+    redirect("/dashboard?tab=perfil&perfil_error=suscripcion");
   }
-  redirect("/dashboard?guardado=1");
+  redirect("/dashboard?tab=perfil&perfil_guardado=1");
 }
 
 const MAX_DOC_BYTES = 8 * 1024 * 1024; // cédulas escaneadas pesan más que una foto de perfil
@@ -360,22 +359,22 @@ export async function uploadVerificationDocuments(formData: FormData) {
   // Defensivo: la UI ya oculta este formulario si está verificado, pero por
   // si acaso alguien lo manda igual (formulario viejo en caché, etc.).
   if (therapist?.verification_status === "verified") {
-    redirect("/dashboard/perfil?error=verificado_bloqueado");
+    redirect("/dashboard?tab=perfil&perfil_error=verificado_bloqueado");
   }
 
   const cedula = formData.get("doc_cedula") as File | null;
   const identificacion = formData.get("doc_identificacion") as File | null;
   const titulo = formData.get("doc_titulo") as File | null;
 
-  if (!cedula || cedula.size === 0) redirect("/dashboard/perfil?error=documento_faltante");
+  if (!cedula || cedula.size === 0) redirect("/dashboard?tab=perfil&perfil_error=documento_faltante");
   if (!identificacion || identificacion.size === 0) {
-    redirect("/dashboard/perfil?error=documento_faltante");
+    redirect("/dashboard?tab=perfil&perfil_error=documento_faltante");
   }
 
   const filesToValidate = [cedula, identificacion, ...(titulo && titulo.size > 0 ? [titulo] : [])];
   for (const f of filesToValidate) {
-    if (!ALLOWED_DOC_TYPES.includes(f.type)) redirect("/dashboard/perfil?error=documento_invalido");
-    if (f.size > MAX_DOC_BYTES) redirect("/dashboard/perfil?error=documento_grande");
+    if (!ALLOWED_DOC_TYPES.includes(f.type)) redirect("/dashboard?tab=perfil&perfil_error=documento_invalido");
+    if (f.size > MAX_DOC_BYTES) redirect("/dashboard?tab=perfil&perfil_error=documento_grande");
   }
 
   async function uploadDoc(file: File, tipo: string): Promise<string> {
@@ -386,7 +385,7 @@ export async function uploadVerificationDocuments(formData: FormData) {
       .upload(path, file, { upsert: true, contentType: file.type });
     if (error) {
       console.error(`Error subiendo documento de verificación (${tipo}):`, error);
-      redirect("/dashboard/perfil?error=documento");
+      redirect("/dashboard?tab=perfil&perfil_error=documento");
     }
     return path;
   }
@@ -410,6 +409,6 @@ export async function uploadVerificationDocuments(formData: FormData) {
   ];
   await supabase.from("therapist_credentials").insert(rows);
 
-  revalidatePath("/dashboard/perfil");
-  redirect("/dashboard/perfil?documentos_guardados=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=perfil&perfil_documentos_guardados=1");
 }

@@ -68,7 +68,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
 
   // Paciente
   return (
-    <Button href="/dashboard/mis-citas" variant="primary" className={className}>
+    <Button href="/dashboard" variant="primary" className={className}>
       Mi cuenta
     </Button>
   );

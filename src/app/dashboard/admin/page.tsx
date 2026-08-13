@@ -8,7 +8,7 @@ import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { VerificationReviewButton } from "@/components/verification-review-button";
-import { AdminTabs, type AdminTab } from "@/components/admin-tabs";
+import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
 import { deactivateUser, reactivateUser } from "./actions";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
 
@@ -17,7 +17,7 @@ import { addEducationalContent, deleteEducationalContent } from "../contenido/ac
 // verificaciones metida en un popup dentro de la tabla de usuarios).
 // Gustavo pidió fusionarlo en una sola pantalla con pestañas (2026-08-14):
 // se abre en "Panel de contenido", y cambiar a "Verificaciones" o "Gestión
-// de usuarios" no navega a otro lado — cambia ahí mismo (ver AdminTabs).
+// de usuarios" no navega a otro lado — cambia ahí mismo (ver PanelTabs).
 //
 // Se dividió "Verificaciones" como su propia pestaña (antes vivía dentro de
 // Gestión de usuarios) porque revisar documentos es una tarea aparte de
@@ -25,7 +25,7 @@ import { addEducationalContent, deleteEducationalContent } from "../contenido/ac
 // de por medio no era lo más eficiente para la tarea de revisión.
 //
 // Todo se consulta de una sola vez arriba (esto es un panel interno con
-// pocos datos, no un endpoint público) y se le pasa ya armado a AdminTabs,
+// pocos datos, no un endpoint público) y se le pasa ya armado a PanelTabs,
 // que decide cuál mostrar sin volver a pedir nada al servidor.
 
 const PLATFORMS = [
@@ -185,7 +185,7 @@ export default async function AdminPage({
       );
     });
 
-  const tabs: AdminTab[] = [
+  const tabs: PanelTab[] = [
     {
       key: "contenido",
       label: "Panel de contenido",
@@ -242,7 +242,7 @@ export default async function AdminPage({
           </h1>
 
           <div className="mt-8">
-            <AdminTabs tabs={tabs} initialTabKey={initialTabKey} />
+            <PanelTabs tabs={tabs} initialTabKey={initialTabKey} />
           </div>
 
           <BackToDashboard />

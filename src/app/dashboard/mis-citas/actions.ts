@@ -24,8 +24,8 @@ export async function updatePatientPhone(formData: FormData) {
 
   await supabase.from("profiles").update({ phone }).eq("id", user.id);
 
-  revalidatePath("/dashboard/mis-citas");
-  redirect("/dashboard/mis-citas?telefono_guardado=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=citas&telefono_guardado=1");
 }
 
 export async function cancelAppointmentPatient(formData: FormData) {
@@ -51,6 +51,6 @@ export async function cancelAppointmentPatient(formData: FormData) {
     });
   }
 
-  revalidatePath("/dashboard/mis-citas");
-  redirect(result.ok ? "/dashboard/mis-citas?cancelado=1" : "/dashboard/mis-citas?error=1");
+  revalidatePath("/dashboard");
+  redirect(result.ok ? "/dashboard?tab=citas&cancelado=1" : "/dashboard?tab=citas&error=1");
 }

@@ -13,7 +13,7 @@ export function GoogleCalendarConnectButton({ label }: { label: string }) {
 
   const handleConnect = async () => {
     const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", "/dashboard/perfil?google_reconectado=1");
+    callbackUrl.searchParams.set("next", "/dashboard?tab=perfil&perfil_google_reconectado=1");
 
     await supabase.auth.signInWithOAuth({
       provider: "google",

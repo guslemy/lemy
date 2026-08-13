@@ -4,16 +4,28 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { CopyLinkBox } from "@/components/copy-link-box";
+import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
+import { TherapistPerfilTab } from "@/components/dashboard-tabs/therapist-perfil-tab";
+import { TherapistDisponibilidadTab } from "@/components/dashboard-tabs/therapist-disponibilidad-tab";
+import { TherapistCitasTab } from "@/components/dashboard-tabs/therapist-citas-tab";
+import { TherapistSuscripcionTab } from "@/components/dashboard-tabs/therapist-suscripcion-tab";
+import { TherapistPagosTab } from "@/components/dashboard-tabs/therapist-pagos-tab";
+import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-citas-tab";
 import { becomeTherapist } from "./actions";
 
-// Bifurca por rol: si ya es terapeuta, muestra el estado de su perfil; si es
-// paciente (default al registrarse), ofrece activar la cuenta de terapeuta.
+// Bifurca por rol. Admin va a /dashboard/admin (su propio panel con
+// pestañas). Terapeuta y paciente tienen aquí mismo su panel con pestañas
+// (2026-08-14): antes cada sección (perfil, disponibilidad, citas,
+// suscripción, cobros / mis citas) era su propia página — ahora todo vive
+// en /dashboard, cambiar de sección no navega a otro lado. Las rutas viejas
+// (/dashboard/perfil, etc.) siguen existiendo como redirects, por si algún
+// correo o bookmark viejo apunta ahí (ver cada carpeta).
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ guardado?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { guardado } = await searchParams;
+  const sp = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -40,29 +52,63 @@ export default async function DashboardPage({
 
   const sinPlan = isTherapist && therapist?.subscription_status !== "active";
 
+  const therapistTabs: PanelTab[] = isTherapist
+    ? [
+        {
+          key: "perfil",
+          label: "Editar perfil",
+          content: <TherapistPerfilTab params={sp} />,
+        },
+        {
+          key: "disponibilidad",
+          label: "Disponibilidad",
+          content: <TherapistDisponibilidadTab params={sp} />,
+        },
+        {
+          key: "citas",
+          label: "Citas",
+          content: <TherapistCitasTab params={sp} />,
+        },
+        {
+          key: "suscripcion",
+          label: "Suscripción",
+          content: <TherapistSuscripcionTab params={sp} />,
+        },
+        {
+          key: "pagos",
+          label: "Cobros por consulta",
+          content: <TherapistPagosTab params={sp} />,
+        },
+      ]
+    : [];
+
+  const patientTabs: PanelTab[] = [
+    {
+      key: "citas",
+      label: "Mis citas",
+      content: <PatientMisCitasTab params={sp} />,
+    },
+  ];
+
+  const initialTabKey = sp.tab || (isTherapist ? "perfil" : "citas");
+
   return (
     <>
       <SiteHeader />
 
       <main className="px-6 py-16 sm:px-8 md:py-20">
-        <div className="mx-auto max-w-[720px]">
+        <div className="mx-auto max-w-[760px]">
           <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Tu cuenta</p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
             Hola, {profile?.full_name ?? user.email}
           </h1>
-
-          {guardado === "1" && (
-            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
-              Guardamos tus cambios.
-            </p>
-          )}
 
           {sinPlan && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-4">
               <p className="text-[0.9rem] text-rose-deep">
                 Actualmente no cuentas con un plan. Elígelo y comienza a recibir pacientes ya.
               </p>
-              <Button href="/dashboard/suscripcion" variant="primary">
+              <Button href="/dashboard?tab=suscripcion" variant="primary">
                 Elegir plan
               </Button>
             </div>
@@ -85,40 +131,14 @@ export default async function DashboardPage({
               </div>
             </div>
           ) : isTherapist ? (
-            <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
-              <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
-                Perfil de terapeuta
-              </p>
-              <h2 className="mt-2 text-[1.2rem] text-forest">{therapist?.display_name}</h2>
-              <p className="mt-2 text-[0.92rem] text-[#42504A]">
-                {therapist?.is_published
-                  ? "Tu perfil está publicado y visible en el buscador."
-                  : "Tu perfil está en borrador — todavía no es visible para nadie."}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button href="/dashboard/perfil" variant="primary">
-                  Editar mi perfil
-                </Button>
-                <Button href="/dashboard/disponibilidad" variant="ghost">
-                  Mi disponibilidad
-                </Button>
-                <Button href="/dashboard/citas" variant="ghost">
-                  Mis citas
-                </Button>
-                <Button href="/dashboard/suscripcion" variant="ghost">
-                  Suscripción
-                </Button>
-                <Button href="/dashboard/pagos" variant="ghost">
-                  Cobros por consulta
-                </Button>
-                {therapist?.is_published && therapist?.slug && (
-                  <Button href={`/${therapist.slug}`} variant="ghost">
-                    Ver mi perfil público
-                  </Button>
-                )}
-              </div>
+            <div className="mt-8">
+              <PanelTabs tabs={therapistTabs} initialTabKey={initialTabKey} />
             </div>
-          ) : null}
+          ) : (
+            <div className="mt-8">
+              <PanelTabs tabs={patientTabs} initialTabKey={initialTabKey} />
+            </div>
+          )}
 
           {isTherapist && therapist?.slug && (
             <div className="signature-corner mt-6 rounded-[28px] border border-line bg-card p-7">
@@ -158,9 +178,6 @@ export default async function DashboardPage({
                     Activar cuenta de terapeuta
                   </Button>
                 </form>
-                <Button href="/dashboard/mis-citas" variant="ghost">
-                  Mis citas
-                </Button>
               </div>
             </div>
           )}

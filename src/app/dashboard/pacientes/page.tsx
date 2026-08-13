@@ -39,7 +39,7 @@ export default async function MisPacientesPage() {
             Mientras tanto, tus citas siguen en el panel de citas.
           </p>
           <div className="mt-7">
-            <Button href="/dashboard/citas" variant="primary">
+            <Button href="/dashboard?tab=citas" variant="primary">
               Ir a mis citas
             </Button>
           </div>

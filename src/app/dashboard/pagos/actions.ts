@@ -41,7 +41,7 @@ export async function updatePaymentMethods(formData: FormData) {
   const acceptsCash = formData.get("accepts_cash_payment") === "on";
 
   if (!acceptsCard && !acceptsCash) {
-    redirect("/dashboard/pagos?error_metodos=1");
+    redirect("/dashboard?tab=pagos&pagos_error_metodos=1");
   }
 
   await supabase
@@ -49,8 +49,8 @@ export async function updatePaymentMethods(formData: FormData) {
     .update({ accepts_card_payment: acceptsCard, accepts_cash_payment: acceptsCash })
     .eq("id", user.id);
 
-  revalidatePath("/dashboard/pagos");
-  redirect("/dashboard/pagos?metodos_guardados=1");
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=pagos&pagos_metodos_guardados=1");
 }
 
 // Crea (si hace falta) la cuenta Express de Stripe Connect del terapeuta y
@@ -92,8 +92,8 @@ export async function connectStripeAccount() {
   const base = await siteUrl();
   const accountLink = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${base}/dashboard/pagos?refresh=1`,
-    return_url: `${base}/dashboard/pagos?return=1`,
+    refresh_url: `${base}/dashboard?tab=pagos`,
+    return_url: `${base}/dashboard?tab=pagos&pagos_return=1`,
     type: "account_onboarding",
   });
 
