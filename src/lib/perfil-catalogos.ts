@@ -31,3 +31,21 @@ export const TIPOS_DE_TERAPIA = ["Individual", "Pareja", "Familiar", "Grupal"] a
 // Checkboxes fijos + un campo "Otro" de texto libre para lo que no esté en
 // la lista (columna languages sigue siendo text[], sin cambio de esquema).
 export const IDIOMAS_FIJOS = ["Español", "Inglés", "Francés", "Lengua de Señas Mexicana"] as const;
+
+export const GRADOS_POSGRADO = [
+  "Especialidad",
+  "Maestría",
+  "Doctorado",
+  "Diplomado",
+  "Certificación",
+] as const;
+
+export const TIPOS_FORMACION_CONTINUA = [
+  "Curso",
+  "Diplomado",
+  "Certificación",
+  "Taller",
+  "Seminario",
+  "Congreso",
+  "Supervisión clínica",
+] as const;

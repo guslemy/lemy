@@ -10,6 +10,8 @@ import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
+import { PostgraduateEducationFields } from "@/components/postgraduate-education-fields";
+import { ContinuingEducationFields } from "@/components/continuing-education-fields";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import {
   GENEROS,
@@ -59,6 +61,8 @@ export default async function EditarPerfilPage({
     { data: approaches },
     { data: mySpecialties },
     { data: myApproaches },
+    { data: postgraduateStudies },
+    { data: continuingEducation },
   ] = await Promise.all([
     supabase
       .from("therapists")
@@ -71,6 +75,16 @@ export default async function EditarPerfilPage({
     supabase.from("therapeutic_approaches").select("id, nombre_tecnico").order("nombre_tecnico"),
     supabase.from("therapist_specialties").select("specialty_id").eq("therapist_id", user.id),
     supabase.from("therapist_approaches").select("approach_id").eq("therapist_id", user.id),
+    supabase
+      .from("therapist_postgraduate_studies")
+      .select("degree_type, program_name, institution, completion_year, license_number")
+      .eq("therapist_id", user.id)
+      .order("created_at"),
+    supabase
+      .from("therapist_continuing_education")
+      .select("education_type, name, institution, year, hours")
+      .eq("therapist_id", user.id)
+      .order("created_at"),
   ]);
 
   const selectedSpecialtyIds = new Set((mySpecialties ?? []).map((s) => s.specialty_id));
@@ -289,6 +303,45 @@ export default async function EditarPerfilPage({
                   />
                 </Field>
               </div>
+            </div>
+
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Formación de posgrado
+              </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                Especialidades, maestrías, doctorados, diplomados o certificaciones — se muestran en tu
+                perfil público. Puedes agregar los que quieras.
+              </p>
+              <PostgraduateEducationFields
+                initialRows={(postgraduateStudies ?? []).map((r) => ({
+                  degree_type: r.degree_type,
+                  program_name: r.program_name,
+                  institution: r.institution,
+                  completion_year: r.completion_year,
+                  license_number: r.license_number,
+                }))}
+              />
+            </div>
+
+            <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+              <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                Formación continua
+              </h2>
+              <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+                Cursos, talleres, seminarios, congresos o supervisión clínica — también se muestran en tu
+                perfil público. Por ahora no piden documento comprobatorio; eso llega junto con la
+                verificación de documentos.
+              </p>
+              <ContinuingEducationFields
+                initialRows={(continuingEducation ?? []).map((r) => ({
+                  education_type: r.education_type,
+                  name: r.name,
+                  institution: r.institution,
+                  year: r.year,
+                  hours: r.hours,
+                }))}
+              />
             </div>
 
             <div className="signature-corner rounded-[28px] border border-line bg-card p-7">

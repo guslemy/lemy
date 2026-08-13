@@ -72,6 +72,24 @@ type TherapistDetail = {
   whatsapp_public: string | null;
   therapist_specialties: { specialty: CatalogItem | null }[] | null;
   therapist_approaches: { approach: CatalogItem | null }[] | null;
+  therapist_postgraduate_studies: PostgraduateStudy[] | null;
+  therapist_continuing_education: ContinuingEducation[] | null;
+};
+
+type PostgraduateStudy = {
+  degree_type: string;
+  program_name: string;
+  institution: string;
+  completion_year: number | null;
+  license_number: string | null;
+};
+
+type ContinuingEducation = {
+  education_type: string;
+  name: string;
+  institution: string | null;
+  year: number | null;
+  hours: number | null;
 };
 
 async function getTherapist(slug: string) {
@@ -85,7 +103,9 @@ async function getTherapist(slug: string) {
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
-       therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) )`
+       therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) ),
+       therapist_postgraduate_studies ( degree_type, program_name, institution, completion_year, license_number ),
+       therapist_continuing_education ( education_type, name, institution, year, hours )`
     )
     .eq("slug", slug)
     .eq("is_published", true)
@@ -447,6 +467,47 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </div>
                     </>
                   )}
+
+                  {therapist.therapist_postgraduate_studies &&
+                    therapist.therapist_postgraduate_studies.length > 0 && (
+                      <>
+                        <h4 className="mb-2.5 mt-6.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                          Formación de posgrado
+                        </h4>
+                        <div className="space-y-3">
+                          {therapist.therapist_postgraduate_studies.map((s, i) => (
+                            <div key={i}>
+                              <p className="font-medium text-forest">
+                                {s.degree_type ? `${s.degree_type} — ` : ""}
+                                {s.program_name}
+                              </p>
+                              <p className="mt-0.5 text-[0.85rem] text-[#7C877F]">
+                                {[s.institution, s.completion_year].filter(Boolean).join(" · ")}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                  {therapist.therapist_continuing_education &&
+                    therapist.therapist_continuing_education.length > 0 && (
+                      <>
+                        <h4 className="mb-2.5 mt-6.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                          Formación continua
+                        </h4>
+                        <div className="space-y-3">
+                          {therapist.therapist_continuing_education.map((c, i) => (
+                            <div key={i}>
+                              <p className="font-medium text-forest">{c.name}</p>
+                              <p className="mt-0.5 text-[0.85rem] text-[#7C877F]">
+                                {[c.education_type, c.institution, c.year].filter(Boolean).join(" · ")}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                 </div>
               </div>
             </ScrollReveal>

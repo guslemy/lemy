@@ -272,6 +272,56 @@ export async function saveTherapistProfile(formData: FormData) {
       .insert(approachIds.map((approach_id) => ({ therapist_id: user.id, approach_id })));
   }
 
+  // Formación de posgrado y formación continua: filas repetibles, todas las
+  // del mismo campo comparten `name` en el form (ver PostgraduateEducation-
+  // Fields / ContinuingEducationFields), así que getAll() regresa arreglos
+  // paralelos en el mismo orden — se descarta cualquier fila que haya
+  // quedado totalmente vacía (por ejemplo, un renglón que se agregó y nunca
+  // se llenó).
+  const pgDegreeTypes = formData.getAll("pg_degree_type").map(String);
+  const pgProgramNames = formData.getAll("pg_program_name").map(String);
+  const pgInstitutions = formData.getAll("pg_institution").map(String);
+  const pgYears = formData.getAll("pg_completion_year").map(String);
+  const pgLicenses = formData.getAll("pg_license_number").map(String);
+
+  const postgraduateRows = pgDegreeTypes
+    .map((degree_type, i) => ({
+      therapist_id: user.id,
+      degree_type: degree_type.trim(),
+      program_name: (pgProgramNames[i] ?? "").trim(),
+      institution: (pgInstitutions[i] ?? "").trim(),
+      completion_year: pgYears[i] ? Number(pgYears[i]) : null,
+      license_number: (pgLicenses[i] ?? "").trim() || null,
+    }))
+    .filter((r) => r.degree_type || r.program_name || r.institution);
+
+  await supabase.from("therapist_postgraduate_studies").delete().eq("therapist_id", user.id);
+  if (postgraduateRows.length) {
+    await supabase.from("therapist_postgraduate_studies").insert(postgraduateRows);
+  }
+
+  const ceTypes = formData.getAll("ce_education_type").map(String);
+  const ceNames = formData.getAll("ce_name").map(String);
+  const ceInstitutions = formData.getAll("ce_institution").map(String);
+  const ceYears = formData.getAll("ce_year").map(String);
+  const ceHours = formData.getAll("ce_hours").map(String);
+
+  const continuingEdRows = ceTypes
+    .map((education_type, i) => ({
+      therapist_id: user.id,
+      education_type: education_type.trim(),
+      name: (ceNames[i] ?? "").trim(),
+      institution: (ceInstitutions[i] ?? "").trim() || null,
+      year: ceYears[i] ? Number(ceYears[i]) : null,
+      hours: ceHours[i] ? Number(ceHours[i]) : null,
+    }))
+    .filter((r) => r.education_type || r.name);
+
+  await supabase.from("therapist_continuing_education").delete().eq("therapist_id", user.id);
+  if (continuingEdRows.length) {
+    await supabase.from("therapist_continuing_education").insert(continuingEdRows);
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/perfil");
   revalidatePath("/buscar");
