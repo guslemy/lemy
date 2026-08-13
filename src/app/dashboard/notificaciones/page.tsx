@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BackToDashboard } from "@/components/back-to-dashboard";
 import { getNotificationFeed, markAllRead } from "@/lib/notifications/feed";
 
 function timeAgo(iso: string) {
@@ -59,8 +58,6 @@ export default async function NotificacionesPage() {
               ))}
             </div>
           )}
-
-          <BackToDashboard />
         </div>
       </main>
 

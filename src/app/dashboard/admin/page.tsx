@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { VerificationReviewButton } from "@/components/verification-review-button";
@@ -244,8 +243,6 @@ export default async function AdminPage({
           <div className="mt-8">
             <PanelTabs tabs={tabs} initialTabKey={initialTabKey} />
           </div>
-
-          <BackToDashboard />
         </div>
       </main>
 

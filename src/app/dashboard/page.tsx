@@ -42,6 +42,13 @@ export default async function DashboardPage({
   const isTherapist = profile?.role === "therapist";
   const isAdmin = profile?.role === "admin";
 
+  // Admin no tiene nada que hacer en esta pantalla intermedia — su panel
+  // real (contenido, verificaciones, usuarios) siempre es /dashboard/admin.
+  // Antes había una tarjeta con un botón para llegar ahí; Gustavo pidió
+  // saltársela (2026-08-14, ver project_lemy_dashboard_admin_redirect_pending
+  // en memoria — ya confirmado, este redirect lo resuelve).
+  if (isAdmin) redirect("/dashboard/admin");
+
   const { data: therapist } = isTherapist
     ? await supabase
         .from("therapists")
@@ -114,23 +121,7 @@ export default async function DashboardPage({
             </div>
           )}
 
-          {isAdmin ? (
-            <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
-              <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
-                Cuenta de administrador
-              </p>
-              <h2 className="mt-2 text-[1.2rem] text-forest">Panel de administración</h2>
-              <p className="mt-2 text-[0.92rem] text-[#42504A]">
-                Contenido educativo, verificaciones de terapeutas y gestión de usuarios, todo en un
-                solo lugar con pestañas.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button href="/dashboard/admin" variant="primary">
-                  Abrir panel de administración
-                </Button>
-              </div>
-            </div>
-          ) : isTherapist ? (
+          {isTherapist ? (
             <div className="mt-8">
               <PanelTabs tabs={therapistTabs} initialTabKey={initialTabKey} />
             </div>
@@ -162,7 +153,7 @@ export default async function DashboardPage({
             </div>
           )}
 
-          {!isAdmin && !isTherapist && (
+          {!isTherapist && (
             <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
                 ¿Eres terapeuta?

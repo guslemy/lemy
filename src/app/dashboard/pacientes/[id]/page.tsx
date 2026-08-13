@@ -2,7 +2,6 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { BackToDashboard } from "@/components/back-to-dashboard";
 import { getPatientInfoMap } from "@/lib/patient-info";
 import { savePatientNotes } from "../../citas/actions";
 
@@ -102,8 +101,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           </section>
-
-          <BackToDashboard />
         </div>
       </main>
       <SiteFooter />
