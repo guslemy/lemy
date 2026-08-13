@@ -31,8 +31,8 @@ async function requireAdmin() {
 export async function deactivateUser(formData: FormData) {
   const { user } = await requireAdmin();
   const targetId = String(formData.get("user_id") || "");
-  if (!targetId) redirect("/dashboard/admin?error=1");
-  if (targetId === user.id) redirect("/dashboard/admin?error=self");
+  if (!targetId) redirect("/dashboard/admin?tab=usuarios&error=1");
+  if (targetId === user.id) redirect("/dashboard/admin?tab=usuarios&error=self");
 
   const serviceClient = createServiceClient();
   await serviceClient
@@ -41,19 +41,19 @@ export async function deactivateUser(formData: FormData) {
     .eq("id", targetId);
 
   revalidatePath("/dashboard/admin");
-  redirect("/dashboard/admin?desactivado=1");
+  redirect("/dashboard/admin?tab=usuarios&desactivado=1");
 }
 
 export async function reactivateUser(formData: FormData) {
   await requireAdmin();
   const targetId = String(formData.get("user_id") || "");
-  if (!targetId) redirect("/dashboard/admin?error=1");
+  if (!targetId) redirect("/dashboard/admin?tab=usuarios&error=1");
 
   const serviceClient = createServiceClient();
   await serviceClient.from("profiles").update({ deactivated_at: null }).eq("id", targetId);
 
   revalidatePath("/dashboard/admin");
-  redirect("/dashboard/admin?reactivado=1");
+  redirect("/dashboard/admin?tab=usuarios&reactivado=1");
 }
 
 // El badge de "Cédula verificada" / "Perfil no verificado" en el perfil
@@ -74,7 +74,7 @@ export async function setVerificationStatus(formData: FormData) {
   const targetId = String(formData.get("therapist_id") || "");
   const status = String(formData.get("status") || "");
   if (!targetId || !["verified", "pending", "rejected"].includes(status)) {
-    redirect("/dashboard/admin?error=1");
+    redirect("/dashboard/admin?tab=verificaciones&error=1");
   }
 
   const serviceClient = createServiceClient();
@@ -89,7 +89,7 @@ export async function setVerificationStatus(formData: FormData) {
 
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/perfil");
-  redirect("/dashboard/admin?verificacion_actualizada=1");
+  redirect("/dashboard/admin?tab=verificaciones&verificacion_actualizada=1");
 }
 
 // Rechazo de verificación — a diferencia de "Quitar" (que solo regresa a
@@ -102,7 +102,7 @@ export async function rejectVerification(formData: FormData) {
   await requireAdmin();
   const targetId = String(formData.get("therapist_id") || "");
   const reason = String(formData.get("reason") || "").trim();
-  if (!targetId) redirect("/dashboard/admin?error=1");
+  if (!targetId) redirect("/dashboard/admin?tab=verificaciones&error=1");
 
   const serviceClient = createServiceClient();
   await serviceClient
@@ -140,5 +140,5 @@ export async function rejectVerification(formData: FormData) {
 
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/perfil");
-  redirect("/dashboard/admin?verificacion_actualizada=1");
+  redirect("/dashboard/admin?tab=verificaciones&verificacion_actualizada=1");
 }

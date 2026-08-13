@@ -46,7 +46,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/dashboard" variant="ghost" className={className}>
           Dashboard
         </Button>
-        <Button href="/dashboard/contenido" variant="primary" className={className}>
+        <Button href="/dashboard/admin" variant="primary" className={className}>
           Panel de contenido
         </Button>
       </>

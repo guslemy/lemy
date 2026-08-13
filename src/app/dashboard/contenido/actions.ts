@@ -34,7 +34,7 @@ export async function addEducationalContent(formData: FormData) {
   const thumbnail_url = thumbnailRaw ? normalizeUrl(thumbnailRaw) : null;
 
   if (!title || !url || specialtyIds.length === 0) {
-    redirect("/dashboard/contenido?error=1");
+    redirect("/dashboard/admin?tab=contenido&error=1");
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -44,16 +44,16 @@ export async function addEducationalContent(formData: FormData) {
     .single();
 
   if (insertError || !inserted) {
-    redirect("/dashboard/contenido?error=1");
+    redirect("/dashboard/admin?tab=contenido&error=1");
   }
 
   await supabase
     .from("educational_content_specialties")
     .insert(specialtyIds.map((specialty_id) => ({ content_id: inserted.id, specialty_id })));
 
-  revalidatePath("/dashboard/contenido");
+  revalidatePath("/dashboard/admin");
   revalidatePath("/buscar");
-  redirect("/dashboard/contenido?guardado=1");
+  redirect("/dashboard/admin?tab=contenido&guardado=1");
 }
 
 export async function deleteEducationalContent(formData: FormData) {
@@ -64,7 +64,7 @@ export async function deleteEducationalContent(formData: FormData) {
     await supabase.from("educational_content").delete().eq("id", id);
   }
 
-  revalidatePath("/dashboard/contenido");
+  revalidatePath("/dashboard/admin");
   revalidatePath("/buscar");
-  redirect("/dashboard/contenido?eliminado=1");
+  redirect("/dashboard/admin?tab=contenido&eliminado=1");
 }

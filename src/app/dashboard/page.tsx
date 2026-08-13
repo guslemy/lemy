@@ -73,16 +73,14 @@ export default async function DashboardPage({
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
                 Cuenta de administrador
               </p>
-              <h2 className="mt-2 text-[1.2rem] text-forest">Panel de contenido</h2>
+              <h2 className="mt-2 text-[1.2rem] text-forest">Panel de administración</h2>
               <p className="mt-2 text-[0.92rem] text-[#42504A]">
-                Agrega o quita los videos educativos que aparecen en el buscador según palabra clave.
+                Contenido educativo, verificaciones de terapeutas y gestión de usuarios, todo en un
+                solo lugar con pestañas.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Button href="/dashboard/contenido" variant="primary">
-                  Ir al panel de contenido
-                </Button>
-                <Button href="/dashboard/admin" variant="ghost">
-                  Gestión de usuarios
+                <Button href="/dashboard/admin" variant="primary">
+                  Abrir panel de administración
                 </Button>
               </div>
             </div>
