@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Pill, Tag } from "@/components/ui/pill";
+import { VerificationSeal } from "@/components/verification-badge";
 
 // Antes esto era una lista de 6 terapeutas de ejemplo (Mariana Torres, Diego
 // Fernández, etc.) fija en el código — nunca reflejaba altas ni cambios
@@ -19,6 +20,7 @@ export type DirectoryTherapist = {
   is_online_available: boolean;
   is_in_person_available: boolean;
   photo_url: string | null;
+  verified?: boolean;
   specialtySlugs: string[];
   specialtyNames: string[];
 };
@@ -94,17 +96,20 @@ export function DirectoryPreview({ therapists }: { therapists: DirectoryTherapis
               href={`/${t.slug}`}
               className="signature-corner rounded-[28px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
             >
-              {t.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.photo_url} alt="" className="mb-4 h-14 w-14 rounded-full object-cover" />
-              ) : (
-                <div
-                  className="mb-4 flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
-                  style={{ background: GRADIENTS[i % GRADIENTS.length] }}
-                >
-                  {initialsFrom(t.display_name)}
-                </div>
-              )}
+              <div className="relative mb-4 h-14 w-14">
+                {t.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.photo_url} alt="" className="h-14 w-14 rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"
+                    style={{ background: GRADIENTS[i % GRADIENTS.length] }}
+                  >
+                    {initialsFrom(t.display_name)}
+                  </div>
+                )}
+                {t.verified && <VerificationSeal size="sm" className="-bottom-0.5 -right-0.5" />}
+              </div>
               <h3 className="font-display text-[1.12rem] text-forest">{t.display_name}</h3>
               {t.tagline && <p className="mt-0.5 font-mono text-[0.86rem] text-rose-deep">{t.tagline}</p>}
               {t.tagline ? null : (

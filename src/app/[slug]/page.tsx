@@ -10,6 +10,7 @@ import { Tag } from "@/components/ui/pill";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { InstagramIcon, FacebookIcon, TikTokIcon, WhatsAppIcon } from "@/components/social-icons";
 import { ShareProfileButton } from "@/components/share-profile-button";
+import { VerificationBadge, VerificationSeal } from "@/components/verification-badge";
 import { getAvailableSlots } from "@/lib/availability";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
@@ -220,18 +221,27 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
           <div className="mx-auto max-w-[1180px]">
             <ScrollReveal>
               <div className="signature-corner mx-auto max-w-[480px] rounded-[36px] border border-line bg-card p-8 text-center sm:p-10">
-                {therapist.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={therapist.photo_url}
-                    alt=""
-                    className="mx-auto h-[130px] w-[130px] rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="mx-auto flex h-[130px] w-[130px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-4xl font-semibold text-white">
-                    {initialsFrom(therapist.display_name)}
-                  </div>
-                )}
+                <div className="mb-4 flex justify-center">
+                  <VerificationBadge verified={therapist.verification_status === "verified"} />
+                </div>
+
+                <div className="relative mx-auto h-[130px] w-[130px]">
+                  {therapist.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={therapist.photo_url}
+                      alt=""
+                      className="h-[130px] w-[130px] rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-[130px] w-[130px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-4xl font-semibold text-white">
+                      {initialsFrom(therapist.display_name)}
+                    </div>
+                  )}
+                  {therapist.verification_status === "verified" && (
+                    <VerificationSeal size="md" className="-bottom-1 -right-1" />
+                  )}
+                </div>
 
                 {(therapist.instagram_url || therapist.facebook_url || therapist.tiktok_url) && (
                   <div className="mt-4 flex justify-center gap-2.5">
@@ -279,15 +289,6 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                  {therapist.verification_status === "verified" ? (
-                    <p className="inline-flex items-center gap-1.5 rounded-full bg-forest/[0.08] px-3 py-1 font-mono text-[0.72rem] text-forest">
-                      ✓ Cédula verificada
-                    </p>
-                  ) : (
-                    <p className="inline-flex items-center gap-1.5 rounded-full bg-[#8B978F]/10 px-3 py-1 font-mono text-[0.72rem] text-[#7C877F]">
-                      Perfil no verificado
-                    </p>
-                  )}
                   <div className="flex items-center gap-4 text-center">
                     <div>
                       <p className="font-display text-[1.15rem] text-forest">{sessionsCount ?? 0}</p>

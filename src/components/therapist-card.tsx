@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Tag } from "@/components/ui/pill";
+import { VerificationSeal } from "@/components/verification-badge";
 
 // Tarjeta de terapeuta con datos reales de Supabase — usada en /buscar.
 // (Distinta de DirectoryPreview, que muestra datos de ejemplo en la landing.)
@@ -14,6 +15,7 @@ export type TherapistCardData = {
   is_in_person_available?: boolean;
   specialties: string[];
   photo_url?: string | null;
+  verified?: boolean;
 };
 
 const GRADIENTS = [
@@ -45,17 +47,20 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
       href={`/${t.slug}`}
       className="signature-corner block rounded-[28px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)]"
     >
-      {t.photo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={t.photo_url} alt="" className="mb-4 h-24 w-24 rounded-full object-cover" />
-      ) : (
-        <div
-          className="mb-4 flex h-24 w-24 items-center justify-center rounded-full font-display text-2xl font-semibold text-white"
-          style={{ background: gradient }}
-        >
-          {initialsFrom(t.display_name)}
-        </div>
-      )}
+      <div className="relative mb-4 h-24 w-24">
+        {t.photo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={t.photo_url} alt="" className="h-24 w-24 rounded-full object-cover" />
+        ) : (
+          <div
+            className="flex h-24 w-24 items-center justify-center rounded-full font-display text-2xl font-semibold text-white"
+            style={{ background: gradient }}
+          >
+            {initialsFrom(t.display_name)}
+          </div>
+        )}
+        {t.verified && <VerificationSeal size="md" className="-bottom-1 -right-1" />}
+      </div>
       <h3 className="font-display text-[1.12rem] text-forest">{t.display_name}</h3>
       {t.tagline && <p className="mt-0.5 font-mono text-[0.86rem] text-rose-deep">{t.tagline}</p>}
       {t.city && <p className="mt-3 text-[0.9rem] text-[#42504A]">{t.city}</p>}

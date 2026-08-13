@@ -26,6 +26,7 @@ type RawTherapist = {
   is_online_available: boolean;
   is_in_person_available: boolean;
   photo_url: string | null;
+  verification_status: string;
   therapist_specialties: { specialty: Specialty | null }[] | null;
 };
 
@@ -117,7 +118,7 @@ export default async function BuscarPage({
     supabase
       .from("therapists")
       .select(
-        "slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available, photo_url, therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )"
+        "slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available, photo_url, verification_status, therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )"
       )
       .eq("is_published", true),
   ]);
@@ -142,6 +143,7 @@ export default async function BuscarPage({
       is_online_available: t.is_online_available,
       is_in_person_available: t.is_in_person_available,
       photo_url: t.photo_url,
+      verified: t.verification_status === "verified",
       specialties: specs.map((s) => s.nombre_coloquial),
       specialtySlugs: specs.map((s) => s.slug),
     };

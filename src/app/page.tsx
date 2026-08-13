@@ -65,6 +65,7 @@ async function getDirectoryPreviewTherapists(): Promise<DirectoryTherapist[]> {
       is_online_available: t.is_online_available,
       is_in_person_available: t.is_in_person_available,
       photo_url: t.photo_url,
+      verified: t.verification_status === "verified",
       specialtySlugs: specs.map((s) => s.slug),
       specialtyNames: specs.map((s) => s.nombre_coloquial),
     };
