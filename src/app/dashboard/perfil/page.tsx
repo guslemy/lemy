@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
@@ -20,7 +21,7 @@ import {
   TIPOS_DE_TERAPIA,
   IDIOMAS_FIJOS,
 } from "@/lib/perfil-catalogos";
-import { saveTherapistProfile } from "../actions";
+import { saveTherapistProfile, uploadVerificationDocuments } from "../actions";
 
 function initialsFrom(name: string) {
   return name
@@ -36,9 +37,9 @@ function initialsFrom(name: string) {
 export default async function EditarPerfilPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; google_reconectado?: string }>;
+  searchParams: Promise<{ error?: string; google_reconectado?: string; documentos_guardados?: string }>;
 }) {
-  const { error, google_reconectado } = await searchParams;
+  const { error, google_reconectado, documentos_guardados } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -63,11 +64,12 @@ export default async function EditarPerfilPage({
     { data: myApproaches },
     { data: postgraduateStudies },
     { data: continuingEducation },
+    { data: credentials },
   ] = await Promise.all([
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected"
+        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected, verification_status"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -85,7 +87,15 @@ export default async function EditarPerfilPage({
       .select("education_type, name, institution, year, hours")
       .eq("therapist_id", user.id)
       .order("created_at"),
+    supabase
+      .from("therapist_credentials")
+      .select("tipo, documento_url")
+      .eq("therapist_id", user.id)
+      .in("tipo", ["cedula", "identificacion", "titulo"]),
   ]);
+
+  const isVerified = therapist?.verification_status === "verified";
+  const uploadedDocTypes = new Set((credentials ?? []).map((c) => c.tipo));
 
   const selectedSpecialtyIds = new Set((mySpecialties ?? []).map((s) => s.specialty_id));
   const selectedApproachIds = new Set((myApproaches ?? []).map((a) => a.approach_id));
@@ -130,6 +140,31 @@ export default async function EditarPerfilPage({
               Esa URL ya la usa una página del sitio — elige otra para tu perfil.
             </p>
           )}
+          {(error === "documento" || error === "documento_invalido") && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              No pudimos subir uno de tus documentos. Revisa que sea un PDF o imagen válido.
+            </p>
+          )}
+          {error === "documento_grande" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Uno de tus documentos pesa demasiado (máximo 8 MB).
+            </p>
+          )}
+          {error === "documento_faltante" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Nos falta tu cédula profesional o tu identificación oficial — ambas son obligatorias.
+            </p>
+          )}
+          {error === "verificado_bloqueado" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Tu perfil ya está verificado — no puedes reemplazar tus documentos desde aquí.
+            </p>
+          )}
+          {documentos_guardados === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, mandamos tus documentos a revisión. Te avisamos por correo en cuanto los revisemos.
+            </p>
+          )}
 
           {google_reconectado === "1" && (
             <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
@@ -151,6 +186,74 @@ export default async function EditarPerfilPage({
                   calendario y el Meet automáticamente.
                 </p>
                 <GoogleCalendarConnectButton label="Conectar Google Calendar" />
+              </>
+            )}
+          </div>
+
+          <div className="signature-corner mt-6 rounded-[28px] border border-line bg-card p-7">
+            <h2 className="mb-3 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+              Documentos de verificación
+            </h2>
+            {isVerified ? (
+              <>
+                <p className="text-[0.88rem] text-forest">
+                  ✓ Tu perfil está verificado. Esta sección queda bloqueada para que tus documentos
+                  aprobados no se puedan reemplazar — si necesitas actualizar algo, escríbenos a
+                  hola@lemy.mx.
+                </p>
+                <ul className="mt-3 space-y-1 text-[0.85rem] text-[#7C877F]">
+                  <li>{uploadedDocTypes.has("cedula") ? "✓" : "—"} Cédula profesional</li>
+                  <li>{uploadedDocTypes.has("identificacion") ? "✓" : "—"} Identificación oficial</li>
+                  <li>{uploadedDocTypes.has("titulo") ? "✓" : "—"} Título profesional</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="mb-4 text-[0.88rem] text-[#42504A]">
+                  Súbelos para que el equipo de Lemy pueda revisarlos y activar el distintivo de
+                  perfil verificado. La cédula y tu identificación son obligatorias; el título es
+                  opcional. Aceptamos PDF o imagen, máximo 8 MB cada uno.
+                </p>
+                <form
+                  action={uploadVerificationDocuments}
+                  className="space-y-4"
+                  encType="multipart/form-data"
+                >
+                  <Field
+                    label="Cédula profesional"
+                    hint={uploadedDocTypes.has("cedula") ? "Ya tienes una cargada — sube otra para reemplazarla" : undefined}
+                  >
+                    <input type="file" name="doc_cedula" accept="application/pdf,image/*" className="input-lemy" />
+                  </Field>
+                  <Field
+                    label="Identificación oficial"
+                    hint={
+                      uploadedDocTypes.has("identificacion")
+                        ? "Ya tienes una cargada — sube otra para reemplazarla"
+                        : undefined
+                    }
+                  >
+                    <input
+                      type="file"
+                      name="doc_identificacion"
+                      accept="application/pdf,image/*"
+                      className="input-lemy"
+                    />
+                  </Field>
+                  <Field
+                    label="Título profesional (opcional)"
+                    hint={
+                      uploadedDocTypes.has("titulo")
+                        ? "Ya tienes uno cargado — sube otro para reemplazarlo"
+                        : undefined
+                    }
+                  >
+                    <input type="file" name="doc_titulo" accept="application/pdf,image/*" className="input-lemy" />
+                  </Field>
+                  <SubmitButton pendingText="Enviando…" variant="ghost">
+                    Enviar documentos para revisión
+                  </SubmitButton>
+                </form>
               </>
             )}
           </div>

@@ -14,6 +14,23 @@ function wrap(bodyHtml: string) {
   </div>`;
 }
 
+// Cuando el equipo de Lemy rechaza los documentos de verificación de un
+// terapeuta desde /dashboard/admin — reason es opcional (textarea libre en
+// el popup de revisión).
+export function verificationRejected(params: { name: string; reason?: string }) {
+  const { name, reason } = params;
+  return {
+    subject: "Tu verificación en Lemy necesita un ajuste",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Revisamos los documentos que subiste para verificar tu perfil en Lemy, y por ahora no pudimos aprobarlos.</p>
+      ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ""}
+      <p>Puedes volver a subirlos desde tu panel cuando quieras — solo actualiza el documento que haga falta.</p>
+      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Ir a mi perfil →</a></p>
+    `),
+  };
+}
+
 export function trialEnding(params: { name: string; daysLeft: number }) {
   const { name, daysLeft } = params;
   return {

@@ -333,3 +333,83 @@ export async function saveTherapistProfile(formData: FormData) {
   }
   redirect("/dashboard?guardado=1");
 }
+
+const MAX_DOC_BYTES = 8 * 1024 * 1024; // cédulas escaneadas pesan más que una foto de perfil
+const ALLOWED_DOC_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+// Documentos de verificación (cédula, identificación oficial, título
+// opcional) — bucket privado "therapist-documents" (ver migración 0030).
+// Acción separada de saveTherapistProfile a propósito: es un envío formal
+// para revisión, no un dato de perfil cualquiera, y una vez que el equipo
+// de Lemy aprueba la verificación esta sección se bloquea por completo (ver
+// dashboard/perfil/page.tsx) para que no puedan reemplazar documentos ya
+// aprobados sin pasar de nuevo por revisión.
+export async function uploadVerificationDocuments(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: therapist } = await supabase
+    .from("therapists")
+    .select("verification_status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Defensivo: la UI ya oculta este formulario si está verificado, pero por
+  // si acaso alguien lo manda igual (formulario viejo en caché, etc.).
+  if (therapist?.verification_status === "verified") {
+    redirect("/dashboard/perfil?error=verificado_bloqueado");
+  }
+
+  const cedula = formData.get("doc_cedula") as File | null;
+  const identificacion = formData.get("doc_identificacion") as File | null;
+  const titulo = formData.get("doc_titulo") as File | null;
+
+  if (!cedula || cedula.size === 0) redirect("/dashboard/perfil?error=documento_faltante");
+  if (!identificacion || identificacion.size === 0) {
+    redirect("/dashboard/perfil?error=documento_faltante");
+  }
+
+  const filesToValidate = [cedula, identificacion, ...(titulo && titulo.size > 0 ? [titulo] : [])];
+  for (const f of filesToValidate) {
+    if (!ALLOWED_DOC_TYPES.includes(f.type)) redirect("/dashboard/perfil?error=documento_invalido");
+    if (f.size > MAX_DOC_BYTES) redirect("/dashboard/perfil?error=documento_grande");
+  }
+
+  async function uploadDoc(file: File, tipo: string): Promise<string> {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+    const path = `${user!.id}/${tipo}.${ext}`;
+    const { error } = await supabase.storage
+      .from("therapist-documents")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (error) {
+      console.error(`Error subiendo documento de verificación (${tipo}):`, error);
+      redirect("/dashboard/perfil?error=documento");
+    }
+    return path;
+  }
+
+  const cedulaPath = await uploadDoc(cedula, "cedula");
+  const idPath = await uploadDoc(identificacion, "identificacion");
+  const tituloPath = titulo && titulo.size > 0 ? await uploadDoc(titulo, "titulo") : null;
+
+  // Reemplaza los 3 tipos fijos — borra lo anterior de este terapeuta y
+  // vuelve a insertar solo lo que sí se subió en este envío.
+  await supabase
+    .from("therapist_credentials")
+    .delete()
+    .eq("therapist_id", user.id)
+    .in("tipo", ["cedula", "identificacion", "titulo"]);
+
+  const rows = [
+    { therapist_id: user.id, tipo: "cedula", documento_url: cedulaPath },
+    { therapist_id: user.id, tipo: "identificacion", documento_url: idPath },
+    ...(tituloPath ? [{ therapist_id: user.id, tipo: "titulo", documento_url: tituloPath }] : []),
+  ];
+  await supabase.from("therapist_credentials").insert(rows);
+
+  revalidatePath("/dashboard/perfil");
+  redirect("/dashboard/perfil?documentos_guardados=1");
+}
