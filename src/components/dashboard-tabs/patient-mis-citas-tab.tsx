@@ -18,6 +18,7 @@ type AppointmentRow = {
   modality: string | null;
   meeting_link: string | null;
   location_address: string | null;
+  therapist_service: { service: { nombre: string } | null } | null;
 };
 
 type TherapistInfo = { display_name: string; slug: string };
@@ -67,13 +68,18 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
   const { data: rawAppointments } = await supabase
     .from("appointments")
     .select(
-      "id, therapist_id, scheduled_at, status, payment_status, modality, meeting_link, location_address"
+      "id, therapist_id, scheduled_at, status, payment_status, modality, meeting_link, location_address, therapist_service:therapist_services ( service:service_catalog ( nombre ) )"
     )
     .eq("patient_id", user.id)
     .neq("status", "cancelled")
     .order("scheduled_at");
 
-  const appointments = (rawAppointments ?? []) as AppointmentRow[];
+  // "as unknown as" a propósito: sin tipos generados de Supabase, el
+  // inferido del query builder para relaciones embebidas (therapist_service
+  // -> service) llega demasiado conservador (como arreglo) aunque en tiempo
+  // de ejecución PostgREST regresa un solo objeto (es una FK belongs-to, no
+  // una relación inversa) — mismo criterio que ya se usa en [slug]/page.tsx.
+  const appointments = (rawAppointments ?? []) as unknown as AppointmentRow[];
   const therapistIds = Array.from(new Set(appointments.map((a) => a.therapist_id)));
 
   const { data: rawTherapists } = therapistIds.length
@@ -160,6 +166,7 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
                       ? "Pago no completado"
                       : (STATUS_LABEL[a.status] ?? a.status)}
                     {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}
+                    {a.therapist_service?.service?.nombre && ` · ${a.therapist_service.service.nombre}`}
                   </p>
                   {a.modality === "online" && a.meeting_link && (
                     <a

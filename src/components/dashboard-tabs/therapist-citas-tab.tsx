@@ -26,6 +26,7 @@ type AppointmentRow = {
   meeting_link: string | null;
   location_address: string | null;
   cancelled_by: string | null;
+  therapist_service: { service: { nombre: string } | null } | null;
 };
 
 function ModalityTag({ modality }: { modality: string | null }) {
@@ -33,6 +34,18 @@ function ModalityTag({ modality }: { modality: string | null }) {
   return (
     <span className="ml-2 rounded-full bg-forest/[0.08] px-2.5 py-0.5 font-mono text-[0.68rem] uppercase tracking-[0.05em] text-forest">
       {modality === "online" ? "En línea" : "Presencial"}
+    </span>
+  );
+}
+
+// Solo aparece si la cita se agendó eligiendo un servicio del catálogo
+// (migración 0031) — las citas del flujo viejo (sin catálogo configurado)
+// no traen esto y no muestran nada, sin que se vea raro.
+function ServiceTag({ name }: { name: string | null }) {
+  if (!name) return null;
+  return (
+    <span className="ml-2 rounded-full bg-rose/15 px-2.5 py-0.5 font-mono text-[0.68rem] text-rose-deep">
+      {name}
     </span>
   );
 }
@@ -76,12 +89,16 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   const { data: rawAppointments } = await supabase
     .from("appointments")
     .select(
-      "id, patient_id, scheduled_at, duration_min, status, payment_status, modality, meeting_link, location_address, cancelled_by"
+      "id, patient_id, scheduled_at, duration_min, status, payment_status, modality, meeting_link, location_address, cancelled_by, therapist_service:therapist_services ( service:service_catalog ( nombre ) )"
     )
     .eq("therapist_id", user.id)
     .order("scheduled_at");
 
-  const appointments = (rawAppointments ?? []) as AppointmentRow[];
+  // "as unknown as" a propósito — ver el mismo comentario en
+  // patient-mis-citas-tab.tsx: el tipo inferido del query builder para
+  // therapist_service -> service llega como arreglo aunque en tiempo de
+  // ejecución PostgREST regresa un solo objeto.
+  const appointments = (rawAppointments ?? []) as unknown as AppointmentRow[];
   const patientIds = Array.from(new Set(appointments.map((a) => a.patient_id)));
 
   const { data: rawProfiles } = patientIds.length
@@ -174,6 +191,7 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
                       saveNotesAction={savePatientNotes}
                     />
                     <ModalityTag modality={a.modality} />
+                    <ServiceTag name={a.therapist_service?.service?.nombre ?? null} />
                   </p>
                   <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                 </div>
@@ -220,6 +238,7 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
                       saveNotesAction={savePatientNotes}
                     />
                     <ModalityTag modality={a.modality} />
+                    <ServiceTag name={a.therapist_service?.service?.nombre ?? null} />
                   </p>
                   <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                   {a.modality === "online" && a.meeting_link && (
