@@ -272,6 +272,30 @@ export async function saveTherapistProfile(formData: FormData) {
       .insert(approachIds.map((approach_id) => ({ therapist_id: user.id, approach_id })));
   }
 
+  // Catálogo de servicios con precio propio (migración 0031): catálogo fijo,
+  // el terapeuta solo marca cuáles ofrece y les pone precio + duración. Cada
+  // servicio marcado trae sus propios campos price_<id>/duration_<id> (ver
+  // TherapistServicesFields) — a diferencia de posgrado/formación continua,
+  // aquí no hace falta el patrón de arreglos paralelos porque el catálogo es
+  // fijo y acotado, así que se puede indexar por id directo. Se descarta
+  // cualquier servicio marcado sin precio válido (>0) o con una duración
+  // fuera de las 3 permitidas — defensivo, la UI ya no debería dejar pasar
+  // eso, pero el price check de la tabla (`price > 0`) tiraría la insert
+  // completa si se colara uno malo.
+  const serviceIds = formData.getAll("service_ids").map(String);
+  const serviceRows = serviceIds
+    .map((service_id) => {
+      const price = Number(formData.get(`price_${service_id}`));
+      const duration_min = Number(formData.get(`duration_${service_id}`));
+      return { therapist_id: user.id, service_id, price, duration_min };
+    })
+    .filter((r) => r.price > 0 && [30, 45, 60].includes(r.duration_min));
+
+  await supabase.from("therapist_services").delete().eq("therapist_id", user.id);
+  if (serviceRows.length) {
+    await supabase.from("therapist_services").insert(serviceRows);
+  }
+
   // Formación de posgrado y formación continua: filas repetibles, todas las
   // del mismo campo comparten `name` en el form (ver PostgraduateEducation-
   // Fields / ContinuingEducationFields), así que getAll() regresa arreglos

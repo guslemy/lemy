@@ -21,6 +21,7 @@ export async function requestAppointment(formData: FormData) {
   const scheduledAt = String(formData.get("scheduled_at") || "");
   const modality = formData.get("modality") === "presencial" ? "presencial" : "online";
   const paymentMethod = formData.get("payment_method") === "card" ? "card" : "cash";
+  const therapistServiceId = String(formData.get("therapist_service_id") || "") || null;
 
   const supabase = await createClient();
   const {
@@ -51,6 +52,7 @@ export async function requestAppointment(formData: FormData) {
       next_scheduled_at: scheduledAt,
       next_modality: modality,
       next_payment_method: paymentMethod,
+      ...(therapistServiceId ? { next_service_id: therapistServiceId } : {}),
     });
     redirect(`/completar-perfil?${params.toString()}`);
   }
@@ -63,7 +65,8 @@ export async function requestAppointment(formData: FormData) {
     therapistSlug,
     scheduledAt,
     modality,
-    paymentMethod
+    paymentMethod,
+    therapistServiceId
   );
 
   revalidatePath(`/${therapistSlug}`);

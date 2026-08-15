@@ -22,7 +22,11 @@ export async function requestAppointmentForUser(
   therapistSlug: string,
   scheduledAt: string,
   requestedModality: Modality,
-  requestedPaymentMethod: PaymentMethod = "cash"
+  requestedPaymentMethod: PaymentMethod = "cash",
+  // Servicio del catálogo elegido (migración 0031) — opcional a propósito:
+  // un terapeuta que todavía no configura su catálogo de servicios sigue
+  // reservable con el flujo viejo (price_min/session_duration_min).
+  therapistServiceId?: string | null
 ): Promise<RequestAppointmentResult> {
   const { data: therapist } = await supabase
     .from("therapists")
@@ -34,6 +38,24 @@ export async function requestAppointmentForUser(
     .maybeSingle();
 
   if (!therapist) return { ok: false, reason: "not_found" };
+
+  // Si viene un servicio, su precio y duración mandan sobre el flujo viejo —
+  // pero se revalida que de verdad sea un servicio de ESTE terapeuta (nunca
+  // confiar en un id que llega del formulario sin verificar dueño).
+  let servicePrice: number | null = null;
+  let serviceDurationMin: number | null = null;
+  if (therapistServiceId) {
+    const { data: service } = await supabase
+      .from("therapist_services")
+      .select("id, price, duration_min")
+      .eq("id", therapistServiceId)
+      .eq("therapist_id", therapist.id)
+      .maybeSingle();
+    if (service) {
+      servicePrice = service.price as number;
+      serviceDurationMin = service.duration_min as number;
+    }
+  }
 
   // Un terapeuta no puede reservar consigo mismo (con su propia cuenta de
   // paciente) — therapist.id es el mismo uuid que su fila en profiles.
@@ -60,7 +82,7 @@ export async function requestAppointmentForUser(
 
   if (clash) return { ok: false, reason: "taken" };
 
-  const price = therapist.price_min ?? therapist.price_max ?? 0;
+  const price = servicePrice ?? therapist.price_min ?? therapist.price_max ?? 0;
 
   // El terapeuta elige en /dashboard/pagos qué métodos acepta
   // (accepts_card_payment / accepts_cash_payment), pero "acepta tarjeta" es
@@ -96,11 +118,12 @@ export async function requestAppointmentForUser(
       therapist_id: therapist.id,
       patient_id: userId,
       scheduled_at: scheduledAt,
-      duration_min: therapist.session_duration_min ?? 50,
+      duration_min: serviceDurationMin ?? therapist.session_duration_min ?? 50,
       modality,
       status: "pending_payment",
       payment_status: needsPayment ? "pending" : "efectivo",
       price,
+      therapist_service_id: servicePrice !== null ? therapistServiceId : null,
     })
     .select("id")
     .single();

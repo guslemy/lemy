@@ -49,3 +49,9 @@ export const TIPOS_FORMACION_CONTINUA = [
   "Congreso",
   "Supervisión clínica",
 ] as const;
+
+// Duraciones que un terapeuta puede asignarle a cada servicio de su
+// catálogo (migración 0031). Limitado a 3 opciones a propósito — decisión
+// de Gustavo tras platicarlo con el equipo de terapeutas, para no complicar
+// la lógica de disponibilidad (src/lib/availability.ts) ni la UI.
+export const DURACIONES_SERVICIO = [30, 45, 60] as const;

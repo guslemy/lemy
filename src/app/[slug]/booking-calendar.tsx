@@ -12,6 +12,15 @@ import { useEffect, useState } from "react";
 // generara una solicitud de la nada. Ahora el click solo abre un popup de
 // confirmación con los datos de la cita (fecha, modalidad, método de pago);
 // la solicitud de verdad solo se manda si la persona le da "Continuar" ahí.
+//
+// Servicios con precio propio (migración 0031, 2026-08-14): si el terapeuta
+// configuró su catálogo, el paciente elige PRIMERO qué servicio quiere —
+// eso define la duración (30/45/60 min) y con eso se sabe qué lista de
+// horarios mostrar (daysByDuration ya viene calculada por duración desde el
+// servidor, ver [slug]/page.tsx — evita tener que ir y volver al servidor
+// cada vez que cambian de servicio, ya que solo hay 3 duraciones posibles).
+// Si el terapeuta NO tiene catálogo configurado todavía, se salta ese paso y
+// se usa el flujo de siempre (legacyDurationMin / priceLabel genérico).
 
 export type DaySlots = {
   date: string; // YYYY-MM-DD
@@ -19,11 +28,20 @@ export type DaySlots = {
   slots: { startTime: string; scheduledAtUtc: string }[];
 };
 
+export type BookingService = {
+  id: string;
+  nombre: string;
+  price: number;
+  durationMin: number;
+};
+
 type Modality = "online" | "presencial";
 type PaymentMethod = "card" | "cash";
 
 export function BookingCalendar({
-  days,
+  daysByDuration,
+  legacyDurationMin,
+  services,
   therapistSlug,
   therapistName,
   priceLabel,
@@ -33,7 +51,9 @@ export function BookingCalendar({
   cashAvailable,
   requestAppointment,
 }: {
-  days: DaySlots[];
+  daysByDuration: Record<number, DaySlots[]>;
+  legacyDurationMin: number;
+  services: BookingService[];
   therapistSlug: string;
   therapistName: string;
   priceLabel: string;
@@ -43,7 +63,19 @@ export function BookingCalendar({
   cashAvailable: boolean;
   requestAppointment: (formData: FormData) => void;
 }) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(days[0]?.date ?? null);
+  const hasServices = services.length > 0;
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    hasServices ? null : "legacy"
+  );
+  const selectedService = services.find((s) => s.id === selectedServiceId) ?? null;
+  const activeDurationMin = selectedService?.durationMin ?? legacyDurationMin;
+  const days = hasServices
+    ? selectedService
+      ? (daysByDuration[activeDurationMin] ?? [])
+      : []
+    : (daysByDuration[legacyDurationMin] ?? []);
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modality, setModality] = useState<Modality>(onlineAvailable ? "online" : "presencial");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     cardAvailable ? "card" : "cash"
@@ -58,19 +90,26 @@ export function BookingCalendar({
   // procesando.
   const [submitting, setSubmitting] = useState(false);
 
+  // Cambiar de servicio resetea la fecha elegida — los horarios disponibles
+  // dependen de la duración, así que la selección anterior puede ya no
+  // aplicar (o el día ni siquiera tener horarios de esa duración).
+  useEffect(() => {
+    setSelectedDate(days[0]?.date ?? null);
+  }, [selectedServiceId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Si la reserva falla (horario ocupado, error, etc.), requestAppointment
   // redirige de vuelta a esta misma ruta (/[slug], solo cambian los query
   // params) — Next.js reutiliza esta instancia del componente en vez de
   // desmontarla, así que submitting/pendingSlot se quedaban en true/abierto
-  // para siempre. `days` llega recalculado del servidor en cada navegación
-  // (nueva referencia aunque el contenido sea igual), así que sirve como
-  // señal de "ya se resolvió la navegación, lo que sea que haya pasado"
-  // para resetear el estado. En el caso de éxito no importa: la página se
-  // va a otra ruta y este componente se desmonta por completo.
+  // para siempre. daysByDuration llega recalculado del servidor en cada
+  // navegación (nueva referencia aunque el contenido sea igual), así que
+  // sirve como señal de "ya se resolvió la navegación, lo que sea que haya
+  // pasado" para resetear el estado. En el caso de éxito no importa: la
+  // página se va a otra ruta y este componente se desmonta por completo.
   useEffect(() => {
     setSubmitting(false);
     setPendingSlot(null);
-  }, [days]);
+  }, [daysByDuration]);
 
   const selectedDay = days.find((d) => d.date === selectedDate) ?? null;
 
@@ -117,50 +156,88 @@ export function BookingCalendar({
     </label>
   );
 
+  const confirmPriceLabel = selectedService
+    ? `$${Math.round(selectedService.price)} MXN`
+    : priceLabel;
+
   return (
     <div>
-      <p className="mb-3 text-[0.88rem] text-[#42504A]">¿Cómo prefieres tu sesión?</p>
-      <div className="mb-6 flex flex-wrap gap-2.5">
-        {modalityOption("online", "En línea", onlineAvailable)}
-        {modalityOption("presencial", "Presencial", inPersonAvailable)}
-      </div>
-
-      <p className="mb-3 text-[0.88rem] text-[#42504A]">Primero elige el día:</p>
-      <div className="flex flex-wrap gap-2.5">
-        {days.map((d) => (
-          <button
-            key={d.date}
-            type="button"
-            onClick={() => setSelectedDate(d.date)}
-            className={`rounded-full border px-4 py-2 font-mono text-[0.82rem] transition-all duration-200 active:scale-95 ${
-              selectedDate === d.date
-                ? "border-forest bg-forest text-sage-white"
-                : "border-line bg-sage-white text-forest hover:border-forest"
-            }`}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-
-      {selectedDay && (
-        <div key={selectedDay.date} className="animate-step-in mt-6">
-          <p className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-[#5A665F]">
-            Horarios para el {selectedDay.label}
-          </p>
+      {hasServices && (
+        <div className="mb-6">
+          <p className="mb-3 text-[0.88rem] text-[#42504A]">Primero elige el servicio:</p>
           <div className="flex flex-wrap gap-2.5">
-            {selectedDay.slots.map((slot) => (
+            {services.map((s) => (
               <button
-                key={slot.scheduledAtUtc}
+                key={s.id}
                 type="button"
-                onClick={() => setPendingSlot(slot)}
-                className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest hover:text-sage-white"
+                onClick={() => setSelectedServiceId(s.id)}
+                className={`rounded-full border px-4 py-2 font-mono text-[0.82rem] transition-all duration-200 active:scale-95 ${
+                  selectedServiceId === s.id
+                    ? "border-forest bg-forest text-sage-white"
+                    : "border-line bg-sage-white text-forest hover:border-forest"
+                }`}
               >
-                {slot.startTime}
+                {s.nombre} · ${Math.round(s.price)} MXN · {s.durationMin} min
               </button>
             ))}
           </div>
         </div>
+      )}
+
+      {(!hasServices || selectedService) && (
+        <>
+          <p className="mb-3 text-[0.88rem] text-[#42504A]">¿Cómo prefieres tu sesión?</p>
+          <div className="mb-6 flex flex-wrap gap-2.5">
+            {modalityOption("online", "En línea", onlineAvailable)}
+            {modalityOption("presencial", "Presencial", inPersonAvailable)}
+          </div>
+
+          {days.length === 0 ? (
+            <p className="text-[0.9rem] text-[#8B978F]">
+              No hay horarios disponibles para esta duración por ahora.
+            </p>
+          ) : (
+            <>
+              <p className="mb-3 text-[0.88rem] text-[#42504A]">Primero elige el día:</p>
+              <div className="flex flex-wrap gap-2.5">
+                {days.map((d) => (
+                  <button
+                    key={d.date}
+                    type="button"
+                    onClick={() => setSelectedDate(d.date)}
+                    className={`rounded-full border px-4 py-2 font-mono text-[0.82rem] transition-all duration-200 active:scale-95 ${
+                      selectedDate === d.date
+                        ? "border-forest bg-forest text-sage-white"
+                        : "border-line bg-sage-white text-forest hover:border-forest"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {selectedDay && (
+            <div key={selectedDay.date} className="animate-step-in mt-6">
+              <p className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-[#5A665F]">
+                Horarios para el {selectedDay.label}
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {selectedDay.slots.map((slot) => (
+                  <button
+                    key={slot.scheduledAtUtc}
+                    type="button"
+                    onClick={() => setPendingSlot(slot)}
+                    className="rounded-full border border-line bg-sage-white px-4 py-2 font-mono text-[0.82rem] text-forest transition-all duration-200 active:scale-95 hover:border-forest hover:bg-forest hover:text-sage-white"
+                  >
+                    {slot.startTime}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {pendingSlot && (
@@ -183,12 +260,17 @@ export function BookingCalendar({
               <p>
                 <span className="font-medium">Con:</span> {therapistName}
               </p>
+              {selectedService && (
+                <p>
+                  <span className="font-medium">Servicio:</span> {selectedService.nombre}
+                </p>
+              )}
               <p>
                 <span className="font-medium">Modalidad:</span>{" "}
                 {modality === "online" ? "En línea" : "Presencial"}
               </p>
               <p>
-                <span className="font-medium">Tarifa:</span> {priceLabel}
+                <span className="font-medium">Tarifa:</span> {confirmPriceLabel}
               </p>
             </div>
 
@@ -221,6 +303,11 @@ export function BookingCalendar({
               <input type="hidden" name="therapist_slug" value={therapistSlug} />
               <input type="hidden" name="scheduled_at" value={pendingSlot.scheduledAtUtc} />
               <input type="hidden" name="modality" value={modality} />
+              <input
+                type="hidden"
+                name="therapist_service_id"
+                value={selectedService ? selectedService.id : ""}
+              />
               <input
                 type="hidden"
                 name="payment_method"

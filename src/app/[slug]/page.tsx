@@ -61,6 +61,7 @@ type TherapistDetail = {
   is_in_person_available: boolean;
   price_min: number | null;
   price_max: number | null;
+  session_duration_min: number | null;
   verification_status: string;
   created_at: string;
   stripe_connect_charges_enabled: boolean;
@@ -74,6 +75,14 @@ type TherapistDetail = {
   therapist_approaches: { approach: CatalogItem | null }[] | null;
   therapist_postgraduate_studies: PostgraduateStudy[] | null;
   therapist_continuing_education: ContinuingEducation[] | null;
+  therapist_services: TherapistServiceRow[] | null;
+};
+
+type TherapistServiceRow = {
+  id: string;
+  price: number;
+  duration_min: number;
+  service: { nombre: string; descripcion: string | null } | null;
 };
 
 type PostgraduateStudy = {
@@ -99,13 +108,15 @@ async function getTherapist(slug: string) {
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
        therapy_types, profession,
-       is_online_available, is_in_person_available, price_min, price_max, verification_status, created_at,
+       is_online_available, is_in_person_available, price_min, price_max, session_duration_min,
+       verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) ),
        therapist_postgraduate_studies ( degree_type, program_name, institution, completion_year, license_number ),
-       therapist_continuing_education ( education_type, name, institution, year, hours )`
+       therapist_continuing_education ( education_type, name, institution, year, hours ),
+       therapist_services ( id, price, duration_min, service:service_catalog ( nombre, descripcion ) )`
     )
     .eq("slug", slug)
     .eq("is_published", true)
@@ -168,18 +179,52 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   if (!therapist) notFound();
 
   const supabase = await createClient();
-  const slots = await getAvailableSlots(supabase, therapist.id);
-  const slotsByDate = new Map<string, typeof slots>();
-  for (const slot of slots) {
-    const list = slotsByDate.get(slot.date) ?? [];
-    list.push(slot);
-    slotsByDate.set(slot.date, list);
+
+  // Servicios del catálogo que este terapeuta configuró con su propio
+  // precio/duración (migración 0031). Sin catálogo configurado, se usa el
+  // flujo viejo de una sola duración (session_duration_min).
+  const services = (therapist.therapist_services ?? [])
+    .filter((s): s is TherapistServiceRow & { service: { nombre: string; descripcion: string | null } } =>
+      Boolean(s.service)
+    )
+    .map((s) => ({
+      id: s.id,
+      nombre: s.service.nombre,
+      descripcion: s.service.descripcion,
+      price: s.price,
+      durationMin: s.duration_min,
+    }));
+
+  const legacyDurationMin = therapist.session_duration_min ?? 50;
+  const durationsToLoad = services.length
+    ? Array.from(new Set(services.map((s) => s.durationMin)))
+    : [legacyDurationMin];
+
+  // Solo hay 3 duraciones posibles (30/45/60), así que precalcular los
+  // horarios de cada una que el terapeuta realmente usa es barato — evita
+  // tener que ir y volver al servidor cada vez que el paciente cambia de
+  // servicio en BookingCalendar.
+  function toDaySlots(slots: Awaited<ReturnType<typeof getAvailableSlots>>): DaySlots[] {
+    const slotsByDate = new Map<string, typeof slots>();
+    for (const slot of slots) {
+      const list = slotsByDate.get(slot.date) ?? [];
+      list.push(slot);
+      slotsByDate.set(slot.date, list);
+    }
+    return Array.from(slotsByDate.entries()).map(([date, daySlots]) => ({
+      date,
+      label: formatSlotDate(date),
+      slots: daySlots.map((s) => ({ startTime: s.startTime, scheduledAtUtc: s.scheduledAtUtc })),
+    }));
   }
-  const days: DaySlots[] = Array.from(slotsByDate.entries()).map(([date, daySlots]) => ({
-    date,
-    label: formatSlotDate(date),
-    slots: daySlots.map((s) => ({ startTime: s.startTime, scheduledAtUtc: s.scheduledAtUtc })),
-  }));
+
+  const daysByDuration: Record<number, DaySlots[]> = {};
+  await Promise.all(
+    durationsToLoad.map(async (duration) => {
+      const slots = await getAvailableSlots(supabase, therapist.id, duration);
+      daysByDuration[duration] = toDaySlots(slots);
+    })
+  );
 
   // "Acepta tarjeta" no basta con que el terapeuta lo haya marcado en
   // /dashboard/pagos — hasta que Stripe Connect está de verdad activo no se
@@ -468,6 +513,32 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     </>
                   )}
 
+                  {services.length > 0 && (
+                    <>
+                      <h4 className="mb-2.5 mt-6.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                        Servicios y precios
+                      </h4>
+                      <div className="space-y-2">
+                        {services.map((s) => (
+                          <details
+                            key={s.id}
+                            className="rounded-2xl border border-line px-4 py-3 [&_summary]:cursor-pointer"
+                          >
+                            <summary className="flex items-center justify-between gap-3 text-[0.9rem] text-forest">
+                              <span className="font-medium">{s.nombre}</span>
+                              <span className="font-mono text-[0.8rem] text-[#5A665F]">
+                                ${Math.round(s.price)} MXN · {s.durationMin} min
+                              </span>
+                            </summary>
+                            {s.descripcion && (
+                              <p className="mt-2 text-[0.85rem] text-[#7C877F]">{s.descripcion}</p>
+                            )}
+                          </details>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
                   {therapist.therapist_postgraduate_studies &&
                     therapist.therapist_postgraduate_studies.length > 0 && (
                       <>
@@ -548,7 +619,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     {therapist.display_name.split(" ")[0]} tiene la agenda llena por ahora — no está
                     aceptando citas nuevas en este momento.
                   </p>
-                ) : days.length === 0 ? (
+                ) : Object.values(daysByDuration).every((d) => d.length === 0) ? (
                   <p className="mt-5 text-[0.92rem] text-[#42504A]">
                     {therapist.display_name.split(" ")[0]} todavía no tiene horarios disponibles
                     cargados. Vuelve a revisar en unos días.
@@ -562,7 +633,14 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </p>
                     )}
                     <BookingCalendar
-                      days={days}
+                      daysByDuration={daysByDuration}
+                      legacyDurationMin={legacyDurationMin}
+                      services={services.map(({ id, nombre, price, durationMin }) => ({
+                        id,
+                        nombre,
+                        price,
+                        durationMin,
+                      }))}
                       therapistSlug={therapist.slug}
                       therapistName={therapist.display_name}
                       priceLabel={priceLabel(therapist.price_min, therapist.price_max)}

@@ -10,6 +10,7 @@ import { PhotoUploadField } from "@/components/photo-upload-field";
 import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
 import { PostgraduateEducationFields } from "@/components/postgraduate-education-fields";
 import { ContinuingEducationFields } from "@/components/continuing-education-fields";
+import { TherapistServicesFields } from "@/components/therapist-services-fields";
 import { ensureTherapistShell } from "@/lib/supabase/ensure-therapist";
 import {
   GENEROS,
@@ -67,6 +68,8 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
     { data: postgraduateStudies },
     { data: continuingEducation },
     { data: credentials },
+    { data: serviceCatalog },
+    { data: myServices },
   ] = await Promise.all([
     supabase
       .from("therapists")
@@ -94,6 +97,11 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
       .select("tipo, documento_url")
       .eq("therapist_id", user.id)
       .in("tipo", ["cedula", "identificacion", "titulo"]),
+    supabase.from("service_catalog").select("id, nombre, descripcion").order("orden"),
+    supabase
+      .from("therapist_services")
+      .select("service_id, price, duration_min")
+      .eq("therapist_id", user.id),
   ]);
 
   const isVerified = therapist?.verification_status === "verified";
@@ -398,6 +406,30 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
               />
             </Field>
           </div>
+        </div>
+
+        <div className="signature-corner rounded-[28px] border border-line bg-card p-7">
+          <h2 className="mb-5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+            Servicios y precios
+          </h2>
+          <p className="mb-4 text-[0.85rem] text-[#7C877F]">
+            Elige de la lista los servicios que ofreces y ponles tu propio precio y duración. Lo que
+            no marques no se publica. Tu &ldquo;Tarifa mínima/máxima&rdquo; de arriba sigue siendo lo
+            que se ve en tu tarjeta del buscador — esto es el detalle que ve quien ya entró a tu
+            perfil.
+          </p>
+          <TherapistServicesFields
+            catalog={(serviceCatalog ?? []).map((s) => ({
+              id: s.id,
+              nombre: s.nombre,
+              descripcion: s.descripcion,
+            }))}
+            initialSelections={(myServices ?? []).map((s) => ({
+              serviceId: s.service_id,
+              price: s.price,
+              durationMin: s.duration_min,
+            }))}
+          />
         </div>
 
         <div className="signature-corner rounded-[28px] border border-line bg-card p-7">

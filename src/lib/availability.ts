@@ -3,7 +3,8 @@ import { getBusyRanges } from "@/lib/google-freebusy";
 
 // Calcula horarios reales disponibles para reservar, a partir de los
 // bloques recurrentes semanales del terapeuta (availability_slots),
-// partidos en sesiones de 50 min, excluyendo lo que ya está agendado.
+// partidos en sesiones de la duración indicada (o la del terapeuta por
+// default), excluyendo lo que ya está agendado o bloqueado.
 //
 // Nota sobre zona horaria: Oaxaca usa siempre UTC-6 (México adoptó horario
 // estándar permanente desde 2022, sin horario de verano). Por eso el offset
@@ -66,7 +67,13 @@ function maxWindowDays(amount: number | undefined, unit: string | undefined): nu
 
 export async function getAvailableSlots(
   supabase: SupabaseClient,
-  therapistId: string
+  therapistId: string,
+  // Duración explícita de la sesión a reservar — la manda el llamador
+  // cuando el paciente ya eligió un servicio del catálogo (migración 0031,
+  // servicios con duración propia entre 30/45/60 min). Si no se manda (flujo
+  // viejo, terapeuta sin catálogo de servicios configurado todavía), se usa
+  // el session_duration_min único de siempre.
+  requestedDurationMin?: number
 ): Promise<AvailableSlot[]> {
   // Primero necesitamos saber la ventana máxima del terapeuta para armar el
   // rango de búsqueda — por eso esta consulta va antes del Promise.all grande.
@@ -96,7 +103,7 @@ export async function getAvailableSlots(
         .eq("is_blocked", false),
       supabase
         .from("appointments")
-        .select("scheduled_at")
+        .select("scheduled_at, duration_min")
         .eq("therapist_id", therapistId)
         .neq("status", "cancelled")
         .gte("scheduled_at", rangeStart.toISOString())
@@ -115,7 +122,18 @@ export async function getAvailableSlots(
 
   const oaxacaNow = oaxacaNowAsUtcFields();
 
-  const bookedSet = new Set((rawBooked ?? []).map((a) => new Date(a.scheduled_at as string).toISOString()));
+  // Traslape de rango, no coincidencia exacta de hora de inicio — antes
+  // bastaba comparar el instante exacto porque todas las sesiones duraban
+  // lo mismo (una sola cuadrícula). Con el catálogo de servicios (migración
+  // 0031) un terapeuta puede tener sesiones de 30/45/60 min mezcladas en su
+  // calendario, así que una candidata de 30 min podría empezar a la mitad de
+  // una cita de 60 min ya confirmada sin coincidir en el instante exacto —
+  // hay que revisar traslape real, igual que ya se hacía con blockedRanges.
+  const bookedRanges = (rawBooked ?? []).map((a) => {
+    const startMs = new Date(a.scheduled_at as string).getTime();
+    const durationMin = (a.duration_min as number | null) ?? DEFAULT_SESSION_DURATION_MIN;
+    return { startMs, endMs: startMs + durationMin * 60 * 1000 };
+  });
 
   const earliestBookableMs =
     Date.now() +
@@ -126,7 +144,10 @@ export async function getAvailableSlots(
       60 *
       1000;
 
-  const sessionDurationMin = (therapistRow?.session_duration_min as number | undefined) ?? DEFAULT_SESSION_DURATION_MIN;
+  const sessionDurationMin =
+    requestedDurationMin ??
+    (therapistRow?.session_duration_min as number | undefined) ??
+    DEFAULT_SESSION_DURATION_MIN;
   const bufferMin = (therapistRow?.buffer_min as number | undefined) ?? DEFAULT_BUFFER_MIN;
   // El "paso" entre inicios de sesión consecutivos incluye el descanso que
   // pidió el terapeuta — la sesión en sí sigue durando sessionDurationMin,
@@ -167,9 +188,11 @@ export async function getAvailableSlots(
         if (slotStartMs < earliestBookableMs) continue;
 
         const iso = scheduledAtUtc.toISOString();
-        if (bookedSet.has(iso)) continue;
-
         const slotEndMs = slotStartMs + sessionDurationMin * 60 * 1000;
+
+        const isTaken = bookedRanges.some((b) => slotStartMs < b.endMs && slotEndMs > b.startMs);
+        if (isTaken) continue;
+
         const isBlocked = blockedRanges.some((b) => slotStartMs < b.endMs && slotEndMs > b.startMs);
         if (isBlocked) continue;
 

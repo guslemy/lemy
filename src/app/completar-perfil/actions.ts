@@ -26,6 +26,7 @@ export async function saveProfileAndContinue(formData: FormData) {
   const nextScheduledAt = String(formData.get("next_scheduled_at") || "");
   const nextModality = formData.get("next_modality") === "presencial" ? "presencial" : "online";
   const nextPaymentMethod = formData.get("next_payment_method") === "card" ? "card" : "cash";
+  const nextServiceId = String(formData.get("next_service_id") || "") || null;
 
   if (!isValidName(fullName) || !isValidPhone(phone)) {
     const params = new URLSearchParams({
@@ -33,6 +34,7 @@ export async function saveProfileAndContinue(formData: FormData) {
       ...(nextSlug ? { next_slug: nextSlug } : {}),
       ...(nextScheduledAt ? { next_scheduled_at: nextScheduledAt } : {}),
       ...(nextSlug ? { next_modality: nextModality } : {}),
+      ...(nextServiceId ? { next_service_id: nextServiceId } : {}),
     });
     redirect(`/completar-perfil?${params.toString()}`);
   }
@@ -47,7 +49,8 @@ export async function saveProfileAndContinue(formData: FormData) {
       nextSlug,
       nextScheduledAt,
       nextModality,
-      nextPaymentMethod
+      nextPaymentMethod,
+      nextServiceId
     );
     revalidatePath(`/${nextSlug}`);
     revalidatePath("/dashboard");
