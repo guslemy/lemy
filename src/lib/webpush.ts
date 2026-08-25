@@ -33,6 +33,18 @@ export async function sendPushToUser(
   ensureConfigured();
   if (!configured) return { sent: 0 };
 
+  // Interruptor a nivel cuenta (ver 0033_push_enabled_preference.sql) — si
+  // la persona lo apagó desde /dashboard, no mandamos nada sin importar
+  // cuántos dispositivos tenga suscritos. Default true si el perfil no
+  // existe todavía por alguna razón, para no romper el comportamiento de
+  // antes de este campo.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("push_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile && profile.push_enabled === false) return { sent: 0 };
+
   const { data: subs } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")

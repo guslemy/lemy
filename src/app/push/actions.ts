@@ -21,3 +21,24 @@ export async function savePushSubscription(sub: { endpoint: string; p256dh: stri
 
   return { ok: !error };
 }
+
+// Interruptor de notificaciones a nivel cuenta (no por dispositivo) — ver
+// 0033_push_enabled_preference.sql. Independiente de si el navegador ya
+// tiene permiso concedido o hay filas en push_subscriptions: esto solo
+// decide si sendPushToUser() manda algo o no, sin tocar las suscripciones
+// en sí (así que apagar y volver a prender no obliga a re-suscribirse en
+// cada dispositivo).
+export async function setPushEnabled(enabled: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ push_enabled: enabled })
+    .eq("id", user.id);
+
+  return { ok: !error };
+}

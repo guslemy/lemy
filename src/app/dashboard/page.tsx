@@ -11,6 +11,7 @@ import { TherapistCitasTab } from "@/components/dashboard-tabs/therapist-citas-t
 import { TherapistSuscripcionTab } from "@/components/dashboard-tabs/therapist-suscripcion-tab";
 import { TherapistPagosTab } from "@/components/dashboard-tabs/therapist-pagos-tab";
 import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-citas-tab";
+import { NotificationsToggle } from "@/components/notifications-toggle";
 import { becomeTherapist } from "./actions";
 
 // Bifurca por rol. Admin va a /dashboard/admin (su propio panel con
@@ -35,7 +36,7 @@ export default async function DashboardPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, push_enabled")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -113,17 +114,27 @@ export default async function DashboardPage({
               </h1>
             </div>
 
-            {/* Visible siempre, sin importar la pestaña activa (vive fuera de
-                PanelTabs) — antes el único link a esto estaba hasta abajo del
-                formulario de "Editar perfil", enterrado tras un scroll largo.
-                Solo se muestra si el perfil ya está publicado: antes de eso
-                la página /[slug] ni siquiera existe (getTherapist filtra por
-                is_published), así que el link rompería. */}
-            {isTherapist && therapist?.slug && therapist?.is_published && (
-              <Button href={`/${therapist.slug}`} variant="ghost" className="shrink-0">
-                Ver mi perfil público →
-              </Button>
-            )}
+            {/* Visible siempre, sin importar la pestaña activa ni el rol (vive
+                fuera de PanelTabs) — mismo criterio que el botón de "Ver mi
+                perfil público" de abajo: es un ajuste de cuenta, no algo
+                atado a una sección en particular. Aplica a todos los
+                dispositivos de una vez (profiles.push_enabled), no solo a
+                este navegador — ver notifications-toggle.tsx. */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <NotificationsToggle initialEnabled={profile?.push_enabled ?? true} />
+
+              {/* Visible siempre, sin importar la pestaña activa (vive fuera de
+                  PanelTabs) — antes el único link a esto estaba hasta abajo del
+                  formulario de "Editar perfil", enterrado tras un scroll largo.
+                  Solo se muestra si el perfil ya está publicado: antes de eso
+                  la página /[slug] ni siquiera existe (getTherapist filtra por
+                  is_published), así que el link rompería. */}
+              {isTherapist && therapist?.slug && therapist?.is_published && (
+                <Button href={`/${therapist.slug}`} variant="ghost" className="shrink-0">
+                  Ver mi perfil público →
+                </Button>
+              )}
+            </div>
           </div>
 
           {sinPlan && (
