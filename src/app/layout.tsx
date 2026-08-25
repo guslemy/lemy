@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { PageTransition } from "@/components/page-transition";
 import { HashScrollFix } from "@/components/hash-scroll-fix";
+import { AddToHomeScreenPrompt } from "@/components/add-to-home-screen-prompt";
 import "./globals.css";
 
 // Nota: las fuentes se cargan con <link> en vez de next/font/google —
@@ -21,6 +22,18 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_MX",
   },
+  // Sin esto, Safari abre la app instalada con la barra de navegador
+  // visible y el título genérico de la pestaña en vez del ícono/nombre de
+  // Lemy en el multitarea — parte del mismo cambio que manifest.ts.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Lemy",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1e3a2e",
 };
 
 const organizationJsonLd = {
@@ -59,6 +72,7 @@ export default function RootLayout({
         />
         <HashScrollFix />
         <PageTransition>{children}</PageTransition>
+        <AddToHomeScreenPrompt />
       </body>
     </html>
   );
