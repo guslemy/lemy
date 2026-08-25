@@ -74,7 +74,7 @@ export function NotificationsToggles({
   return (
     <>
       <NotificationToggle
-        label="Notificaciones push"
+        label="Avisos instantáneos"
         icon={<BellIcon />}
         initialEnabled={initialPushEnabled}
         action={setPushEnabled}

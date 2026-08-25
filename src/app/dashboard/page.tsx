@@ -12,6 +12,7 @@ import { TherapistSuscripcionTab } from "@/components/dashboard-tabs/therapist-s
 import { TherapistPagosTab } from "@/components/dashboard-tabs/therapist-pagos-tab";
 import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-citas-tab";
 import { NotificationsToggles } from "@/components/notifications-toggle";
+import { InstallAppButton } from "@/components/install-app-button";
 import { becomeTherapist } from "./actions";
 
 // Bifurca por rol. Admin va a /dashboard/admin (su propio panel con
@@ -121,6 +122,7 @@ export default async function DashboardPage({
                 dispositivos de una vez (profiles.push_enabled), no solo a
                 este navegador — ver notifications-toggle.tsx. */}
             <div className="flex flex-wrap items-center gap-2.5">
+              <InstallAppButton />
               <NotificationsToggles
                 initialPushEnabled={profile?.push_enabled ?? true}
                 initialEmailWhatsappEnabled={profile?.email_whatsapp_enabled ?? true}
