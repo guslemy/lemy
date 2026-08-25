@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { StarRatingInput } from "@/components/star-rating-input";
-import { submitReview } from "./actions";
+import { submitReview, signOutAndRetry } from "./actions";
 
 // Página a la que llega el paciente desde el correo "¿Cómo te fue con
 // {terapeuta}?" (ver notifications/engine.ts, disparo review_request).
@@ -32,7 +32,38 @@ export default async function ResenaPage({
     .eq("patient_id", user.id)
     .maybeSingle();
 
-  if (!appointment) notFound();
+  // No es necesariamente que la cita no exista — lo más común es que el
+  // paciente esté logueado con una cuenta distinta a la que usó para
+  // agendar (ej. abrió el correo en otro navegador donde ya tenía sesión
+  // con otro correo). Antes esto tiraba un 404 genérico y confuso; ahora
+  // se explica qué pasó y se ofrece cambiar de cuenta ahí mismo.
+  if (!appointment) {
+    return (
+      <>
+        <SiteHeader />
+        <main className="px-6 py-16 sm:px-8 md:py-20">
+          <div className="mx-auto max-w-[560px]">
+            <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
+              Tu opinión
+            </p>
+            <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
+              Esta cuenta no es la que agendó la sesión
+            </h1>
+            <p className="mt-3 text-[0.95rem] text-[#3E4B44]">
+              Para dejar tu reseña, entra con el correo que usaste para agendar tu sesión con este
+              terapeuta.
+            </p>
+            <form action={signOutAndRetry.bind(null, appointmentId)} className="mt-7">
+              <Button type="submit" variant="primary">
+                Cerrar sesión y entrar con la otra cuenta
+              </Button>
+            </form>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
 
   const { data: therapist } = await supabase
     .from("therapists")
@@ -102,7 +133,7 @@ export default async function ResenaPage({
                   name="comment"
                   rows={4}
                   maxLength={800}
-                  placeholder={`¿Qué destacarías de tu experiencia con ${therapistFirstName}? (opcional)`}
+                  placeholder={`¿Qué destacarías de tu experiencia con ${therapistFirstName}?`}
                   className="mt-5 w-full rounded-2xl border border-line bg-card p-4 text-[0.9rem] text-forest placeholder:text-[#8B978F] focus:outline-none focus:ring-2 focus:ring-forest/30"
                 />
                 <Button type="submit" variant="primary" className="mt-5">

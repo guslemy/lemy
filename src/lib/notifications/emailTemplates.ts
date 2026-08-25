@@ -317,6 +317,29 @@ export function reviewRequest(params: { name: string; therapistName: string; rev
   };
 }
 
+// Al instante, cuando un paciente deja una reseña (ver
+// /resena/[appointmentId]/actions.ts). No se manda si ya existía una
+// reseña para esa cita (solo se dispara una vez, en la creación).
+export function reviewReceived(params: {
+  therapistName: string;
+  rating: number;
+  comment: string | null;
+  profileUrl: string;
+}) {
+  const { therapistName, rating, comment, profileUrl } = params;
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+  return {
+    subject: "Recibiste una nueva reseña en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <p>Un paciente acaba de dejarte una reseña:</p>
+      <p style="font-size: 20px; letter-spacing: 2px; color: #B5654F;">${stars}</p>
+      ${comment ? `<p style="font-style: italic; color: #3E4B44;">&quot;${comment}&quot;</p>` : ""}
+      <p><a href="${profileUrl}" style="color: #2F5233;">Ver mi perfil público →</a></p>
+    `),
+  };
+}
+
 export function appointmentReminder(params: {
   name: string;
   otherPartyName: string;

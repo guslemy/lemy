@@ -386,11 +386,9 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </p>
                     </div>
                     <div>
-                      <p className="font-display text-[1.15rem] text-forest">
-                        {reviewsCount > 0 ? `${avgRating.toFixed(1)} ★` : "0"}
-                      </p>
+                      <p className="font-display text-[1.15rem] text-forest">{reviewsCount}</p>
                       <p className="font-mono text-[0.65rem] uppercase tracking-[0.06em] text-[#8B978F]">
-                        {reviewsCount > 0 ? `${reviewsCount} reseña${reviewsCount === 1 ? "" : "s"}` : "Reviews"}
+                        Reseña{reviewsCount === 1 ? "" : "s"}
                       </p>
                     </div>
                     <div>
@@ -433,6 +431,43 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
             <ScrollReveal className="mt-8">
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
+                  {reviewsCount > 0 && (
+                    <div className="mb-7">
+                      <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                        Reseñas de pacientes
+                      </h4>
+                      <div className="flex items-center gap-3.5">
+                        <p className="font-display text-[2.1rem] leading-none text-forest">
+                          {avgRating.toFixed(1)}
+                        </p>
+                        <div>
+                          <p className="text-[1.05rem] leading-none text-rose-deep">
+                            {"★".repeat(Math.round(avgRating))}
+                            <span className="text-line">{"★".repeat(5 - Math.round(avgRating))}</span>
+                          </p>
+                          <p className="mt-1 text-[0.78rem] text-[#8B978F]">
+                            {reviewsCount} reseña{reviewsCount === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                      </div>
+                      {recentReviews.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          {recentReviews.map((r, i) => (
+                            <div key={i} className="rounded-2xl border border-line px-4 py-3">
+                              <p className="text-[0.8rem] text-rose-deep">
+                                {"★".repeat(r.rating as number)}
+                                <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
+                              </p>
+                              <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">
+                                &quot;{r.comment}&quot;
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                     Datos generales
                   </h4>
@@ -606,24 +641,6 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </>
                     )}
 
-                  {recentReviews.length > 0 && (
-                    <>
-                      <h4 className="mb-2.5 mt-6.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
-                        Reseñas de pacientes
-                      </h4>
-                      <div className="space-y-3">
-                        {recentReviews.map((r, i) => (
-                          <div key={i} className="rounded-2xl border border-line px-4 py-3">
-                            <p className="text-[0.8rem] text-rose-deep">
-                              {"★".repeat(r.rating as number)}
-                              <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
-                            </p>
-                            <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">&quot;{r.comment}&quot;</p>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </ScrollReveal>
