@@ -73,8 +73,8 @@ export function AddToHomeScreenPrompt() {
               1
             </span>
             <span>
-              Toca el botón <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) en la
-              barra de Safari.
+              Toca el botón <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) en tu
+              navegador.
             </span>
           </li>
           <li className="flex gap-3">
@@ -98,7 +98,8 @@ export function AddToHomeScreenPrompt() {
               4
             </span>
             <span>
-              La próxima vez, abre Lemy desde ese ícono en tu pantalla de inicio, no desde Safari.
+              La próxima vez, abre Lemy desde ese ícono en tu pantalla de inicio, no desde el
+              navegador.
             </span>
           </li>
         </ol>
