@@ -19,11 +19,11 @@ export function InstallInstructionsModal({ onDismiss }: { onDismiss: () => void 
         </div>
 
         <h2 className="mt-4 font-display text-[1.35rem] text-forest">
-          Agrega Lemy a tu pantalla de inicio
+          Usa Lemy como una app en tu celular
         </h2>
         <p className="mt-2.5 text-[0.88rem] text-[#3E4B44]">
-          En iPhone, los avisos de citas y mensajes solo llegan si Lemy está instalado así — toma
-          unos segundos y no te vuelves a perder una solicitud.
+          Agrega Lemy a la pantalla de tu celular, y recibe notificaciones de tus citas y mensajes.
+          Toma unos segundos, y no te vuelves a perder una solicitud.
         </p>
 
         <ol className="mt-6 space-y-3 text-left text-[0.88rem] text-[#3E4B44]">
@@ -32,8 +32,8 @@ export function InstallInstructionsModal({ onDismiss }: { onDismiss: () => void 
               1
             </span>
             <span>
-              Toca el botón <strong>Compartir</strong> (el cuadrito con la flecha hacia arriba) en tu
-              navegador.
+              En tu navegador, selecciona los <strong>•••</strong> en la esquina inferior derecha de
+              tu navegador, y da clic en la opción <strong>⬆ Compartir</strong>.
             </span>
           </li>
           <li className="flex gap-3">
@@ -41,7 +41,8 @@ export function InstallInstructionsModal({ onDismiss }: { onDismiss: () => void 
               2
             </span>
             <span>
-              Desplázate y toca <strong>Agregar a pantalla de inicio</strong>.
+              Desplázate hacia abajo, selecciona la opción <strong>+ Agregar a inicio</strong>, y da
+              clic en <strong>Agregar</strong>, en la parte superior derecha.
             </span>
           </li>
           <li className="flex gap-3">
@@ -49,16 +50,8 @@ export function InstallInstructionsModal({ onDismiss }: { onDismiss: () => void 
               3
             </span>
             <span>
-              Toca <strong>Agregar</strong> arriba a la derecha.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest/[0.08] font-mono text-[0.75rem] text-forest">
-              4
-            </span>
-            <span>
-              La próxima vez, abre Lemy desde ese ícono en tu pantalla de inicio, no desde el
-              navegador.
+              La próxima vez, abre Lemy como cualquier app en tu pantalla de inicio, y da clic en{" "}
+              <strong>Activar</strong> cuando pregunte si quieres recibir notificaciones.
             </span>
           </li>
         </ol>
@@ -70,7 +63,10 @@ export function InstallInstructionsModal({ onDismiss }: { onDismiss: () => void 
         >
           Entendido
         </button>
-        <p className="mt-3 text-[0.75rem] text-[#8B978F]">
+        <p className="mt-3 text-[0.75rem] font-semibold text-rose-deep">
+          No recibirás notificaciones si Lemy no está en tu pantalla de inicio.
+        </p>
+        <p className="mt-1.5 text-[0.75rem] text-[#8B978F]">
           ¿Se te complicó? Escríbenos a{" "}
           <a href="mailto:hola@lemy.mx" className="underline">
             hola@lemy.mx

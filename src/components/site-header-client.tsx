@@ -128,15 +128,15 @@ export function SiteHeaderClient({
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-sage-white/86 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4 sm:px-8">
-        <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-forest">
-          <span className="relative h-4 w-[22px] flex-none">
-            <span className="absolute left-0 top-0.5 h-3.5 w-3.5 rounded-full bg-forest/90" />
-            <span className="absolute left-[9px] top-0.5 h-3.5 w-3.5 rounded-full bg-rose mix-blend-multiply" />
+        <Link href="/" className="flex items-center gap-2.5 font-display text-[1.7rem] font-semibold text-forest">
+          <span className="relative h-[18px] w-[26px] flex-none">
+            <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-forest/90" />
+            <span className="absolute left-[10px] top-0.5 h-4 w-4 rounded-full bg-rose mix-blend-multiply" />
           </span>
           Lemy
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+        <nav className="hidden items-center gap-5 text-sm font-medium lg:flex">
           <Link
             href={AFFINITY_TEST.href}
             className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
@@ -151,7 +151,7 @@ export function SiteHeaderClient({
           ))}
         </nav>
 
-        <div className="hidden items-center gap-4.5 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           {isLoggedIn && <NotificationBell unreadCount={unreadCount} />}
           <RightCtas isLoggedIn={isLoggedIn} role={role} />
         </div>
@@ -159,14 +159,14 @@ export function SiteHeaderClient({
         <button
           aria-label="Abrir menú"
           onClick={() => setMenuOpen((v) => !v)}
-          className="text-forest md:hidden"
+          className="p-1 text-[1.75rem] leading-none text-forest lg:hidden"
         >
           ☰
         </button>
       </div>
 
       {menuOpen && (
-        <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 md:hidden">
+        <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 lg:hidden">
           <Link
             href={AFFINITY_TEST.href}
             onClick={() => setMenuOpen(false)}
