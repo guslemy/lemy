@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { setPushEnabled } from "@/app/push/actions";
+import { BellIcon } from "@/components/social-icons";
 
 // Interruptor de notificaciones a nivel cuenta, visible siempre en la
 // cabecera de /dashboard (fuera de PanelTabs, mismo patrón que "Ver mi
@@ -31,7 +32,7 @@ export function NotificationsToggle({ initialEnabled }: { initialEnabled: boolea
       aria-pressed={enabled}
       className="flex items-center gap-2 rounded-full border border-line bg-card py-1.5 pl-3 pr-2.5 text-[0.8rem] font-medium text-forest transition-opacity disabled:opacity-60"
     >
-      <span aria-hidden>🔔</span>
+      <BellIcon />
       Notificaciones
       <span
         className={`relative inline-block h-[17px] w-[30px] shrink-0 rounded-full transition-colors ${
