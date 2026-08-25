@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
+import { sendPushToUser } from "@/lib/webpush";
 import {
   trialEnding,
   renewalReminder,
@@ -34,7 +35,7 @@ async function alreadySent(
   supabase: SupabaseClient,
   type: string,
   relatedId: string,
-  channel: "email" | "whatsapp" | "in_app"
+  channel: "email" | "whatsapp" | "in_app" | "push"
 ) {
   const { data } = await supabase
     .from("notification_log")
@@ -50,7 +51,7 @@ async function logSent(
   supabase: SupabaseClient,
   type: string,
   relatedId: string,
-  channel: "email" | "whatsapp" | "in_app",
+  channel: "email" | "whatsapp" | "in_app" | "push",
   recipientId: string
 ) {
   await supabase
@@ -71,6 +72,10 @@ type DispatchInput = {
   whatsappParams?: string[];
   emailOnly?: boolean;
   attachments?: { filename: string; content: string }[]; // content en base64
+  // Notificación push (ver lib/webpush.ts) — corta a propósito, no es el
+  // mismo html largo del correo. Se manda a TODAS las suscripciones
+  // guardadas del destinatario (puede tener varias: celular, laptop).
+  push?: { title: string; body: string; url?: string };
 };
 
 export async function dispatch(input: DispatchInput) {
@@ -97,6 +102,20 @@ export async function dispatch(input: DispatchInput) {
       await logSent(supabase, type, relatedId, "email", recipientId);
     } catch (err) {
       console.error(`Error mandando email (${type} → ${email}):`, err);
+    }
+  }
+
+  // Independiente de emailOnly a propósito: ese flag solo dice "no mandes
+  // WhatsApp para esto" (ver referral_invite, onboarding checklist), pero
+  // push sí debe poder mandarse aunque email/whatsapp no apliquen — por
+  // ejemplo, el recordatorio de 1h al terapeuta no manda correo nuevo, solo
+  // push (ver runNotificationSweep).
+  if (input.push && !(await alreadySent(supabase, type, relatedId, "push"))) {
+    try {
+      await sendPushToUser(supabase, recipientId, input.push);
+      await logSent(supabase, type, relatedId, "push", recipientId);
+    } catch (err) {
+      console.error(`Error mandando push (${type} → ${recipientId}):`, err);
     }
   }
 
@@ -402,8 +421,34 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
           html,
           whatsappTemplate: waTemplate,
           whatsappParams: [patient?.full_name ?? "paciente", therapistName],
+          push:
+            type === "appointment_1h"
+              ? { title: "Tu sesión es en 1 hora", body: `Con ${therapistName}.`, url: "/dashboard?tab=mis-citas" }
+              : undefined,
         });
         sent += 1;
+
+        // El terapeuta no tenía ningún recordatorio de 1h antes — solo el
+        // paciente. Es push nomás (sin correo/whatsapp nuevos, por ahora
+        // solo se pidió esto): relatedId lleva "_therapist" para no chocar
+        // con el dedup del envío de arriba, que usa el mismo (type, related_id).
+        if (type === "appointment_1h") {
+          await dispatch({
+            supabase,
+            type: `${type}_therapist`,
+            relatedId: a.id as string,
+            recipientId: a.therapist_id as string,
+            email: null,
+            phone: null,
+            subject: "",
+            html: "",
+            push: {
+              title: "Tu sesión es en 1 hora",
+              body: `Con ${patient?.full_name ?? "tu paciente"}.`,
+              url: "/dashboard?tab=citas",
+            },
+          });
+        }
       }
     } catch (err) {
       console.error(`Error en barrido (appointment reminder → appointment ${a.id}):`, err);

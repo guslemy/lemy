@@ -100,6 +100,12 @@ export async function getNotificationFeed(
         return `Recordatorio: tienes una sesión mañana${when ? ` (${when})` : ""}.`;
       case "appointment_1h":
         return `Recordatorio: tu sesión es en 1 hora${when ? ` (${when})` : ""}.`;
+      case "appointment_1h_therapist":
+        return `Recordatorio: tu sesión con ${patientName} es en 1 hora.`;
+      case "review_received":
+        return "Recibiste una nueva reseña.";
+      case "review_request":
+        return "Cuéntanos cómo te fue en tu última sesión.";
       case "appointment_requested_therapist":
         return `Nueva solicitud de cita con ${patientName}${when ? ` para el ${when}` : ""}.`;
       case "appointment_requested_patient":

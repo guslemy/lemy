@@ -98,6 +98,11 @@ export async function submitReview(appointmentId: string, formData: FormData) {
           subject,
           html,
           emailOnly: true,
+          push: {
+            title: "Nueva reseña recibida",
+            body: `${"★".repeat(rating)}${comment ? ` — "${comment}"` : ""}`,
+            url: "/dashboard?tab=perfil",
+          },
         });
       }
     } catch (err) {

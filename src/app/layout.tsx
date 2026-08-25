@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { PageTransition } from "@/components/page-transition";
 import { HashScrollFix } from "@/components/hash-scroll-fix";
 import { AddToHomeScreenPrompt } from "@/components/add-to-home-screen-prompt";
+import { EnableNotificationsPrompt } from "@/components/enable-notifications-prompt";
 import "./globals.css";
 
 // Nota: las fuentes se cargan con <link> en vez de next/font/google —
@@ -73,6 +74,7 @@ export default function RootLayout({
         <HashScrollFix />
         <PageTransition>{children}</PageTransition>
         <AddToHomeScreenPrompt />
+        <EnableNotificationsPrompt />
       </body>
     </html>
   );

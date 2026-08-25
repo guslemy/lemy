@@ -73,6 +73,11 @@ export async function notifyAppointmentRequested({
       html: forTherapist.html,
       whatsappTemplate: "lemy_appointment_requested_therapist",
       whatsappParams: [therapistName, patientName, whenLabel],
+      push: {
+        title: "Nueva solicitud de cita",
+        body: `${patientName} solicitó una cita para el ${whenLabel}.`,
+        url: "/dashboard?tab=citas",
+      },
     });
 
     const forPatient = appointmentRequestedPatient({ patientName, therapistName, whenLabel });
