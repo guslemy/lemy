@@ -12,6 +12,18 @@ export type PlanFeature = {
   detail: string;
 };
 
+// Único punto de verdad para decidir si un terapeuta tiene acceso a
+// cobro con tarjeta vía Stripe Connect — beneficio exclusivo del plan
+// Gestiona ("plus"). Se usa tanto para bloquear la conexión/activación en
+// /dashboard/pagos como para la disponibilidad real que ve el paciente al
+// reservar (lib/appointments.ts y [slug]/page.tsx). subscription_status
+// debe ser "active" (no basta con estar en periodo de prueba) porque el
+// plan solo queda fijado en subscription_plan cuando el pago se completa
+// de verdad (ver stripe/webhook/route.ts).
+export function hasGestionaPlan(plan: string | null | undefined, status: string | null | undefined) {
+  return plan === "plus" && status === "active";
+}
+
 export const PLAN_FEATURES_BASE: PlanFeature[] = [
   {
     label: "Presencia en el directorio de Lemy, donde te encuentran tus pacientes",

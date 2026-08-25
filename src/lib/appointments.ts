@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, deleteCalendarEvent } from "@/lib/google-calendar";
+import { hasGestionaPlan } from "@/lib/plan-features";
 
 export type CancelRole = "patient" | "therapist";
 
@@ -31,7 +32,7 @@ export async function requestAppointmentForUser(
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available, stripe_connect_account_id, stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment"
+      "id, price_min, price_max, session_duration_min, is_online_available, is_in_person_available, stripe_connect_account_id, stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment, subscription_plan, subscription_status"
     )
     .eq("slug", therapistSlug)
     .eq("is_published", true)
@@ -87,14 +88,16 @@ export async function requestAppointmentForUser(
   // El terapeuta elige en /dashboard/pagos qué métodos acepta
   // (accepts_card_payment / accepts_cash_payment), pero "acepta tarjeta" es
   // solo su intención — de verdad puede cobrar con tarjeta a través de Lemy
-  // hasta que además tiene Stripe Connect activo. Combinamos ambas cosas
-  // aquí para no confiar ciegamente en lo que mandó el formulario (el
-  // paciente eligió su método en el popup de confirmación, pero la UI ya
+  // hasta que además tiene Stripe Connect activo Y su plan es Gestiona
+  // (cobro con tarjeta es un beneficio exclusivo de ese plan). Combinamos
+  // todo esto aquí para no confiar ciegamente en lo que mandó el formulario
+  // (el paciente eligió su método en el popup de confirmación, pero la UI ya
   // debería haberle ocultado la opción que no aplica).
   const cardAvailable = Boolean(
     therapist.accepts_card_payment &&
       therapist.stripe_connect_account_id &&
-      therapist.stripe_connect_charges_enabled
+      therapist.stripe_connect_charges_enabled &&
+      hasGestionaPlan(therapist.subscription_plan as string | null, therapist.subscription_status as string | null)
   );
   const cashAvailable = therapist.accepts_cash_payment !== false;
 

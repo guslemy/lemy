@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
+import { hasGestionaPlan } from "@/lib/plan-features";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -37,11 +38,28 @@ async function siteUrl() {
 // marcar: un terapeuta sin ningún método quedaría inagendable.
 export async function updatePaymentMethods(formData: FormData) {
   const { supabase, user } = await requireTherapist();
-  const acceptsCard = formData.get("accepts_card_payment") === "on";
+  let acceptsCard = formData.get("accepts_card_payment") === "on";
   const acceptsCash = formData.get("accepts_cash_payment") === "on";
 
   if (!acceptsCard && !acceptsCash) {
     redirect("/dashboard?tab=pagos&pagos_error_metodos=1");
+  }
+
+  // Cobro con tarjeta es exclusivo del plan Gestiona — si alguien sin ese
+  // plan manda el checkbox marcado (formulario manipulado, o dejó de ser
+  // Gestiona desde la última vez que vio la página), se ignora en vez de
+  // guardarlo. No es un error bloqueante: simplemente se guarda como si no
+  // lo hubiera marcado.
+  if (acceptsCard) {
+    const { data: therapist } = await supabase
+      .from("therapists")
+      .select("subscription_plan, subscription_status")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!hasGestionaPlan(therapist?.subscription_plan, therapist?.subscription_status)) {
+      acceptsCard = false;
+      if (!acceptsCash) redirect("/dashboard?tab=pagos&pagos_error_plan=1");
+    }
   }
 
   await supabase
@@ -64,9 +82,13 @@ export async function connectStripeAccount() {
 
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("stripe_connect_account_id, display_name")
+    .select("stripe_connect_account_id, display_name, subscription_plan, subscription_status")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (!hasGestionaPlan(therapist?.subscription_plan, therapist?.subscription_status)) {
+    redirect("/dashboard?tab=pagos&pagos_error_plan=1");
+  }
 
   let accountId = therapist?.stripe_connect_account_id ?? null;
 

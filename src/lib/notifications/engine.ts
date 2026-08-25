@@ -8,6 +8,7 @@ import {
   appointmentReminder,
   therapistOnboardingChecklist,
   referralInvite,
+  reviewRequest,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -406,6 +407,84 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       }
     } catch (err) {
       console.error(`Error en barrido (appointment reminder → appointment ${a.id}):`, err);
+    }
+  }
+
+  // 7. Solicitud de reseña al paciente: 2 horas después de que empezó la
+  // sesión. Filtramos status="confirmed" (mismo criterio que el
+  // recordatorio de arriba) — de paso ya excluye canceladas, pendientes de
+  // pago y no-shows, no hace falta un check aparte para "cancelada".
+  //
+  // Reintento: el `relatedId` de cada envío es el id de LA CITA, así que
+  // notification_log no bloquea que se vuelva a pedir en la cita 2, 3, etc.
+  // con el mismo terapeuta — se sigue pidiendo en cada sesión siguiente
+  // hasta que el paciente deje una reseña una vez (ver `reviewedPairs`),
+  // momento en el que se deja de mandar para ese par paciente-terapeuta.
+  const REVIEW_OFFSET_MS = 2 * HOUR_MS;
+  const REVIEW_TOLERANCE_MS = 6 * HOUR_MS;
+  const { data: reviewCandidates } = await supabase
+    .from("appointments")
+    .select("id, scheduled_at, patient_id, therapist_id")
+    .eq("status", "confirmed")
+    .gte("scheduled_at", new Date(now - REVIEW_OFFSET_MS - REVIEW_TOLERANCE_MS - HOUR_MS).toISOString())
+    .lte("scheduled_at", new Date(now - REVIEW_OFFSET_MS).toISOString());
+
+  checked += reviewCandidates?.length ?? 0;
+
+  const { data: existingReviews } = await supabase.from("reviews").select("patient_id, therapist_id");
+  const reviewedPairs = new Set(
+    (existingReviews ?? []).map((r) => `${r.patient_id as string}:${r.therapist_id as string}`)
+  );
+
+  const reviewPatientIds = Array.from(new Set((reviewCandidates ?? []).map((a) => a.patient_id as string)));
+  const { data: reviewPatientProfiles } = reviewPatientIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", reviewPatientIds)
+    : { data: [] };
+  const reviewPatientNameById = new Map(
+    (reviewPatientProfiles ?? []).map((p) => [p.id as string, p.full_name as string | null])
+  );
+
+  const reviewTherapistIds = Array.from(new Set((reviewCandidates ?? []).map((a) => a.therapist_id as string)));
+  const { data: reviewTherapistRows } = reviewTherapistIds.length
+    ? await supabase.from("therapists").select("id, display_name").in("id", reviewTherapistIds)
+    : { data: [] };
+  const reviewTherapistNameById = new Map(
+    (reviewTherapistRows ?? []).map((t) => [t.id as string, t.display_name as string])
+  );
+
+  const siteUrlForReviews = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
+
+  for (const a of reviewCandidates ?? []) {
+    const pairKey = `${a.patient_id as string}:${a.therapist_id as string}`;
+    if (reviewedPairs.has(pairKey)) continue;
+
+    const scheduledAt = new Date(a.scheduled_at as string).getTime();
+    const target = scheduledAt + REVIEW_OFFSET_MS;
+    if (!isDue(target, REVIEW_TOLERANCE_MS, now)) continue;
+
+    try {
+      const email = await emailOf(supabase, a.patient_id as string);
+      const therapistName = reviewTherapistNameById.get(a.therapist_id as string) ?? "tu terapeuta";
+      const { subject, html } = reviewRequest({
+        name: reviewPatientNameById.get(a.patient_id as string) ?? "ahí",
+        therapistName,
+        reviewUrl: `${siteUrlForReviews}/resena/${a.id}`,
+      });
+
+      await dispatch({
+        supabase,
+        type: "review_request",
+        relatedId: a.id as string,
+        recipientId: a.patient_id as string,
+        email,
+        phone: null,
+        subject,
+        html,
+        emailOnly: true,
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (review_request → appointment ${a.id}):`, err);
     }
   }
 

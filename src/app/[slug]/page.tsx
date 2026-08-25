@@ -12,6 +12,7 @@ import { InstagramIcon, FacebookIcon, TikTokIcon, WhatsAppIcon } from "@/compone
 import { ShareProfileButton } from "@/components/share-profile-button";
 import { VerificationBadge, VerificationSeal } from "@/components/verification-badge";
 import { getAvailableSlots } from "@/lib/availability";
+import { hasGestionaPlan } from "@/lib/plan-features";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
 
@@ -67,6 +68,8 @@ type TherapistDetail = {
   stripe_connect_charges_enabled: boolean;
   accepts_card_payment: boolean;
   accepts_cash_payment: boolean;
+  subscription_plan: string | null;
+  subscription_status: string | null;
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
@@ -111,6 +114,7 @@ async function getTherapist(slug: string) {
        is_online_available, is_in_person_available, price_min, price_max, session_duration_min,
        verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
+       subscription_plan, subscription_status,
        instagram_url, facebook_url, tiktok_url, whatsapp_public,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) ),
@@ -227,25 +231,42 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   );
 
   // "Acepta tarjeta" no basta con que el terapeuta lo haya marcado en
-  // /dashboard/pagos — hasta que Stripe Connect está de verdad activo no se
-  // le puede ofrecer esa opción al paciente (mismo criterio que
+  // /dashboard/pagos — hasta que Stripe Connect está de verdad activo, Y su
+  // plan es Gestiona (cobro con tarjeta es exclusivo de ese plan), no se le
+  // puede ofrecer esa opción al paciente (mismo criterio que
   // lib/appointments.ts al validar del lado del servidor).
   const cardAvailable = Boolean(
-    therapist.accepts_card_payment && therapist.stripe_connect_charges_enabled
+    therapist.accepts_card_payment &&
+      therapist.stripe_connect_charges_enabled &&
+      hasGestionaPlan(therapist.subscription_plan, therapist.subscription_status)
   );
   const cashAvailable = therapist.accepts_cash_payment !== false;
 
-  // Contador "Sesiones / Reviews / Años" del perfil público. Sesiones y
-  // años ya están conectados a datos reales; reviews se deja en 0 a
-  // propósito — no existe todavía un sistema de calificaciones (ver
-  // pendiente de "ratings de terapeutas"), y mostrar un número inventado
-  // ahí sería engañoso para quien visita el perfil. En cuanto exista la
-  // tabla de reviews, este query se agrega igual que el de sesiones.
+  // Contador "Sesiones / Reviews / Años" del perfil público. Sesiones
+  // queda en 0 en la práctica hoy: ningún flujo del código pone
+  // appointments.status en "completed" todavía (se discutió al construir
+  // reseñas — es un pendiente aparte, no se toca aquí para no mezclar
+  // cambios). Reviews sí es real desde este cambio: la tabla `reviews`
+  // existe desde 0001_init.sql, y ahora el flujo en /resena/[appointmentId]
+  // la llena de verdad.
   const { count: sessionsCount } = await supabase
     .from("appointments")
     .select("id", { count: "exact", head: true })
     .eq("therapist_id", therapist.id)
     .eq("status", "completed");
+
+  const { data: publishedReviews } = await supabase
+    .from("reviews")
+    .select("rating, comment, created_at")
+    .eq("therapist_id", therapist.id)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  const reviewsCount = publishedReviews?.length ?? 0;
+  const avgRating = reviewsCount
+    ? (publishedReviews!.reduce((sum, r) => sum + (r.rating as number), 0) / reviewsCount)
+    : 0;
+  const recentReviews = (publishedReviews ?? []).filter((r) => r.comment).slice(0, 5);
 
   const yearsOnLemy = Math.floor(
     (Date.now() - new Date(therapist.created_at).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
@@ -362,9 +383,11 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </p>
                     </div>
                     <div>
-                      <p className="font-display text-[1.15rem] text-forest">0</p>
+                      <p className="font-display text-[1.15rem] text-forest">
+                        {reviewsCount > 0 ? `${avgRating.toFixed(1)} ★` : "0"}
+                      </p>
                       <p className="font-mono text-[0.65rem] uppercase tracking-[0.06em] text-[#8B978F]">
-                        Reviews
+                        {reviewsCount > 0 ? `${reviewsCount} reseña${reviewsCount === 1 ? "" : "s"}` : "Reviews"}
                       </p>
                     </div>
                     <div>
@@ -579,6 +602,25 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                         </div>
                       </>
                     )}
+
+                  {recentReviews.length > 0 && (
+                    <>
+                      <h4 className="mb-2.5 mt-6.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
+                        Reseñas de pacientes
+                      </h4>
+                      <div className="space-y-3">
+                        {recentReviews.map((r, i) => (
+                          <div key={i} className="rounded-2xl border border-line px-4 py-3">
+                            <p className="text-[0.8rem] text-rose-deep">
+                              {"★".repeat(r.rating as number)}
+                              <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
+                            </p>
+                            <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">&quot;{r.comment}&quot;</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </ScrollReveal>

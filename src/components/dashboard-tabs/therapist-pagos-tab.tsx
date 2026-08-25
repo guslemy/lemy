@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { connectStripeAccount, syncStripeConnectStatus, updatePaymentMethods } from "@/app/dashboard/pagos/actions";
+import { hasGestionaPlan } from "@/lib/plan-features";
 
 // Estado de la cuenta de Stripe Connect del terapeuta — de aquí depende si
 // puede cobrar sus sesiones con tarjeta a través de Lemy (ver /[slug]: sin
@@ -14,10 +15,16 @@ export type PagosTabParams = {
   pagos_return?: string;
   pagos_error_metodos?: string;
   pagos_metodos_guardados?: string;
+  pagos_error_plan?: string;
 };
 
 export async function TherapistPagosTab({ params }: { params: PagosTabParams }) {
-  const { pagos_return: justReturned, pagos_error_metodos: error_metodos, pagos_metodos_guardados: metodos_guardados } = params;
+  const {
+    pagos_return: justReturned,
+    pagos_error_metodos: error_metodos,
+    pagos_metodos_guardados: metodos_guardados,
+    pagos_error_plan: error_plan,
+  } = params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,7 +38,7 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_details_submitted, accepts_card_payment, accepts_cash_payment"
+      "stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_details_submitted, accepts_card_payment, accepts_cash_payment, subscription_plan, subscription_status"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -39,7 +46,10 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
   const chargesEnabled = Boolean(therapist?.stripe_connect_charges_enabled);
   const detailsSubmitted = Boolean(therapist?.stripe_connect_details_submitted);
   const hasAccount = Boolean(therapist?.stripe_connect_account_id);
-  const acceptsCard = therapist?.accepts_card_payment !== false;
+  // Cobro con tarjeta a través de Lemy es exclusivo del plan Gestiona — ver
+  // lib/plan-features.ts. Empieza solo puede acordar el pago en efectivo.
+  const isGestiona = hasGestionaPlan(therapist?.subscription_plan, therapist?.subscription_status);
+  const acceptsCard = isGestiona && therapist?.accepts_card_payment !== false;
   const acceptsCash = therapist?.accepts_cash_payment !== false;
 
   const statusLabel = chargesEnabled
@@ -62,16 +72,32 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
         factura, no nosotros.
       </p>
 
-      <div className={`mt-6 rounded-2xl border px-5 py-4 text-[0.9rem] ${statusColor}`}>
-        Estado: <strong>{statusLabel}</strong>
-        {!chargesEnabled && (
-          <p className="mt-1 text-[0.85rem]">
-            Puedes seguir recibiendo citas sin esto — tus pacientes verán en tu página que el pago se
-            acuerda directamente contigo (por ejemplo, en efectivo). Conecta tu cuenta cuando quieras
-            empezar a cobrar con tarjeta a través de Lemy.
-          </p>
-        )}
-      </div>
+      {!isGestiona && (
+        <div className="mt-6 rounded-2xl border border-rose-deep/30 bg-rose/10 px-5 py-4 text-[0.9rem] text-rose-deep">
+          Cobrar con tarjeta a través de Lemy es un beneficio del plan <strong>Gestiona</strong>.
+          Con tu plan actual tus pacientes solo pueden pagarte en efectivo o acordado directo
+          contigo. Cambia de plan desde la pestaña Suscripción para activarlo.
+        </div>
+      )}
+
+      {error_plan === "1" && (
+        <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-4 py-2.5 text-[0.85rem] text-rose-deep">
+          Eso es exclusivo del plan Gestiona — cambia de plan primero.
+        </p>
+      )}
+
+      {isGestiona && (
+        <div className={`mt-6 rounded-2xl border px-5 py-4 text-[0.9rem] ${statusColor}`}>
+          Estado: <strong>{statusLabel}</strong>
+          {!chargesEnabled && (
+            <p className="mt-1 text-[0.85rem]">
+              Puedes seguir recibiendo citas sin esto — tus pacientes verán en tu página que el pago se
+              acuerda directamente contigo (por ejemplo, en efectivo). Conecta tu cuenta cuando quieras
+              empezar a cobrar con tarjeta a través de Lemy.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="mt-6 rounded-2xl border border-line bg-card p-6">
         <h2 className="mb-1 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
@@ -95,14 +121,17 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
         )}
 
         <form action={updatePaymentMethods} className="space-y-3">
-          <label className="flex items-center gap-2.5 text-[0.9rem] text-[#3E4B44]">
+          <label
+            className={`flex items-center gap-2.5 text-[0.9rem] ${isGestiona ? "text-[#3E4B44]" : "text-[#B7BFB9]"}`}
+          >
             <input
               type="checkbox"
               name="accepts_card_payment"
               defaultChecked={acceptsCard}
-              className="h-4 w-4 rounded border-line accent-forest"
+              disabled={!isGestiona}
+              className="h-4 w-4 rounded border-line accent-forest disabled:cursor-not-allowed"
             />
-            Tarjeta (a través de Lemy)
+            Tarjeta (a través de Lemy){!isGestiona && " — solo plan Gestiona"}
           </label>
           <label className="flex items-center gap-2.5 text-[0.9rem] text-[#3E4B44]">
             <input
@@ -121,7 +150,7 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
 
       <div className="mt-6 rounded-2xl border border-line bg-card p-6">
         <form action={connectStripeAccount}>
-          <Button type="submit" variant="primary" className="w-full">
+          <Button type="submit" variant="primary" className="w-full" disabled={!isGestiona}>
             {hasAccount ? "Continuar / actualizar mi información" : "Conectar cuenta de Stripe"}
           </Button>
         </form>

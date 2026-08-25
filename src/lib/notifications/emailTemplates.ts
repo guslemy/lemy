@@ -302,6 +302,21 @@ export function referralInvite(params: { name: string; referralLink: string }) {
   };
 }
 
+// 2 horas después de la sesión (solo citas confirmadas, ver engine.ts) —
+// pide reseña al paciente. Copy aprobado por Gustavo (2026-08-24).
+export function reviewRequest(params: { name: string; therapistName: string; reviewUrl: string }) {
+  const { name, therapistName, reviewUrl } = params;
+  return {
+    subject: `¿Cómo te fue con ${therapistName}?`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Hace un rato tuviste tu sesión con ${therapistName}. ¿Nos regalas un minuto para contarnos cómo te fue? Tu opinión ayuda a que otras personas que están buscando a alguien como ${therapistName} se animen a dar el paso.</p>
+      <p><a href="${reviewUrl}" style="color: #2F5233;">Dejar mi reseña →</a></p>
+      <p style="font-size: 13px; color: #8B978F;">Es rápido y toma menos de un minuto.</p>
+    `),
+  };
+}
+
 export function appointmentReminder(params: {
   name: string;
   otherPartyName: string;
