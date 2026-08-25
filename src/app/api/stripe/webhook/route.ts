@@ -72,16 +72,28 @@ export async function POST(req: Request) {
         break;
       }
 
+      // Una suscripción creada a mano en el Dashboard de Stripe (ej. cupón
+      // de empleado al 100%, ver [[project_lemy_reviews_and_stripe_gating]])
+      // nunca pasa por Checkout, así que "checkout.session.completed" nunca
+      // dispara para ella — sin este caso, Supabase se queda sin enterarse
+      // de que existe. Requiere que quien la cree a mano le ponga
+      // metadata.lemy_user_id (y metadata.plan, "base" o "plus") a la
+      // suscripción; sin eso no hay forma de saber a qué fila de
+      // `therapists` corresponde.
+      case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = subscription.metadata?.lemy_user_id;
+        const plan = subscription.metadata?.plan ?? null;
         if (userId) {
           await supabase
             .from("therapists")
             .update({
+              stripe_billing_subscription_id: subscription.id,
               subscription_status: mapStripeStatus(subscription.status),
               subscription_current_period_end: currentPeriodEndIso(subscription),
+              ...(plan ? { subscription_plan: plan } : {}),
             })
             .eq("id", userId);
         }
