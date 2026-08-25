@@ -42,3 +42,24 @@ export async function setPushEnabled(enabled: boolean) {
 
   return { ok: !error };
 }
+
+// Segundo interruptor, independiente del de push (a petición explícita de
+// Gustavo — apagar uno no debe apagar el otro). Ver
+// 0034_email_whatsapp_enabled_preference.sql: NO afecta el ciclo de vida de
+// una cita (solicitud, confirmación, cancelación, reagendado), esos siempre
+// se mandan — solo gatea recordatorios, reseñas, renovación, etc. (ver
+// ESSENTIAL_EMAIL_WHATSAPP_TYPES en lib/notifications/engine.ts).
+export async function setEmailWhatsappEnabled(enabled: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ email_whatsapp_enabled: enabled })
+    .eq("id", user.id);
+
+  return { ok: !error };
+}

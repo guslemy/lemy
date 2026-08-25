@@ -11,7 +11,7 @@ import { TherapistCitasTab } from "@/components/dashboard-tabs/therapist-citas-t
 import { TherapistSuscripcionTab } from "@/components/dashboard-tabs/therapist-suscripcion-tab";
 import { TherapistPagosTab } from "@/components/dashboard-tabs/therapist-pagos-tab";
 import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-citas-tab";
-import { NotificationsToggle } from "@/components/notifications-toggle";
+import { NotificationsToggles } from "@/components/notifications-toggle";
 import { becomeTherapist } from "./actions";
 
 // Bifurca por rol. Admin va a /dashboard/admin (su propio panel con
@@ -36,7 +36,7 @@ export default async function DashboardPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, push_enabled")
+    .select("role, full_name, push_enabled, email_whatsapp_enabled")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -121,7 +121,10 @@ export default async function DashboardPage({
                 dispositivos de una vez (profiles.push_enabled), no solo a
                 este navegador — ver notifications-toggle.tsx. */}
             <div className="flex flex-wrap items-center gap-2.5">
-              <NotificationsToggle initialEnabled={profile?.push_enabled ?? true} />
+              <NotificationsToggles
+                initialPushEnabled={profile?.push_enabled ?? true}
+                initialEmailWhatsappEnabled={profile?.email_whatsapp_enabled ?? true}
+              />
 
               {/* Visible siempre, sin importar la pestaña activa (vive fuera de
                   PanelTabs) — antes el único link a esto estaba hasta abajo del

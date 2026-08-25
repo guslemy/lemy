@@ -23,6 +23,33 @@ function isDue(targetMs: number, toleranceMs: number, nowMs: number) {
   return nowMs >= targetMs && nowMs < targetMs + toleranceMs;
 }
 
+// Tipos que SIEMPRE se mandan por correo/WhatsApp sin importar
+// profiles.email_whatsapp_enabled (ver 0034_email_whatsapp_enabled_preference.sql)
+// — el ciclo de vida de una cita (pedirla, confirmarla, cancelarla,
+// reagendarla) es información que ambas partes necesitan sí o sí para que
+// la sesión pase, a diferencia de recordatorios, reseñas o avisos de
+// renovación, que sí se pueden apagar. Push tiene su propio interruptor
+// aparte (profiles.push_enabled, ver sendPushToUser en lib/webpush.ts) y no
+// pasa por aquí.
+const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
+  "appointment_requested_therapist",
+  "appointment_requested_patient",
+  "appointment_confirmed_therapist",
+  "appointment_confirmed_patient",
+  "appointment_cancelled",
+  "appointment_rescheduled",
+]);
+
+async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
+  if (ESSENTIAL_EMAIL_WHATSAPP_TYPES.has(type)) return true;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email_whatsapp_enabled")
+    .eq("id", recipientId)
+    .maybeSingle();
+  return profile?.email_whatsapp_enabled !== false;
+}
+
 export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, "");
@@ -90,7 +117,14 @@ export async function dispatch(input: DispatchInput) {
     await logSent(supabase, type, relatedId, "in_app", recipientId);
   }
 
-  if (email && isResendConfigured() && !(await alreadySent(supabase, type, relatedId, "email"))) {
+  const emailWhatsappOk = await emailWhatsappAllowed(supabase, type, recipientId);
+
+  if (
+    email &&
+    emailWhatsappOk &&
+    isResendConfigured() &&
+    !(await alreadySent(supabase, type, relatedId, "email"))
+  ) {
     try {
       await getResendClient().emails.send({
         from: NOTIFICATIONS_FROM_EMAIL,
@@ -121,7 +155,12 @@ export async function dispatch(input: DispatchInput) {
 
   if (input.emailOnly) return;
 
-  if (phone && input.whatsappTemplate && !(await alreadySent(supabase, type, relatedId, "whatsapp"))) {
+  if (
+    phone &&
+    emailWhatsappOk &&
+    input.whatsappTemplate &&
+    !(await alreadySent(supabase, type, relatedId, "whatsapp"))
+  ) {
     try {
       await sendWhatsAppTemplate(phone, input.whatsappTemplate, input.whatsappParams ?? []);
       await logSent(supabase, type, relatedId, "whatsapp", recipientId);
