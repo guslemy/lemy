@@ -105,10 +105,26 @@ export default async function DashboardPage({
 
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[760px]">
-          <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Tu cuenta</p>
-          <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
-            Hola, {profile?.full_name ?? user.email}
-          </h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">Tu cuenta</p>
+              <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
+                Hola, {profile?.full_name ?? user.email}
+              </h1>
+            </div>
+
+            {/* Visible siempre, sin importar la pestaña activa (vive fuera de
+                PanelTabs) — antes el único link a esto estaba hasta abajo del
+                formulario de "Editar perfil", enterrado tras un scroll largo.
+                Solo se muestra si el perfil ya está publicado: antes de eso
+                la página /[slug] ni siquiera existe (getTherapist filtra por
+                is_published), así que el link rompería. */}
+            {isTherapist && therapist?.slug && therapist?.is_published && (
+              <Button href={`/${therapist.slug}`} variant="ghost" className="shrink-0">
+                Ver mi perfil público →
+              </Button>
+            )}
+          </div>
 
           {sinPlan && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-4">

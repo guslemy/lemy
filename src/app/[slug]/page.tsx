@@ -242,18 +242,21 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   );
   const cashAvailable = therapist.accepts_cash_payment !== false;
 
-  // Contador "Sesiones / Reviews / Años" del perfil público. Sesiones
-  // queda en 0 en la práctica hoy: ningún flujo del código pone
-  // appointments.status en "completed" todavía (se discutió al construir
-  // reseñas — es un pendiente aparte, no se toca aquí para no mezclar
-  // cambios). Reviews sí es real desde este cambio: la tabla `reviews`
-  // existe desde 0001_init.sql, y ahora el flujo en /resena/[appointmentId]
-  // la llena de verdad.
+  // Contador "Sesiones / Reviews / Años" del perfil público. "Sesiones"
+  // cuenta citas confirmadas cuya fecha ya pasó — no depende de
+  // appointments.status = "completed" (nada en el código lo asigna
+  // todavía, ver [[project_lemy_reviews_and_stripe_gating]]). Esto no
+  // distingue una sesión real de un no-show (no existe esa señal hoy), pero
+  // ya excluye canceladas y citas futuras, así que es honesto para un
+  // contador de cara al público. Reviews sí es real desde este cambio: la
+  // tabla `reviews` existe desde 0001_init.sql, y ahora el flujo en
+  // /resena/[appointmentId] la llena de verdad.
   const { count: sessionsCount } = await supabase
     .from("appointments")
     .select("id", { count: "exact", head: true })
     .eq("therapist_id", therapist.id)
-    .eq("status", "completed");
+    .eq("status", "confirmed")
+    .lte("scheduled_at", new Date().toISOString());
 
   const { data: publishedReviews } = await supabase
     .from("reviews")
