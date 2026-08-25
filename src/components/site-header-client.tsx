@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/actions";
 
 // Antes estos eran anclas sueltas ("#que-es-lemy") — funcionaban solo
 // parados en la home. En cualquier otra página (biblioteca, enfoques,
@@ -49,6 +50,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/dashboard/admin" variant="primary" className={className}>
           Panel de contenido
         </Button>
+        <SignOutLink className={className} />
       </>
     );
   }
@@ -62,15 +64,36 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/dashboard/pacientes" variant="primary" className={className}>
           Mis pacientes
         </Button>
+        <SignOutLink className={className} />
       </>
     );
   }
 
   // Paciente
   return (
-    <Button href="/dashboard" variant="primary" className={className}>
-      Mi cuenta
-    </Button>
+    <>
+      <Button href="/dashboard" variant="primary" className={className}>
+        Mi cuenta
+      </Button>
+      <SignOutLink className={className} />
+    </>
+  );
+}
+
+// No había ningún botón de cerrar sesión en todo el sitio — "Mi cuenta"
+// solo llevaba al dashboard. Deliberadamente discreto (texto, no un
+// Button con fondo) para no competir visualmente con los CTAs principales,
+// pero siempre visible junto a ellos en vez de escondido en otro menú.
+function SignOutLink({ className = "" }: { className?: string }) {
+  return (
+    <form action={signOut}>
+      <button
+        type="submit"
+        className={`text-[0.85rem] font-medium text-[#7C877F] transition-colors hover:text-rose-deep ${className}`}
+      >
+        Cerrar sesión
+      </button>
+    </form>
   );
 }
 
