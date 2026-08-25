@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
+import { RatingBadge } from "@/components/rating-badge";
 import {
   rankTherapists,
   type GeneroPreferido,
@@ -400,6 +401,7 @@ export function QuizClient({
                     <div className="flex-1">
                       <h3 className="font-display text-[1.08rem] text-forest">{t.display_name}</h3>
                       {t.tagline && <p className="mt-0.5 font-mono text-[0.84rem] text-rose-deep">{t.tagline}</p>}
+                      <RatingBadge avg={t.avgRating ?? 0} count={t.reviewsCount ?? 0} className="mt-1" />
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {t.is_online_available && <Tag>Online</Tag>}
                         {t.specialtyNames.slice(0, 2).map((s) => (

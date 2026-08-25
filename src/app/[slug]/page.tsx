@@ -269,7 +269,9 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   const avgRating = reviewsCount
     ? (publishedReviews!.reduce((sum, r) => sum + (r.rating as number), 0) / reviewsCount)
     : 0;
-  const recentReviews = (publishedReviews ?? []).filter((r) => r.comment).slice(0, 5);
+  const reviewsWithComments = (publishedReviews ?? []).filter((r) => r.comment);
+  const visibleReviews = reviewsWithComments.slice(0, 5);
+  const moreReviews = reviewsWithComments.slice(5);
 
   const yearsOnLemy = Math.floor(
     (Date.now() - new Date(therapist.created_at).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
@@ -377,6 +379,20 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                 {therapist.tagline && (
                   <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">{therapist.tagline}</p>
                 )}
+                {reviewsCount > 0 && (
+                  <p className="mt-2 flex items-center justify-center gap-1.5">
+                    <span className="text-[0.95rem] leading-none text-rose-deep">
+                      {"★".repeat(Math.round(avgRating))}
+                      <span className="text-line">{"★".repeat(5 - Math.round(avgRating))}</span>
+                    </span>
+                    <span className="font-display text-[1rem] leading-none text-forest">
+                      {avgRating.toFixed(1)}
+                    </span>
+                    <span className="text-[0.8rem] text-[#8B978F]">
+                      · {reviewsCount} reseña{reviewsCount === 1 ? "" : "s"}
+                    </span>
+                  </p>
+                )}
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
                   <div className="flex items-center gap-4 text-center">
                     <div>
@@ -431,39 +447,43 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
             <ScrollReveal className="mt-8">
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
-                  {reviewsCount > 0 && (
+                  {visibleReviews.length > 0 && (
                     <div className="mb-7">
                       <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
                         Reseñas de pacientes
                       </h4>
-                      <div className="flex items-center gap-3.5">
-                        <p className="font-display text-[2.1rem] leading-none text-forest">
-                          {avgRating.toFixed(1)}
-                        </p>
-                        <div>
-                          <p className="text-[1.05rem] leading-none text-rose-deep">
-                            {"★".repeat(Math.round(avgRating))}
-                            <span className="text-line">{"★".repeat(5 - Math.round(avgRating))}</span>
-                          </p>
-                          <p className="mt-1 text-[0.78rem] text-[#8B978F]">
-                            {reviewsCount} reseña{reviewsCount === 1 ? "" : "s"}
-                          </p>
-                        </div>
+                      <div className="space-y-3">
+                        {visibleReviews.map((r, i) => (
+                          <div key={i} className="rounded-2xl border border-line px-4 py-3">
+                            <p className="text-[0.8rem] text-rose-deep">
+                              {"★".repeat(r.rating as number)}
+                              <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
+                            </p>
+                            <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">
+                              &quot;{r.comment}&quot;
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                      {recentReviews.length > 0 && (
-                        <div className="mt-4 space-y-3">
-                          {recentReviews.map((r, i) => (
-                            <div key={i} className="rounded-2xl border border-line px-4 py-3">
-                              <p className="text-[0.8rem] text-rose-deep">
-                                {"★".repeat(r.rating as number)}
-                                <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
-                              </p>
-                              <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">
-                                &quot;{r.comment}&quot;
-                              </p>
-                            </div>
-                          ))}
-                        </div>
+                      {moreReviews.length > 0 && (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-[0.85rem] font-semibold text-forest hover:text-rose-deep">
+                            Ver más reseñas ({moreReviews.length})
+                          </summary>
+                          <div className="mt-3 space-y-3">
+                            {moreReviews.map((r, i) => (
+                              <div key={i} className="rounded-2xl border border-line px-4 py-3">
+                                <p className="text-[0.8rem] text-rose-deep">
+                                  {"★".repeat(r.rating as number)}
+                                  <span className="text-line">{"★".repeat(5 - (r.rating as number))}</span>
+                                </p>
+                                <p className="mt-1.5 text-[0.88rem] text-[#3E4B44]">
+                                  &quot;{r.comment}&quot;
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       )}
                     </div>
                   )}

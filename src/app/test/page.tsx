@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import type { MatchTherapist } from "@/lib/questionnaire";
+import { getRatingsByTherapistId } from "@/lib/reviews";
 import { QuizClient } from "./quiz-client";
 
 // Cuestionario de match — pantalla de entrada.
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 };
 
 type RawTherapist = {
+  id: string;
   slug: string;
   display_name: string;
   tagline: string | null;
@@ -47,7 +49,7 @@ export default async function TestPage() {
     supabase
       .from("therapists")
       .select(
-        `slug, display_name, tagline, city, price_min, price_max, is_online_available, gender, client_niches, photo_url,
+        `id, slug, display_name, tagline, city, price_min, price_max, is_online_available, gender, client_niches, photo_url,
          therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )`
       )
       .eq("is_published", true),
@@ -59,10 +61,14 @@ export default async function TestPage() {
     descripcion_coloquial: string | null;
   }[];
 
-  const therapists: MatchTherapist[] = ((rawTherapists ?? []) as unknown as RawTherapist[]).map((t) => {
+  const rawList = (rawTherapists ?? []) as unknown as RawTherapist[];
+  const ratingsById = await getRatingsByTherapistId(supabase, rawList.map((t) => t.id));
+
+  const therapists: MatchTherapist[] = rawList.map((t) => {
     const specs = (t.therapist_specialties ?? [])
       .map((ts) => ts.specialty)
       .filter((s): s is { slug: string; nombre_coloquial: string } => Boolean(s));
+    const rating = ratingsById.get(t.id);
 
     return {
       slug: t.slug,
@@ -77,6 +83,8 @@ export default async function TestPage() {
       photo_url: t.photo_url,
       specialtySlugs: specs.map((s) => s.slug),
       specialtyNames: specs.map((s) => s.nombre_coloquial),
+      avgRating: rating?.avg ?? 0,
+      reviewsCount: rating?.count ?? 0,
     };
   });
 

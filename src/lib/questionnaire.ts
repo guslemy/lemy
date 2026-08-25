@@ -36,6 +36,8 @@ export type MatchTherapist = {
   photo_url: string | null;
   specialtySlugs: string[];
   specialtyNames: string[];
+  avgRating?: number;
+  reviewsCount?: number;
 };
 
 function scoreTherapist(t: MatchTherapist, answers: QuizAnswers): number {

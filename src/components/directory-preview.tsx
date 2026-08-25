@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Pill, Tag } from "@/components/ui/pill";
 import { VerificationSeal } from "@/components/verification-badge";
+import { RatingBadge } from "@/components/rating-badge";
 
 // Antes esto era una lista de 6 terapeutas de ejemplo (Mariana Torres, Diego
 // Fernández, etc.) fija en el código — nunca reflejaba altas ni cambios
@@ -23,6 +24,8 @@ export type DirectoryTherapist = {
   verified?: boolean;
   specialtySlugs: string[];
   specialtyNames: string[];
+  avgRating?: number;
+  reviewsCount?: number;
 };
 
 // Mismos slugs reales de la tabla specialties (ver 0002_seed_catalogos.sql /
@@ -117,6 +120,7 @@ export function DirectoryPreview({ therapists }: { therapists: DirectoryTherapis
                   {t.specialtyNames.slice(0, 1).join("")}
                 </p>
               )}
+              <RatingBadge avg={t.avgRating ?? 0} count={t.reviewsCount ?? 0} className="mt-1.5" />
               <p className="mt-3 text-[0.9rem] text-[#42504A]">
                 {t.city ?? (t.is_online_available ? "En línea" : "")}
               </p>

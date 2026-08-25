@@ -8,6 +8,7 @@ import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { HeroSearch } from "@/components/hero-search";
 import { HeroRotatingWord } from "@/components/hero-rotating-word";
 import { createClient } from "@/lib/supabase/server";
+import { getRatingsByTherapistId } from "@/lib/reviews";
 
 // Cuántos terapeutas mostrar en la vista previa de la home — suficiente
 // para llenar 2 filas de 3 en la grid, sin volverse un scroll interminable.
@@ -15,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 const DIRECTORY_PREVIEW_LIMIT = 6;
 
 type RawHomeTherapist = {
+  id: string;
   slug: string;
   display_name: string;
   tagline: string | null;
@@ -34,13 +36,17 @@ async function getDirectoryPreviewTherapists(): Promise<DirectoryTherapist[]> {
   const { data } = await supabase
     .from("therapists")
     .select(
-      `slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available,
+      `id, slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available,
        photo_url, verification_status, created_at,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )`
     )
     .eq("is_published", true);
 
   const rows = (data ?? []) as unknown as RawHomeTherapist[];
+  const ratingsById = await getRatingsByTherapistId(
+    supabase,
+    rows.map((t) => t.id)
+  );
 
   // Verificados primero (más confianza para quien apenas llega a la home),
   // luego los más recientes — así se siente activo, no una lista fija.
@@ -55,6 +61,7 @@ async function getDirectoryPreviewTherapists(): Promise<DirectoryTherapist[]> {
     const specs = (t.therapist_specialties ?? [])
       .map((ts) => ts.specialty)
       .filter((s): s is { slug: string; nombre_coloquial: string } => Boolean(s));
+    const rating = ratingsById.get(t.id);
     return {
       slug: t.slug,
       display_name: t.display_name,
@@ -68,6 +75,8 @@ async function getDirectoryPreviewTherapists(): Promise<DirectoryTherapist[]> {
       verified: t.verification_status === "verified",
       specialtySlugs: specs.map((s) => s.slug),
       specialtyNames: specs.map((s) => s.nombre_coloquial),
+      avgRating: rating?.avg ?? 0,
+      reviewsCount: rating?.count ?? 0,
     };
   });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Tag } from "@/components/ui/pill";
 import { VerificationSeal } from "@/components/verification-badge";
+import { RatingBadge } from "@/components/rating-badge";
 
 // Tarjeta de terapeuta con datos reales de Supabase — usada en /buscar.
 // (Distinta de DirectoryPreview, que muestra datos de ejemplo en la landing.)
@@ -16,6 +17,8 @@ export type TherapistCardData = {
   specialties: string[];
   photo_url?: string | null;
   verified?: boolean;
+  avgRating?: number;
+  reviewsCount?: number;
 };
 
 const GRADIENTS = [
@@ -63,6 +66,7 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
       </div>
       <h3 className="font-display text-[1.12rem] text-forest">{t.display_name}</h3>
       {t.tagline && <p className="mt-0.5 font-mono text-[0.86rem] text-rose-deep">{t.tagline}</p>}
+      <RatingBadge avg={t.avgRating ?? 0} count={t.reviewsCount ?? 0} className="mt-1.5" />
       {t.city && <p className="mt-3 text-[0.9rem] text-[#42504A]">{t.city}</p>}
       <div className="mt-3.5 flex flex-wrap gap-1.5">
         {t.is_online_available && <Tag>En línea</Tag>}

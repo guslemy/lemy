@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { TherapistCard, type TherapistCardData } from "@/components/therapist-card";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
+import { getRatingsByTherapistId } from "@/lib/reviews";
 
 // Buscador con filtros — corazón del diferenciador.
 // Filtros (texto libre + especialidad) se resuelven por query params, así el
@@ -17,6 +18,7 @@ type Specialty = { slug: string; nombre_coloquial: string };
 type SpecialtyCatalogEntry = { id: string; slug: string; nombre_coloquial: string };
 
 type RawTherapist = {
+  id: string;
   slug: string;
   display_name: string;
   tagline: string | null;
@@ -118,7 +120,7 @@ export default async function BuscarPage({
     supabase
       .from("therapists")
       .select(
-        "slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available, photo_url, verification_status, therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )"
+        "id, slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available, photo_url, verification_status, therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )"
       )
       .eq("is_published", true),
   ]);
@@ -128,10 +130,14 @@ export default async function BuscarPage({
 
   const videos = activeSpecialty ? await getVideosForSpecialty(supabase, activeSpecialty.id) : null;
 
-  const therapists = ((rawTherapists ?? []) as unknown as RawTherapist[]).map((t) => {
+  const rawList = (rawTherapists ?? []) as unknown as RawTherapist[];
+  const ratingsById = await getRatingsByTherapistId(supabase, rawList.map((t) => t.id));
+
+  const therapists = rawList.map((t) => {
     const specs = (t.therapist_specialties ?? [])
       .map((ts) => ts.specialty)
       .filter((s): s is Specialty => Boolean(s));
+    const rating = ratingsById.get(t.id);
 
     const card: TherapistCardData & { specialtySlugs: string[] } = {
       slug: t.slug,
@@ -146,6 +152,8 @@ export default async function BuscarPage({
       verified: t.verification_status === "verified",
       specialties: specs.map((s) => s.nombre_coloquial),
       specialtySlugs: specs.map((s) => s.slug),
+      avgRating: rating?.avg ?? 0,
+      reviewsCount: rating?.count ?? 0,
     };
     return card;
   });
