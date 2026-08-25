@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const DISMISSED_KEY = "lemy_a2hs_dismissed_at";
-const REMIND_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+const REMIND_AFTER_MS = 24 * 60 * 60 * 1000; // 1 día
 
 // iOS solo manda notificaciones push a sitios agregados a la pantalla de
 // inicio (PWA instalada) — una pestaña normal de Safari nunca las recibe,
