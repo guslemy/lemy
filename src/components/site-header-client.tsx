@@ -27,7 +27,17 @@ export type SiteRole = "admin" | "therapist" | "patient" | null;
 // de qué rol tiene esa cuenta — antes siempre mostraban "Iniciar sesión" /
 // "Soy terapeuta" aunque ya estuvieras dentro, lo cual era confuso. Ahora
 // cada quien ve un atajo directo a su propio panel.
-function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; role: SiteRole; className?: string }) {
+function RightCtas({
+  isLoggedIn,
+  role,
+  className = "",
+  compactSignOut = false,
+}: {
+  isLoggedIn: boolean;
+  role: SiteRole;
+  className?: string;
+  compactSignOut?: boolean;
+}) {
   if (!isLoggedIn) {
     return (
       <>
@@ -50,7 +60,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/dashboard/admin" variant="primary" className={className}>
           Panel de contenido
         </Button>
-        <SignOutLink className={className} />
+        <SignOutLink className={className} compact={compactSignOut} />
       </>
     );
   }
@@ -64,7 +74,7 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
         <Button href="/dashboard/pacientes" variant="primary" className={className}>
           Mis pacientes
         </Button>
-        <SignOutLink className={className} />
+        <SignOutLink className={className} compact={compactSignOut} />
       </>
     );
   }
@@ -75,8 +85,28 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
       <Button href="/dashboard" variant="primary" className={className}>
         Mi cuenta
       </Button>
-      <SignOutLink className={className} />
+      <SignOutLink className={className} compact={compactSignOut} />
     </>
+  );
+}
+
+function LogOutIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="17"
+      height="17"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
   );
 }
 
@@ -84,14 +114,26 @@ function RightCtas({ isLoggedIn, role, className = "" }: { isLoggedIn: boolean; 
 // solo llevaba al dashboard. Deliberadamente discreto (texto, no un
 // Button con fondo) para no competir visualmente con los CTAs principales,
 // pero siempre visible junto a ellos en vez de escondido en otro menú.
-function SignOutLink({ className = "" }: { className?: string }) {
+//
+// `compact`: en el header de escritorio, con dos botones + campana + este
+// link, el texto completo "Cerrar sesión" era uno de los principales
+// culpables de que todo se viera apretado (sobre todo en la vista de
+// admin/terapeuta, que ya trae dos botones). Ahí se reduce a solo el ícono
+// con aria-label — en el menú móvil (que apila todo verticalmente, sin
+// competir por ancho) se queda como texto completo.
+function SignOutLink({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   return (
     <form action={signOut}>
       <button
         type="submit"
-        className={`text-[0.85rem] font-medium text-[#7C877F] transition-colors hover:text-rose-deep ${className}`}
+        aria-label="Cerrar sesión"
+        title={compact ? "Cerrar sesión" : undefined}
+        className={`flex items-center gap-1.5 text-[0.85rem] font-medium text-[#7C877F] transition-colors hover:text-rose-deep ${
+          compact ? "border-l border-line pl-3.5" : ""
+        } ${className}`}
       >
-        Cerrar sesión
+        <LogOutIcon />
+        {!compact && "Cerrar sesión"}
       </button>
     </form>
   );
@@ -127,7 +169,7 @@ export function SiteHeaderClient({
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-sage-white/86 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4 sm:px-8">
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
         <Link href="/" className="flex items-center gap-2.5 font-display text-[1.7rem] font-semibold text-forest">
           <span className="relative h-[18px] w-[26px] flex-none">
             <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-forest/90" />
@@ -136,7 +178,7 @@ export function SiteHeaderClient({
           Lemy
         </Link>
 
-        <nav className="hidden items-center gap-5 text-sm font-medium lg:flex">
+        <nav className="hidden items-center gap-6 text-sm font-medium xl:flex">
           <Link
             href={AFFINITY_TEST.href}
             className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
@@ -151,22 +193,22 @@ export function SiteHeaderClient({
           ))}
         </nav>
 
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center gap-5 xl:flex">
           {isLoggedIn && <NotificationBell unreadCount={unreadCount} />}
-          <RightCtas isLoggedIn={isLoggedIn} role={role} />
+          <RightCtas isLoggedIn={isLoggedIn} role={role} compactSignOut />
         </div>
 
         <button
           aria-label="Abrir menú"
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-1 text-[1.75rem] leading-none text-forest lg:hidden"
+          className="p-1 text-[1.75rem] leading-none text-forest xl:hidden"
         >
           ☰
         </button>
       </div>
 
       {menuOpen && (
-        <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 lg:hidden">
+        <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 xl:hidden">
           <Link
             href={AFFINITY_TEST.href}
             onClick={() => setMenuOpen(false)}
