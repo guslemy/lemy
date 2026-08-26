@@ -44,9 +44,11 @@ export default function AvisoPrivacidadPage() {
             <p>Dependiendo de cómo uses Lemy, podemos recabar:</p>
             <p>
               <strong className="text-forest">Si eres paciente:</strong> nombre, correo electrónico,
-              teléfono (opcional, para recordatorios), y la información de las sesiones que agendes
-              (terapeuta elegido, fecha y hora). No guardamos el contenido clínico de tus sesiones a
-              menos que lo indiquemos explícitamente en el futuro, con tu consentimiento expreso.
+              teléfono (opcional, para recordatorios), la información de las sesiones que agendes
+              (terapeuta elegido, fecha y hora), y — solo si tu terapeuta decide registrarlas — notas
+              clínicas de sesión que tu terapeuta escribe sobre tu proceso terapéutico. Estas notas
+              están cifradas, son visibles únicamente para el terapeuta que las escribió, y ni Lemy ni
+              ningún otro tercero tiene acceso a su contenido.
             </p>
             <p>
               <strong className="text-forest">Si eres terapeuta:</strong> nombre, correo, teléfono,
@@ -87,12 +89,14 @@ export default function AvisoPrivacidadPage() {
 
           <Section title="5. Datos sensibles">
             <p>
-              Consideramos que el motivo por el que buscas terapia es un dato sensible. Por eso el
-              cuestionario de match no lo guarda ligado a tu identidad, y cualquier información
-              relacionada con tu salud que llegáramos a almacenar en el futuro (por ejemplo, un
-              historial clínico) requerirá tu consentimiento expreso y estará sujeta a medidas de
-              seguridad reforzadas, descritas en un aviso específico cuando ese servicio esté
-              disponible.
+              Consideramos que el motivo por el que buscas terapia, y cualquier información
+              relacionada con tu salud mental, son datos sensibles. Por eso el cuestionario de match
+              no los guarda ligados a tu identidad. El historial clínico (notas de sesión que tu
+              terapeuta puede registrar sobre tu proceso) se almacena cifrado a nivel de aplicación:
+              ni con acceso directo a nuestra base de datos es posible leer su contenido en texto
+              plano. Solo el terapeuta que las escribió puede leerlas — ni Lemy, ni el paciente, ni
+              ningún otro terapeuta tienen acceso. Las notas no se pueden editar una vez guardadas,
+              solo eliminarse, lo que preserva la integridad del registro.
             </p>
           </Section>
 
