@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getPatientInfoMap } from "@/lib/patient-info";
 import { PatientInfoPopup, RescheduleForm, CancelForm } from "@/app/dashboard/citas/citas-client";
@@ -108,18 +109,30 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
   const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
 
-  // Cuántas veces faltó cada paciente en los últimos 30 días, solo con
-  // este terapeuta (mismo alcance que "tu tasa de cancelación" abajo — no
-  // cruza inasistencias entre terapeutas distintos). Se calcula aquí mismo
-  // porque `appointments` ya trae todo lo necesario (status + scheduled_at),
-  // sin pedir una query aparte.
-  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-  const now = new Date().getTime();
+  // Cuántas veces faltó cada paciente en los últimos 45 días — a propósito
+  // cruzando TODOS los terapeutas, no solo el que está viendo esta pantalla:
+  // un paciente que falta seguido le falla a Lemy en general, no solo a un
+  // terapeuta en particular, así que el aviso debe verse aunque las
+  // inasistencias hayan sido con alguien más. RLS en `appointments` solo
+  // deja ver las propias citas de cada terapeuta, así que esto necesita el
+  // service client — y a propósito solo trae patient_id (nunca terapeuta,
+  // notas ni nada más de esas otras citas), para no filtrar información de
+  // otros terapeutas más allá del conteo agregado.
+  const NO_SHOW_WINDOW_DAYS = 45;
+  const noShowSince = new Date(new Date().getTime() - NO_SHOW_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const noShowCounts = new Map<string, number>();
-  for (const a of appointments) {
-    if (a.status !== "no_show") continue;
-    if (now - new Date(a.scheduled_at).getTime() > THIRTY_DAYS_MS) continue;
-    noShowCounts.set(a.patient_id, (noShowCounts.get(a.patient_id) ?? 0) + 1);
+  if (patientIds.length) {
+    const serviceClient = createServiceClient();
+    const { data: noShowRows } = await serviceClient
+      .from("appointments")
+      .select("patient_id")
+      .in("patient_id", patientIds)
+      .eq("status", "no_show")
+      .gte("scheduled_at", noShowSince);
+    for (const row of noShowRows ?? []) {
+      const pid = row.patient_id as string;
+      noShowCounts.set(pid, (noShowCounts.get(pid) ?? 0) + 1);
+    }
   }
 
   // Se muestran como "por confirmar" las que ya llegaron a pagarse por
@@ -210,8 +223,9 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
                   <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
                   {(noShowCounts.get(a.patient_id) ?? 0) > 3 && (
                     <p className="mt-2 max-w-[380px] rounded-xl border border-rose-deep/30 bg-rose/10 px-3 py-2 text-[0.8rem] font-medium text-rose-deep">
-                      Este paciente ha faltado a {noShowCounts.get(a.patient_id)} sesiones contigo en el
-                      último mes. Te recomendamos pedir el pago por adelantado antes de confirmar.
+                      Este paciente ha faltado a {noShowCounts.get(a.patient_id)} sesiones en los últimos
+                      45 días (con cualquier terapeuta en Lemy). Te recomendamos pedir el pago por
+                      adelantado antes de confirmar.
                     </p>
                   )}
                 </div>
