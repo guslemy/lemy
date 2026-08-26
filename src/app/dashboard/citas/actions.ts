@@ -200,6 +200,30 @@ export async function cancelAppointmentTherapist(formData: FormData) {
   redirect(result.ok ? "/dashboard?tab=citas&citas_cancelado=1" : "/dashboard?tab=citas&citas_error=1");
 }
 
+// Marca una cita ya confirmada y pasada como "no asistió" — el terapeuta la
+// dispara a mano desde la ficha del paciente, con confirmación previa en el
+// cliente (ver MarkNoShowForm). El .eq("status", "confirmed") en el update
+// evita que se pueda re-marcar una cita cancelada o ya marcada por otra vía
+// (ej. doble click, formulario reenviado). Este conteo alimenta el aviso de
+// "paciente con inasistencias recurrentes" que ve el terapeuta al revisar
+// solicitudes pendientes (ver noShowCounts en therapist-citas-tab.tsx).
+export async function markNoShowTherapist(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  const patientId = String(formData.get("patient_id") || "");
+  if (!appointmentId) return;
+
+  await supabase
+    .from("appointments")
+    .update({ status: "no_show" })
+    .eq("id", appointmentId)
+    .eq("therapist_id", user.id)
+    .eq("status", "confirmed");
+
+  revalidatePath("/dashboard");
+  if (patientId) revalidatePath(`/dashboard/pacientes/${patientId}`);
+}
+
 // Guarda las notas privadas del terapeuta sobre un paciente — no redirige
 // (a diferencia de las demás acciones de esta página) para que el popup
 // del paciente se quede abierto después de guardar, en vez de mandar a la

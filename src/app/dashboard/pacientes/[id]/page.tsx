@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
-import { savePatientNotes } from "../../citas/actions";
+import { savePatientNotes, markNoShowTherapist } from "../../citas/actions";
+import { MarkNoShowForm } from "../../citas/citas-client";
 import { createClinicalNote, softDeleteClinicalNote } from "../clinical-notes-actions";
 import { decryptClinicalNote, isClinicalNotesEncryptionConfigured } from "@/lib/clinical-notes-crypto";
 
@@ -181,17 +182,39 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               Historial de sesiones
             </h2>
             <div className="space-y-2.5">
-              {history.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded-2xl border border-line bg-card px-5 py-3.5"
-                >
-                  <p className="text-[0.9rem] text-forest">{formatOaxaca(a.scheduled_at as string)}</p>
-                  <span className="font-mono text-[0.72rem] uppercase tracking-[0.05em] text-[#8B978F]">
-                    {a.status === "cancelled" ? "Cancelada" : a.status === "confirmed" ? "Confirmada" : "Pendiente"}
-                  </span>
-                </div>
-              ))}
+              {history.map((a) => {
+                // Solo tiene sentido ofrecer "marcar no asistió" sobre una
+                // sesión que ya se confirmó y que ya pasó — no sobre citas
+                // futuras ni sobre las que nunca llegaron a confirmarse.
+                const isPast = new Date(a.scheduled_at as string).getTime() < new Date().getTime();
+                const canMarkNoShow = a.status === "confirmed" && isPast;
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-2xl border border-line bg-card px-5 py-3.5"
+                  >
+                    <p className="text-[0.9rem] text-forest">{formatOaxaca(a.scheduled_at as string)}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-[0.72rem] uppercase tracking-[0.05em] text-[#8B978F]">
+                        {a.status === "cancelled"
+                          ? "Cancelada"
+                          : a.status === "confirmed"
+                            ? "Confirmada"
+                            : a.status === "no_show"
+                              ? "No asistió"
+                              : "Pendiente"}
+                      </span>
+                      {canMarkNoShow && (
+                        <MarkNoShowForm
+                          appointmentId={a.id}
+                          patientId={patientId}
+                          markNoShowAction={markNoShowTherapist}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>

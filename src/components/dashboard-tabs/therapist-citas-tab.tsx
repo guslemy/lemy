@@ -108,6 +108,20 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
   const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
 
+  // Cuántas veces faltó cada paciente en los últimos 30 días, solo con
+  // este terapeuta (mismo alcance que "tu tasa de cancelación" abajo — no
+  // cruza inasistencias entre terapeutas distintos). Se calcula aquí mismo
+  // porque `appointments` ya trae todo lo necesario (status + scheduled_at),
+  // sin pedir una query aparte.
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const now = new Date().getTime();
+  const noShowCounts = new Map<string, number>();
+  for (const a of appointments) {
+    if (a.status !== "no_show") continue;
+    if (now - new Date(a.scheduled_at).getTime() > THIRTY_DAYS_MS) continue;
+    noShowCounts.set(a.patient_id, (noShowCounts.get(a.patient_id) ?? 0) + 1);
+  }
+
   // Se muestran como "por confirmar" las que ya llegaron a pagarse por
   // tarjeta, o las que son en efectivo (nunca pasan por Stripe Checkout, así
   // que no hay nada que esperar). Lo que NO se muestra es una reserva con
@@ -194,6 +208,12 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
                     <ServiceTag name={a.therapist_service?.service?.nombre ?? null} />
                   </p>
                   <p className="text-[0.85rem] text-[#5A665F]">{formatOaxaca(a.scheduled_at)}</p>
+                  {(noShowCounts.get(a.patient_id) ?? 0) > 3 && (
+                    <p className="mt-2 max-w-[380px] rounded-xl border border-rose-deep/30 bg-rose/10 px-3 py-2 text-[0.8rem] font-medium text-rose-deep">
+                      Este paciente ha faltado a {noShowCounts.get(a.patient_id)} sesiones contigo en el
+                      último mes. Te recomendamos pedir el pago por adelantado antes de confirmar.
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <form action={confirmAppointment}>

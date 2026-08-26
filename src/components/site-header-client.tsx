@@ -167,6 +167,13 @@ export function SiteHeaderClient({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // El test de afinidad es un CTA para quien todavía está buscando
+  // terapeuta — a un admin o terapeuta ya logueado no le sirve de nada y
+  // solo suma ruido/ancho al header. Para pacientes se queda (puede
+  // interesarles repetirlo o recomendarlo), y para quien no tiene sesión
+  // sigue siendo el CTA principal.
+  const showAffinityTest = !(isLoggedIn && (role === "therapist" || role === "admin"));
+
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-sage-white/86 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
@@ -179,12 +186,14 @@ export function SiteHeaderClient({
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium xl:flex">
-          <Link
-            href={AFFINITY_TEST.href}
-            className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
-          >
-            {AFFINITY_TEST.label}
-          </Link>
+          {showAffinityTest && (
+            <Link
+              href={AFFINITY_TEST.href}
+              className="rounded-full bg-rose-deep px-4 py-1.5 text-white shadow-[0_4px_14px_-6px_rgba(193,120,106,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#a86356]"
+            >
+              {AFFINITY_TEST.label}
+            </Link>
+          )}
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="group relative py-1 text-ink">
               {link.label}
@@ -209,13 +218,15 @@ export function SiteHeaderClient({
 
       {menuOpen && (
         <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 xl:hidden">
-          <Link
-            href={AFFINITY_TEST.href}
-            onClick={() => setMenuOpen(false)}
-            className="rounded-full bg-rose-deep px-4 py-2 text-center font-semibold text-white"
-          >
-            {AFFINITY_TEST.label}
-          </Link>
+          {showAffinityTest && (
+            <Link
+              href={AFFINITY_TEST.href}
+              onClick={() => setMenuOpen(false)}
+              className="rounded-full bg-rose-deep px-4 py-2 text-center font-semibold text-white"
+            >
+              {AFFINITY_TEST.label}
+            </Link>
+          )}
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
               {link.label}

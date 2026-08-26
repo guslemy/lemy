@@ -186,6 +186,38 @@ export function RescheduleForm({
   );
 }
 
+// Registra una inasistencia sobre una sesión ya pasada. Se ve solo en el
+// historial de sesiones de la ficha del paciente (dashboard/pacientes/[id]),
+// nunca sobre citas futuras — no tiene sentido "marcar" algo que no ha
+// pasado todavía.
+export function MarkNoShowForm({
+  appointmentId,
+  patientId,
+  markNoShowAction,
+}: {
+  appointmentId: string;
+  patientId: string;
+  markNoShowAction: (formData: FormData) => void;
+}) {
+  return (
+    <form
+      action={markNoShowAction}
+      onSubmit={confirmBeforeSubmit(
+        "¿Confirmas que el paciente no asistió a esta sesión? Queda registrado en su historial y puede activar el aviso de inasistencias recurrentes."
+      )}
+    >
+      <input type="hidden" name="appointment_id" value={appointmentId} />
+      <input type="hidden" name="patient_id" value={patientId} />
+      <button
+        type="submit"
+        className="font-mono text-[0.72rem] uppercase tracking-[0.05em] text-[#8B978F] underline decoration-dotted hover:text-rose-deep"
+      >
+        No asistió
+      </button>
+    </form>
+  );
+}
+
 export function CancelForm({
   appointmentId,
   cancelAction,
