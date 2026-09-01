@@ -167,5 +167,16 @@ function traducirError(message: string): string {
   if (message.includes("Password should be")) {
     return "La contraseña necesita al menos 6 caracteres.";
   }
-  return "Algo salió mal. Intenta de nuevo.";
+  if (message.includes("Unable to validate email address") || message.includes("invalid")) {
+    return "Ese correo no es válido — revisa que esté bien escrito.";
+  }
+  if (message.includes("rate limit")) {
+    return "Hiciste varios intentos seguidos. Espera un par de minutos y vuelve a intentar.";
+  }
+  // Antes cualquier error no reconocido (ej. algo específico de ciertos
+  // proveedores de correo como Hotmail/Outlook/Yahoo) se mostraba como
+  // "Algo salió mal, intenta de nuevo" sin ninguna pista de qué pasó en
+  // realidad — imposible de diagnosticar a partir de un reporte de usuario.
+  // Ahora se muestra el mensaje real de Supabase debajo del genérico.
+  return `Algo salió mal. Intenta de nuevo. (${message})`;
 }

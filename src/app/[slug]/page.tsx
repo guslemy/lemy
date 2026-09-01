@@ -550,7 +550,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       </div>
                       <Link
                         href="/enfoques"
-                        className="mb-6.5 inline-block text-[0.82rem] font-medium text-rose-deep underline underline-offset-2"
+                        className="mb-6.5 inline-block cursor-pointer text-[0.82rem] font-medium text-rose-deep underline underline-offset-2"
                       >
                         Aprende más sobre los enfoques de terapia →
                       </Link>

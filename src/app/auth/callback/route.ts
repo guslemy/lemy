@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
+import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Recibe el redirect de Google OAuth, intercambia el código por sesión
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
       // admin) — no la borramos, pero tampoco la dejamos entrar.
       const { data: profileRow } = await supabase
         .from("profiles")
-        .select("deactivated_at")
+        .select("deactivated_at, role")
         .eq("id", data.user.id)
         .maybeSingle();
       if (profileRow?.deactivated_at) {
@@ -44,6 +45,18 @@ export async function GET(request: NextRequest) {
         if (tokenError) {
           console.error("No se pudo guardar el refresh token de Google:", tokenError.message);
         }
+      }
+
+      // Google casi nunca manda teléfono en el perfil de OAuth, así que
+      // ensureProfile lo deja en null — sin este empujón, nadie que entra
+      // por primera vez con Google ve jamás un aviso pidiéndoselo. Un
+      // paciente lo alcanza a rescatar más tarde vía el gate de reservar
+      // (requestAppointment → /completar-perfil), pero un terapeuta que
+      // nunca reserva no tiene ningún otro momento en el que se le pida —
+      // se queda con phone=null para siempre y sus pacientes/Lemy no
+      // pueden contactarlo. No aplica a cuentas del equipo (admin).
+      if (profileRow?.role !== "admin" && !(await hasCompleteProfile(supabase, data.user.id))) {
+        return NextResponse.redirect(`${origin}/completar-perfil`);
       }
 
       return NextResponse.redirect(`${origin}${next}`);

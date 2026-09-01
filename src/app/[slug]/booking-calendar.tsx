@@ -111,6 +111,27 @@ export function BookingCalendar({
     setPendingSlot(null);
   }, [daysByDuration]);
 
+  // El caso que el useEffect de arriba NO cubre: pago con tarjeta. Ahí
+  // requestAppointment no redirige dentro de Lemy — manda al paciente a
+  // Stripe Checkout (dominio externo), así que la página de Lemy nunca
+  // vuelve a cargar en el servidor. Si el paciente cancela el pago o le da
+  // "atrás" en el navegador, Chrome/Safari suelen restaurar la página desde
+  // su caché de navegación (bfcache) tal como quedó en memoria — con
+  // submitting/pendingSlot todavía en true, sin volver a ejecutar ningún
+  // useEffect de montaje. El evento "pageshow" con persisted=true es la
+  // única señal del navegador para detectar justo ese caso y limpiar el
+  // estado atorado.
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setSubmitting(false);
+        setPendingSlot(null);
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const selectedDay = days.find((d) => d.date === selectedDate) ?? null;
 
   const modalityOption = (value: Modality, label: string, available: boolean) => (

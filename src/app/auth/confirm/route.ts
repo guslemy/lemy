@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
+import { hasCompleteProfile } from "@/lib/supabase/profile-completeness";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -17,6 +18,21 @@ export async function GET(request: NextRequest) {
 
     if (!error && data.user) {
       await ensureProfile(supabase, data.user);
+
+      // Red de seguridad por si el teléfono capturado en el formulario de
+      // registro (email-auth-form.tsx) no llegó hasta aquí por alguna razón
+      // — mismo criterio que auth/callback/route.ts para Google. Las
+      // cuentas @lemy.mx entran directo como admin (ver ensureProfile) y no
+      // necesitan este empujón.
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (profileRow?.role !== "admin" && !(await hasCompleteProfile(supabase, data.user.id))) {
+        return NextResponse.redirect(`${origin}/completar-perfil`);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
