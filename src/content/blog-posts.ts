@@ -494,6 +494,115 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "cuanto-cobrar-sesion-terapia-mexico-guia-precios",
+    title: "Cuánto cobrar por sesión de terapia en México: guía práctica de precios (2026)",
+    metaDescription:
+      "Guía 2026 para psicólogos en México: rangos de precio por sesión (presencial y online), qué factores mueven tu tarifa y cómo subirla sin perder pacientes.",
+    excerpt:
+      "¿Cuánto cobrar por sesión? Rangos reales para terapeutas en México, los factores que sí mueven tu tarifa, y cómo subirla sin sentir que le fallas a tus pacientes.",
+    publishedAt: "2026-09-15",
+    authorName: "Equipo Lemy",
+    readingMinutes: 6,
+    tags: [
+      "cuánto cobrar",
+      "precios de terapia",
+      "tarifas para terapeutas",
+      "terapeutas",
+      "psicólogo independiente",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "h2",
+        text: "¿Por qué cuesta tanto trabajo poner un precio?",
+      },
+      {
+        type: "p",
+        text: "Si eres psicólogo o psicoterapeuta independiente en México, seguro te ha pasado: alguien pregunta \"¿cuánto cobras por sesión?\" y dudas. Cobrar poco para no \"espantar\" pacientes, cobrar como tu colega de CDMX aunque trabajes en Oaxaca, o simplemente no saber si tu tarifa está muy por debajo (o por arriba) del mercado son dudas comunes, y no tiene nada que ver con que seas mal terapeuta. Tiene que ver con que nadie te enseñó a poner precio a tu trabajo en la carrera.",
+      },
+      {
+        type: "p",
+        text: "Aquí van rangos reales, los factores que sí mueven tu tarifa, y algunas ideas para subirla sin sentir que estás siendo injusto con tus pacientes.",
+      },
+      {
+        type: "h2",
+        text: "¿Cuánto se cobra hoy por una sesión en México?",
+      },
+      {
+        type: "p",
+        text: "Los precios varían mucho según ciudad, modalidad y experiencia, pero como referencia general:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Consulta presencial particular: entre $500 y $1,500 MXN por sesión en ciudades grandes; terapeutas con mucha experiencia o especialidades muy demandadas superan los $2,000.",
+          "Zonas periféricas o ciudades más pequeñas: es común encontrar tarifas desde $200 a $400 MXN.",
+          "Primera consulta: suele cobrarse un poco más que las de seguimiento (entre $800 y $1,300 MXN en zonas urbanas), porque implica una evaluación inicial más larga.",
+          "Terapia en línea: generalmente más accesible, entre $300 y $800 MXN por sesión, aunque puede llegar a $1,500 MXN dependiendo del terapeuta.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Estos son puntos de referencia, no una regla. Tu tarifa ideal depende de tu contexto específico.",
+      },
+      {
+        type: "h2",
+        text: "Qué factores mueven realmente tu tarifa",
+      },
+      {
+        type: "p",
+        text: "Tu experiencia y formación. Una cédula profesional, especialidades, certificaciones o años de trayectoria justifican cobrar por arriba del promedio. No es presunción, es que tu tiempo de formación tiene valor.",
+      },
+      {
+        type: "p",
+        text: "Tu ciudad y el costo de vida local. Cobrar lo mismo que un colega en CDMX no siempre tiene sentido si vives en una ciudad con otro costo de vida, y viceversa: si tu consultorio está en una zona con renta alta, tu tarifa debe reflejarlo.",
+      },
+      {
+        type: "p",
+        text: "La modalidad. La terapia en línea suele costar un poco menos que la presencial (no siempre), en parte porque tú también ahorras en renta de consultorio, transporte y tiempo entre pacientes.",
+      },
+      {
+        type: "p",
+        text: "Tu especialidad. Terapia de pareja, duelo, trauma complejo o modalidades muy específicas (EMDR, terapia familiar sistémica) suelen tener tarifas distintas a la consulta general.",
+      },
+      {
+        type: "p",
+        text: "Paquetes vs. sesión suelta. Ofrecer paquetes de varias sesiones con un pequeño descuento puede ayudarte a asegurar continuidad en el tratamiento sin bajar tu tarifa base.",
+      },
+      {
+        type: "h2",
+        text: "Cómo subir tu tarifa sin perder pacientes",
+      },
+      {
+        type: "p",
+        text: "Subir precios da miedo, pero hay formas de hacerlo con cuidado:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Avisa con anticipación. Un mensaje simple, con al menos 30 días de aviso, es suficiente para la mayoría de los pacientes.",
+          "Aplica el aumento a pacientes nuevos primero. Si te sientes incómodo subiendo la tarifa a quien ya está en proceso contigo, puedes empezar por los pacientes nuevos y ajustar a los actuales más adelante.",
+          "No te compares únicamente con el precio más bajo del mercado. Compararte con quien cobra menos te empuja a una carrera hacia abajo que no es sostenible para tu práctica a largo plazo.",
+          "Recuerda que un precio muy bajo también comunica algo. Cobrar por debajo de tu valor real puede generar más cancelaciones y menos compromiso con el proceso, precisamente porque el paciente no percibe el valor del espacio.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Cobrar no tiene que ser lo más incómodo de tu semana",
+      },
+      {
+        type: "p",
+        text: "Más allá de cuánto cobras, cómo cobras también importa. Perseguir pagos, mandar recordatorios por WhatsApp o llevar un Excel de quién pagó y quién no le resta tiempo a lo que realmente sabes hacer: acompañar a tus pacientes.",
+      },
+      {
+        type: "cta",
+        text: "En Lemy te ayudamos con esa parte. Tus pacientes agendan y pagan su sesión en automático al reservar (presencial o por Google Meet), sin que tengas que perseguir a nadie, y tú tienes tu agenda y tu catálogo de servicios en un solo lugar. Si quieres probarlo sin compromiso, tenemos 15 días de prueba gratuita para terapeutas — sin tarjeta, sin letras chiquitas.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
