@@ -395,6 +395,105 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "como-conseguir-mas-pacientes-psicologo-independiente-mexico",
+    title: "Cómo conseguir más pacientes como psicólogo independiente en México: 7 estrategias que sí funcionan",
+    metaDescription:
+      "Estrategias reales para que psicólogos y terapeutas en México consigan más pacientes: presencia digital, boca a boca, plataformas y más. Guía práctica.",
+    excerpt:
+      "Conseguir pacientes de forma constante no depende solo de ser buen terapeuta — también de que te encuentren y confíen en ti antes de la primera sesión. Aquí 7 estrategias que sí funcionan.",
+    publishedAt: "2026-09-15",
+    authorName: "Equipo Lemy",
+    readingMinutes: 7,
+    tags: [
+      "conseguir pacientes",
+      "psicólogo independiente",
+      "marketing para terapeutas",
+      "terapeutas",
+      "práctica privada",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "p",
+        text: "Si acabas de independizarte o llevas años dando consulta pero sientes que tu agenda no crece al ritmo que te gustaría, no estás solo. El interés por la salud mental en México ha crecido muchísimo en los últimos años, pero eso también significa más terapeutas ofreciendo sus servicios y pacientes con más opciones para elegir. Conseguir pacientes de forma constante ya no depende solo de ser un buen terapeuta: también depende de que te puedan encontrar y de que confíen en ti antes de agendar la primera sesión.",
+      },
+      {
+        type: "p",
+        text: "Aquí van siete estrategias que realmente mueven la aguja, sin necesidad de convertirte en experto en marketing.",
+      },
+      {
+        type: "h2",
+        text: "1. Ten un perfil profesional claro y humano",
+      },
+      {
+        type: "p",
+        text: "Muchos psicólogos independientes no tienen ningún lugar donde un paciente potencial pueda conocerlos antes de escribirles. Un perfil breve —quién eres, en qué te especializas, cómo trabajas y qué pueden esperar de una primera sesión— reduce muchísimo la fricción. No necesita sonar clínico ni acartonado: entre más cercano y claro sea tu lenguaje, más fácil es que alguien dé el primer paso.",
+      },
+      {
+        type: "h2",
+        text: "2. Define tu especialidad (aunque atiendas de todo)",
+      },
+      {
+        type: "p",
+        text: "\"Doy terapia a todo tipo de pacientes\" es honesto, pero no ayuda a que te encuentren. Las personas buscan por necesidad específica: ansiedad, duelo, terapia de pareja, adolescentes. Elegir uno o dos enfoques para presentarte hacia afuera —sin que eso limite a quién realmente atiendes— facilita que aparezcas en la búsqueda correcta y que la persona sienta \"este terapeuta es para mí.\"",
+      },
+      {
+        type: "h2",
+        text: "3. Aprovecha el boca a boca, pero dale una salida fácil",
+      },
+      {
+        type: "p",
+        text: "Sigue siendo, por mucho, la forma más común en que la gente encuentra terapeuta. El problema es que muchas recomendaciones se pierden porque la persona recomendada no sabe cómo dar el siguiente paso. Facilita ese camino: un enlace directo para agendar, un número de WhatsApp, algo que no dependa de que alguien \"te busque en Facebook y te escriba.\"",
+      },
+      {
+        type: "h2",
+        text: "4. Ten presencia digital, aunque sea mínima",
+      },
+      {
+        type: "p",
+        text: "No necesitas ser influencer ni publicar todos los días. Basta con que exista un lugar donde la gente pueda verificar que eres real, ver tu formación y encontrar tu contacto: un perfil en Google, en Instagram o en una plataforma especializada. Para búsquedas locales (\"psicólogo en Oaxaca\", \"terapia en línea México\") esto también ayuda a que aparezcas cuando alguien te está buscando activamente, no solo cuando te recomiendan.",
+      },
+      {
+        type: "h2",
+        text: "5. Facilita agendar la primera cita",
+      },
+      {
+        type: "p",
+        text: "Uno de los puntos donde más pacientes potenciales se pierden es entre \"quiero agendar\" y realmente lograrlo. Si el proceso implica varios mensajes de ida y vuelta para cuadrar un horario, muchas personas simplemente no vuelven a escribir. Un sistema de agenda donde la persona vea tu disponibilidad real y reserve en el momento reduce esa fricción de forma enorme, sobre todo con quienes están dando el paso de buscar ayuda por primera vez y ya les costó suficiente trabajo decidirse.",
+      },
+      {
+        type: "h2",
+        text: "6. Ofrece terapia en línea, no solo presencial",
+      },
+      {
+        type: "p",
+        text: "Cada vez más pacientes prefieren —o necesitan— la opción de conectarse desde casa o desde el trabajo. Ofrecer modalidad en línea, con videollamada integrada y sin que el paciente tenga que instalar nada complicado, amplía tu alcance más allá de tu colonia o ciudad, y te da flexibilidad para llenar horarios que de otra forma quedarían vacíos.",
+      },
+      {
+        type: "h2",
+        text: "7. Cuida la experiencia después de la primera sesión",
+      },
+      {
+        type: "p",
+        text: "Conseguir un paciente nuevo cuesta más que retener uno. Recordatorios de cita, un cobro simple y sin fricción, y un canal claro para reagendar hacen que la persona regrese a la segunda y tercera sesión en lugar de perderse en el camino. Esa continuidad es, con el tiempo, la que realmente sostiene una práctica llena.",
+      },
+      {
+        type: "h2",
+        text: "Todo esto, sin tener que armarlo tú desde cero",
+      },
+      {
+        type: "p",
+        text: "Construir cada una de estas piezas por separado —perfil, agenda en línea, videollamada, cobros, recordatorios— toma tiempo que la mayoría de los terapeutas prefiere invertir en sus pacientes, no en aprender herramientas nuevas.",
+      },
+      {
+        type: "cta",
+        text: "Por eso existe Lemy: un espacio donde los pacientes en Oaxaca te encuentran, agendan contigo (presencial o en línea, con Google Meet integrado), pagan de forma segura y reciben sus recordatorios automáticamente. Tú te enfocas en dar terapia; Lemy se encarga del resto. Si quieres probarlo sin compromiso, Lemy tiene 15 días de prueba gratuita para terapeutas.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
