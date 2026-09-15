@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...excepto la plantilla sin secretos, que SÍ debe vivir en git — si no,
+# nadie (ni otra sesión de Claude, ni un colaborador nuevo) puede verla.
+!.env.example
 
 # vercel
 .vercel
