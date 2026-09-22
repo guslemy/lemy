@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PwaNavButtons } from "@/components/pwa-nav-buttons";
 import { signOut } from "@/app/actions";
 
 // Antes estos eran anclas sueltas ("#que-es-lemy") — funcionaban solo
@@ -177,13 +178,16 @@ export function SiteHeaderClient({
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-sage-white/86 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5 font-display text-[1.7rem] font-semibold text-forest">
-          <span className="relative h-[18px] w-[26px] flex-none">
-            <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-forest/90" />
-            <span className="absolute left-[10px] top-0.5 h-4 w-4 rounded-full bg-rose mix-blend-multiply" />
-          </span>
-          Lemy
-        </Link>
+        <div className="flex items-center gap-1">
+          <PwaNavButtons />
+          <Link href="/" className="flex items-center gap-2.5 font-display text-[1.7rem] font-semibold text-forest">
+            <span className="relative h-[18px] w-[26px] flex-none">
+              <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-forest/90" />
+              <span className="absolute left-[10px] top-0.5 h-4 w-4 rounded-full bg-rose mix-blend-multiply" />
+            </span>
+            Lemy
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-6 text-sm font-medium xl:flex">
           {showAffinityTest && (

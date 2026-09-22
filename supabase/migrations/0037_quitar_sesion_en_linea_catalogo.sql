@@ -1,0 +1,14 @@
+-- A petición de Gustavo (2026-09-21): "Sesión en línea" en el catálogo de
+-- servicios (0031_catalogo_servicios.sql) es redundante — el terapeuta ya
+-- indica por separado si atiende en línea con el toggle
+-- therapists.is_online_available, así que tenerlo también como servicio
+-- del catálogo duplicaba la misma idea de dos formas distintas.
+--
+-- OJO: therapist_services.service_id referencia esta fila con
+-- "on delete cascade" — si algún terapeuta ya tenía "Sesión en línea"
+-- marcada con su propio precio, esa fila específica se borra junto con el
+-- catálogo (no su cuenta ni sus demás servicios). Las citas ya agendadas
+-- con ese servicio no se rompen: appointments.therapist_service_id tiene
+-- "on delete set null", así que solo pierden la referencia al servicio,
+-- conservan su propio price/duration_min ya guardados aparte.
+delete from public.service_catalog where slug = 'sesion-en-linea';
