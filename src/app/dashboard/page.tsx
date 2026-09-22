@@ -63,6 +63,19 @@ export default async function DashboardPage({
 
   const therapistTabs: PanelTab[] = isTherapist
     ? [
+        // "Consultas" (antes "Citas") va primero y es la pestaña default —
+        // a petición de Gustavo (2026-09-21): es lo que un terapeuta quiere
+        // ver apenas entra, no su formulario de perfil. La key interna se
+        // queda como "citas" a propósito (no solo la etiqueta cambió) —
+        // hay redirects en varios lados (dashboard/citas/actions.ts,
+        // completar-perfil/actions.ts, etc.) que apuntan a
+        // "/dashboard?tab=citas&..."; cambiar la key rompería todos esos
+        // sin necesidad, el rename es solo visual.
+        {
+          key: "citas",
+          label: "Consultas",
+          content: <TherapistCitasTab params={sp} />,
+        },
         {
           key: "perfil",
           label: "Editar perfil",
@@ -72,11 +85,6 @@ export default async function DashboardPage({
           key: "disponibilidad",
           label: "Disponibilidad",
           content: <TherapistDisponibilidadTab params={sp} />,
-        },
-        {
-          key: "citas",
-          label: "Citas",
-          content: <TherapistCitasTab params={sp} />,
         },
         {
           key: "suscripcion",
@@ -99,7 +107,7 @@ export default async function DashboardPage({
     },
   ];
 
-  const initialTabKey = sp.tab || (isTherapist ? "perfil" : "citas");
+  const initialTabKey = sp.tab || "citas";
 
   return (
     <>

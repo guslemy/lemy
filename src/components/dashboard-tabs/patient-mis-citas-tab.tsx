@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { cancelAppointmentPatient, updatePatientPhone } from "@/app/dashboard/mis-citas/actions";
+import {
+  cancelAppointmentPatient,
+  updatePatientPhone,
+  acceptTherapistAppointment,
+  declineTherapistAppointment,
+} from "@/app/dashboard/mis-citas/actions";
 
 // Vista del paciente: sus solicitudes/sesiones agendadas, con opción de
 // cancelar. Hoy es la única pestaña del panel de paciente — se estructura
@@ -18,6 +23,7 @@ type AppointmentRow = {
   modality: string | null;
   meeting_link: string | null;
   location_address: string | null;
+  patient_acceptance_expires_at: string | null;
   therapist_service: { service: { nombre: string } | null } | null;
 };
 
@@ -38,6 +44,7 @@ function formatOaxaca(iso: string) {
 }
 
 const STATUS_LABEL: Record<string, string> = {
+  pending_patient_acceptance: "Tu terapeuta te propuso esta cita",
   pending_payment: "Esperando confirmación del terapeuta",
   confirmed: "Confirmada",
   completed: "Completada",
@@ -49,10 +56,23 @@ export type MisCitasTabParams = {
   cancelado?: string;
   error?: string;
   telefono_guardado?: string;
+  aceptado?: string;
+  rechazado?: string;
 };
 
+// "sd" = fecha de vencimiento en formato corto (Oaxaca), reutiliza
+// formatOaxaca de más abajo en el mismo archivo.
+function formatExpiryLabel(iso: string) {
+  const msLeft = new Date(iso).getTime() - Date.now();
+  if (msLeft <= 0) return "está por vencer";
+  const hoursLeft = Math.floor(msLeft / (60 * 60 * 1000));
+  if (hoursLeft < 1) return "vence en menos de 1 hora";
+  if (hoursLeft === 1) return "vence en 1 hora";
+  return `vence en ${hoursLeft} horas`;
+}
+
 export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams }) {
-  const { cancelado, error, telefono_guardado } = params;
+  const { cancelado, error, telefono_guardado, aceptado, rechazado } = params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -68,7 +88,7 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
   const { data: rawAppointments } = await supabase
     .from("appointments")
     .select(
-      "id, therapist_id, scheduled_at, status, payment_status, modality, meeting_link, location_address, therapist_service:therapist_services ( service:service_catalog ( nombre ) )"
+      "id, therapist_id, scheduled_at, status, payment_status, modality, meeting_link, location_address, patient_acceptance_expires_at, therapist_service:therapist_services ( service:service_catalog ( nombre ) )"
     )
     .eq("patient_id", user.id)
     .neq("status", "cancelled")
@@ -105,6 +125,16 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
       {telefono_guardado === "1" && (
         <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
           Listo, guardamos tu WhatsApp.
+        </p>
+      )}
+      {aceptado === "1" && (
+        <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+          Listo, aceptaste la cita.
+        </p>
+      )}
+      {rechazado === "1" && (
+        <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+          Rechazaste la cita — el horario ya quedó libre.
         </p>
       )}
 
@@ -168,6 +198,11 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
                     {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}
                     {a.therapist_service?.service?.nombre && ` · ${a.therapist_service.service.nombre}`}
                   </p>
+                  {a.status === "pending_patient_acceptance" && a.patient_acceptance_expires_at && (
+                    <p className="mt-1 text-[0.8rem] text-rose-deep">
+                      Tu respuesta {formatExpiryLabel(a.patient_acceptance_expires_at)}.
+                    </p>
+                  )}
                   {a.modality === "online" && a.meeting_link && (
                     <a
                       href={a.meeting_link}
@@ -184,21 +219,44 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
                     </p>
                   )}
                 </div>
-                <form action={cancelAppointmentPatient} className="flex items-center gap-2">
-                  <input type="hidden" name="appointment_id" value={a.id} />
-                  <input
-                    type="text"
-                    name="reason"
-                    placeholder="Motivo (opcional)"
-                    className="input-lemy w-[140px] py-1.5 text-[0.8rem]"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
-                  >
-                    Cancelar
-                  </button>
-                </form>
+                {a.status === "pending_patient_acceptance" ? (
+                  <div className="flex items-center gap-2">
+                    <form action={acceptTherapistAppointment}>
+                      <input type="hidden" name="appointment_id" value={a.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full bg-forest px-4 py-1.5 font-mono text-[0.78rem] font-semibold text-sage-white hover:bg-forest-deep"
+                      >
+                        Aceptar
+                      </button>
+                    </form>
+                    <form action={declineTherapistAppointment} className="flex items-center gap-2">
+                      <input type="hidden" name="appointment_id" value={a.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
+                      >
+                        Rechazar
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <form action={cancelAppointmentPatient} className="flex items-center gap-2">
+                    <input type="hidden" name="appointment_id" value={a.id} />
+                    <input
+                      type="text"
+                      name="reason"
+                      placeholder="Motivo (opcional)"
+                      className="input-lemy w-[140px] py-1.5 text-[0.8rem]"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-line px-3.5 py-1.5 font-mono text-[0.78rem] text-[#8B978F] hover:border-rose-deep hover:text-rose-deep"
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                )}
               </div>
             );
           })}

@@ -70,6 +70,7 @@ export type CitasTabParams = {
   citas_cancelado?: string;
   citas_error?: string;
   citas_reagendado?: string;
+  citas_completada?: string;
 };
 
 export async function TherapistCitasTab({ params }: { params: CitasTabParams }) {
@@ -78,6 +79,7 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
     citas_cancelado: cancelado,
     citas_error: error,
     citas_reagendado: reagendado,
+    citas_completada: completada,
   } = params;
   const supabase = await createClient();
   const {
@@ -144,7 +146,16 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   const pending = appointments.filter(
     (a) => a.status === "pending_payment" && (a.payment_status === "paid" || a.payment_status === "efectivo")
   );
-  const confirmedList = appointments.filter((a) => a.status === "confirmed");
+  // Solo próximas — a petición de Gustavo (2026-09-21), las que ya pasaron
+  // no deben quedarse aquí mostrándose para siempre. Su resolución (marcar
+  // que sí se llevó a cabo, reagendar o cancelar) pasa ahora por el pop-up
+  // de confirmar asistencia (ver AttendanceGate), no por esta lista — una
+  // vez resuelta, sale de "confirmed" (a "completed" o "cancelled") y de
+  // cualquier forma ya no aplicaría aquí por la fecha.
+  const now = Date.now();
+  const confirmedList = appointments.filter(
+    (a) => a.status === "confirmed" && new Date(a.scheduled_at).getTime() > now
+  );
   const cancelledList = appointments.filter((a) => a.status === "cancelled");
   const cancelledByPatient = cancelledList.filter((a) => a.cancelled_by === "patient").length;
   const cancelledByTherapist = cancelledList.filter((a) => a.cancelled_by === "therapist").length;
@@ -167,6 +178,11 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
       {reagendado === "1" && (
         <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
           Cita reagendada. Le avisamos a tu paciente del nuevo horario.
+        </p>
+      )}
+      {completada === "1" && (
+        <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+          Listo, quedó registrada como completada.
         </p>
       )}
       {error === "1" && (
@@ -245,10 +261,10 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
 
       <section className="mt-9">
         <h2 className="mb-3 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-rose-deep">
-          Confirmadas
+          Próximas sesiones
         </h2>
         {confirmedList.length === 0 ? (
-          <p className="text-[0.9rem] text-[#8B978F]">Aún no tienes sesiones confirmadas.</p>
+          <p className="text-[0.9rem] text-[#8B978F]">No tienes próximas sesiones confirmadas.</p>
         ) : (
           <div className="space-y-3">
             {confirmedList.map((a) => (

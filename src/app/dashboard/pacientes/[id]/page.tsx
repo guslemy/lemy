@@ -3,13 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
-import { savePatientNotes, markNoShowTherapist } from "../../citas/actions";
+import { savePatientNotes, markNoShowTherapist, createAppointmentForPatient } from "../../citas/actions";
 import { MarkNoShowForm, SaveNotesForm } from "../../citas/citas-client";
 import { createClinicalNote, softDeleteClinicalNote } from "../clinical-notes-actions";
 import { decryptClinicalNote, isClinicalNotesEncryptionConfigured } from "@/lib/clinical-notes-crypto";
+import { getAvailableSlots } from "@/lib/availability";
+import {
+  TherapistBookForPatient,
+  type BookForPatientDaySlots,
+  type BookForPatientService,
+} from "@/components/therapist-book-for-patient";
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
+
+function formatSlotDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const weekday = WEEKDAY_LABELS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${weekday} ${d}/${m}`;
+}
 
 function formatOaxaca(iso: string) {
   const utcMs = new Date(iso).getTime() - OAXACA_UTC_OFFSET_MIN * 60 * 1000;
@@ -25,8 +37,15 @@ function formatOaxaca(iso: string) {
 // Ficha básica de un paciente, vista solo por el terapeuta que lo atiende
 // (por eso exige que exista al menos una cita entre ambos — nadie puede
 // entrar a la ficha de un paciente ajeno solo adivinando su id en la URL).
-export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PatientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ agendar_ok?: string; agendar_error?: string }>;
+}) {
   const { id: patientId } = await params;
+  const { agendar_ok, agendar_error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,6 +66,56 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   const infoMap = await getPatientInfoMap(supabase, user.id, [patientId]);
   const info = infoMap.get(patientId);
+
+  // Datos para el botón "Agendar consulta con este paciente" (a petición de
+  // Gustavo, 2026-09-21) — mismo cálculo de horarios disponibles que ya usa
+  // el perfil público (ver [slug]/page.tsx), aquí sobre el propio terapeuta
+  // en vez de sobre uno buscado por slug.
+  const { data: therapistRow } = await supabase
+    .from("therapists")
+    .select(
+      "session_duration_min, is_online_available, is_in_person_available, therapist_services ( id, price, duration_min, service:service_catalog ( nombre ) )"
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const bookServices: BookForPatientService[] = (
+    (therapistRow?.therapist_services ?? []) as unknown as {
+      id: string;
+      price: number;
+      duration_min: number;
+      service: { nombre: string } | null;
+    }[]
+  )
+    .filter((s) => Boolean(s.service))
+    .map((s) => ({ id: s.id, nombre: s.service!.nombre, price: s.price, durationMin: s.duration_min }));
+
+  const legacyDurationMin = (therapistRow?.session_duration_min as number | undefined) ?? 50;
+  const durationsToLoad = bookServices.length
+    ? Array.from(new Set(bookServices.map((s) => s.durationMin)))
+    : [legacyDurationMin];
+
+  function toDaySlots(slots: Awaited<ReturnType<typeof getAvailableSlots>>): BookForPatientDaySlots[] {
+    const slotsByDate = new Map<string, typeof slots>();
+    for (const slot of slots) {
+      const list = slotsByDate.get(slot.date) ?? [];
+      list.push(slot);
+      slotsByDate.set(slot.date, list);
+    }
+    return Array.from(slotsByDate.entries()).map(([date, daySlots]) => ({
+      date,
+      label: formatSlotDate(date),
+      slots: daySlots.map((s) => ({ startTime: s.startTime, scheduledAtUtc: s.scheduledAtUtc })),
+    }));
+  }
+
+  const bookDaysByDuration: Record<number, BookForPatientDaySlots[]> = {};
+  await Promise.all(
+    durationsToLoad.map(async (duration) => {
+      const slots = await getAvailableSlots(supabase, user.id, duration);
+      bookDaysByDuration[duration] = toDaySlots(slots);
+    })
+  );
 
   // El historial clínico se descifra aquí, del lado del servidor — el
   // navegador nunca recibe el ciphertext ni la llave, solo el texto plano
@@ -95,6 +164,22 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             {info?.fullName ?? "Paciente"}
           </h1>
 
+          {agendar_ok === "1" && (
+            <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+              Listo, le avisamos a {info?.fullName ?? "tu paciente"} — tiene 24 horas para aceptar o rechazar.
+            </p>
+          )}
+          {agendar_error === "ocupado" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Ese horario ya no está disponible, elige otro.
+            </p>
+          )}
+          {agendar_error === "1" && (
+            <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              Algo no salió bien, intenta de nuevo.
+            </p>
+          )}
+
           <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
             <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">Contacto</p>
             <p className="mt-2 text-[0.92rem] text-[#3E4B44]">{info?.email ?? "—"}</p>
@@ -104,6 +189,17 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               patientId={patientId}
               initialNotes={info?.notes ?? null}
               saveNotesAction={savePatientNotes}
+            />
+
+            <TherapistBookForPatient
+              patientId={patientId}
+              patientName={info?.fullName ?? "tu paciente"}
+              daysByDuration={bookDaysByDuration}
+              legacyDurationMin={legacyDurationMin}
+              services={bookServices}
+              onlineAvailable={therapistRow?.is_online_available !== false}
+              inPersonAvailable={therapistRow?.is_in_person_available === true}
+              createAppointmentAction={createAppointmentForPatient}
             />
           </div>
 

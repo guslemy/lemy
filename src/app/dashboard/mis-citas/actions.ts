@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
-import { notifyAppointmentCancelled } from "@/lib/notifications/instant";
+import { notifyAppointmentCancelled, notifyAppointmentAccepted } from "@/lib/notifications/instant";
+import { startAppointmentCheckout } from "@/lib/appointment-checkout";
+import { hasGestionaPlan } from "@/lib/plan-features";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -53,4 +55,114 @@ export async function cancelAppointmentPatient(formData: FormData) {
 
   revalidatePath("/dashboard");
   redirect(result.ok ? "/dashboard?tab=citas&cancelado=1" : "/dashboard?tab=citas&error=1");
+}
+
+// El paciente acepta una cita que su terapeuta agendó directo desde la
+// ficha (status "pending_patient_acceptance", 24 horas de plazo — ver
+// createAppointmentForPatient en dashboard/citas/actions.ts). Mismo
+// criterio de cardAvailable que requestAppointmentForUser (lib/appointments.ts):
+// si el terapeuta de verdad puede cobrar con tarjeta a través de Lemy, se
+// manda a Stripe Checkout igual que cualquier otra reserva con tarjeta; si
+// no, la cita pasa a "pending_payment"/"efectivo" (mismo estado al que
+// llega una solicitud normal en efectivo) y solo le falta al terapeuta
+// confirmarla con un clic, como con cualquier otra solicitud pendiente.
+export async function acceptTherapistAppointment(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  if (!appointmentId) redirect("/dashboard?tab=citas&error=1");
+
+  const { data: appointment } = await supabase
+    .from("appointments")
+    .select("id, therapist_id, scheduled_at, patient_acceptance_expires_at")
+    .eq("id", appointmentId)
+    .eq("patient_id", user.id)
+    .eq("status", "pending_patient_acceptance")
+    .maybeSingle();
+
+  if (!appointment) redirect("/dashboard?tab=citas&error=1");
+
+  const expiresAt = appointment.patient_acceptance_expires_at as string | null;
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+    // Ya venció — el barrido del cron todavía no alcanza a cancelarla, pero
+    // no tiene caso dejar que el paciente la acepte de todos modos.
+    redirect("/dashboard?tab=citas&error=1");
+  }
+
+  const { data: therapist } = await supabase
+    .from("therapists")
+    .select(
+      "accepts_card_payment, stripe_connect_account_id, stripe_connect_charges_enabled, subscription_plan, subscription_status"
+    )
+    .eq("id", appointment.therapist_id as string)
+    .maybeSingle();
+
+  const cardAvailable = Boolean(
+    therapist?.accepts_card_payment &&
+      therapist?.stripe_connect_account_id &&
+      therapist?.stripe_connect_charges_enabled &&
+      hasGestionaPlan(
+        therapist?.subscription_plan as string | null,
+        therapist?.subscription_status as string | null
+      )
+  );
+
+  if (cardAvailable) {
+    // El pago con tarjeta es el que de verdad "reserva" el horario — se
+    // limpia el vencimiento de 24h aquí porque, si el paciente completa el
+    // pago, el estado ya deja de depender de ese plazo (y si cancela el
+    // pago a medias, la cita se queda igual que cualquier otra con pago
+    // pendiente, sin un plazo de aceptación aparte que ya no aplica).
+    await supabase
+      .from("appointments")
+      .update({ status: "pending_payment", patient_acceptance_expires_at: null })
+      .eq("id", appointmentId)
+      .eq("patient_id", user.id);
+
+    const checkoutUrl = await startAppointmentCheckout(appointmentId);
+    if (!checkoutUrl) redirect("/dashboard?tab=citas&error=1");
+    redirect(checkoutUrl);
+  }
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({ status: "pending_payment", payment_status: "efectivo", patient_acceptance_expires_at: null })
+    .eq("id", appointmentId)
+    .eq("patient_id", user.id);
+
+  if (error) redirect("/dashboard?tab=citas&error=1");
+
+  await notifyAppointmentAccepted({
+    appointmentId,
+    therapistId: appointment.therapist_id as string,
+    patientId: user.id,
+    scheduledAtIso: appointment.scheduled_at as string,
+  });
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=citas&aceptado=1");
+}
+
+// El paciente rechaza una cita que su terapeuta agendó directo — mismo
+// camino que cancelar cualquier otra cita propia (cancelAppointmentAsParticipant
+// ya cubre "solo puede tocarla quien es de verdad uno de los dos
+// participantes" y "no se puede tocar algo ya cancelado/completado").
+export async function declineTherapistAppointment(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  const reason = String(formData.get("reason") || "").trim() || null;
+
+  const result = await cancelAppointmentAsParticipant(supabase, user.id, appointmentId, "patient", reason);
+
+  if (result.ok && result.appointment) {
+    await notifyAppointmentCancelled({
+      appointmentId,
+      cancelledBy: "patient",
+      therapistId: result.appointment.therapist_id,
+      patientId: result.appointment.patient_id,
+      scheduledAtIso: result.appointment.scheduled_at,
+    });
+  }
+
+  revalidatePath("/dashboard");
+  redirect(result.ok ? "/dashboard?tab=citas&rechazado=1" : "/dashboard?tab=citas&error=1");
 }

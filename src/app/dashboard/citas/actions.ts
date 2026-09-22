@@ -11,6 +11,7 @@ import {
   notifyAppointmentCancelled,
   notifyAppointmentConfirmed,
   notifyAppointmentRescheduled,
+  notifyAppointmentProposed,
 } from "@/lib/notifications/instant";
 
 async function requireTherapist() {
@@ -222,6 +223,161 @@ export async function markNoShowTherapist(formData: FormData) {
 
   revalidatePath("/dashboard");
   if (patientId) revalidatePath(`/dashboard/pacientes/${patientId}`);
+}
+
+// Marca una cita confirmada y ya pasada como "sí se llevó a cabo" — una de
+// las 3 opciones del pop-up de confirmar asistencia (AttendanceGate, ver
+// src/app/dashboard/layout.tsx y src/components/attendance-gate.tsx), a
+// petición de Gustavo (2026-09-21) para tener estadísticas mensuales
+// confiables. El .eq("status", "confirmed") evita re-marcar algo ya
+// resuelto por otra vía (doble clic, formulario reenviado).
+export async function markSessionCompleted(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const appointmentId = String(formData.get("appointment_id") || "");
+  if (!appointmentId) redirect("/dashboard?tab=citas&citas_error=1");
+
+  await supabase
+    .from("appointments")
+    .update({ status: "completed" })
+    .eq("id", appointmentId)
+    .eq("therapist_id", user.id)
+    .eq("status", "confirmed");
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=citas&citas_completada=1");
+}
+
+// El terapeuta agenda directo una cita con un paciente suyo desde su ficha
+// (botón "Agendar consulta con este paciente", a petición de Gustavo
+// 2026-09-21). A diferencia de una solicitud normal (paciente → terapeuta),
+// aquí el sentido es al revés: la cita nace en "pending_patient_acceptance"
+// con 24 horas para que el paciente la acepte (y pague, si aplica con
+// tarjeta) o la rechace — ver acceptTherapistAppointment/
+// declineTherapistAppointment en dashboard/mis-citas/actions.ts. El horario
+// queda apartado desde el instante en que se crea: todas las consultas de
+// "¿está libre este horario?" en el sitio (getAvailableSlots,
+// requestAppointmentForUser, esta misma función) ya excluyen cualquier cita
+// con status != "cancelled", así que un status nuevo como este no necesita
+// ningún cambio adicional en ese código para bloquear el espacio.
+export async function createAppointmentForPatient(formData: FormData) {
+  const { supabase, user } = await requireTherapist();
+  const patientId = String(formData.get("patient_id") || "");
+  const scheduledAt = String(formData.get("scheduled_at") || "");
+  const modality: "online" | "presencial" = formData.get("modality") === "presencial" ? "presencial" : "online";
+  const therapistServiceId = String(formData.get("therapist_service_id") || "") || null;
+
+  if (!patientId || !scheduledAt) redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+
+  // Cliente de servicio para las dos operaciones que la RLS de por sí no
+  // deja hacer al cliente normal del terapeuta: leer el perfil de OTRO
+  // usuario (profiles_select_own exige auth.uid() = id — mismo bug que ya
+  // arreglamos en getPatientInfoMap, ver lib/patient-info.ts) e insertar una
+  // cita cuyo patient_id no es el propio (appointments_patient_insert exige
+  // auth.uid() = patient_id; no existe una policy equivalente para que el
+  // terapeuta inserte a nombre de su paciente).
+  const serviceClient = createServiceClient();
+
+  // Defensa del lado del servidor: patientId llega en un campo oculto del
+  // formulario, así que nunca hay que confiar en que de verdad corresponde
+  // a un paciente real antes de insertar la cita.
+  const { data: patientProfile } = await serviceClient
+    .from("profiles")
+    .select("role")
+    .eq("id", patientId)
+    .maybeSingle();
+  if (patientProfile?.role !== "patient") {
+    redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+  }
+
+  // Mismo requisito que la ficha del paciente (ver page.tsx: notFound() si
+  // no hay ninguna cita previa entre ambos) — sin esto, alguien podría
+  // llamar a esta acción a mano con el id de un paciente con el que este
+  // terapeuta nunca ha tenido contacto.
+  const { count: priorCount } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("therapist_id", user.id)
+    .eq("patient_id", patientId);
+  if (!priorCount) redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+
+  let servicePrice: number | null = null;
+  let serviceDurationMin: number | null = null;
+  if (therapistServiceId) {
+    const { data: service } = await supabase
+      .from("therapist_services")
+      .select("price, duration_min")
+      .eq("id", therapistServiceId)
+      .eq("therapist_id", user.id)
+      .maybeSingle();
+    if (service) {
+      servicePrice = service.price as number;
+      serviceDurationMin = service.duration_min as number;
+    }
+  }
+
+  const { data: therapistRow } = await supabase
+    .from("therapists")
+    .select("session_duration_min, price_min, price_max")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const durationMin = serviceDurationMin ?? (therapistRow?.session_duration_min as number | undefined) ?? 50;
+  const price = servicePrice ?? (therapistRow?.price_min as number | undefined) ?? (therapistRow?.price_max as number | undefined) ?? 0;
+
+  // Mismo criterio de traslape real que requestAppointmentForUser (ver
+  // src/lib/appointments.ts) — el terapeuta también puede chocar consigo
+  // mismo si elige un horario que ya tiene ocupado.
+  const newStartMs = new Date(scheduledAt).getTime();
+  if (Number.isNaN(newStartMs)) redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+  const newEndMs = newStartMs + durationMin * 60 * 1000;
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const { data: nearby } = await supabase
+    .from("appointments")
+    .select("scheduled_at, duration_min")
+    .eq("therapist_id", user.id)
+    .neq("status", "cancelled")
+    .gte("scheduled_at", new Date(newStartMs - dayMs).toISOString())
+    .lte("scheduled_at", new Date(newStartMs + dayMs).toISOString());
+
+  const clash = (nearby ?? []).some((a) => {
+    const aStartMs = new Date(a.scheduled_at as string).getTime();
+    const aEndMs = aStartMs + ((a.duration_min as number | null) ?? 50) * 60 * 1000;
+    return newStartMs < aEndMs && newEndMs > aStartMs;
+  });
+  if (clash) redirect(`/dashboard/pacientes/${patientId}?agendar_error=ocupado`);
+
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: inserted, error } = await serviceClient
+    .from("appointments")
+    .insert({
+      therapist_id: user.id,
+      patient_id: patientId,
+      scheduled_at: scheduledAt,
+      duration_min: durationMin,
+      modality,
+      status: "pending_patient_acceptance",
+      payment_status: "pending",
+      price,
+      therapist_service_id: servicePrice !== null ? therapistServiceId : null,
+      patient_acceptance_expires_at: expiresAt,
+    })
+    .select("id")
+    .single();
+
+  if (error || !inserted?.id) redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+
+  await notifyAppointmentProposed({
+    appointmentId: inserted.id,
+    therapistId: user.id,
+    patientId,
+    scheduledAtIso: scheduledAt,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/pacientes/${patientId}`);
+  redirect(`/dashboard/pacientes/${patientId}?agendar_ok=1`);
 }
 
 // Guarda las notas privadas del terapeuta sobre un paciente — no redirige

@@ -16,6 +16,9 @@ import {
   appointmentConfirmed,
   appointmentCancelledNotice,
   appointmentRescheduled,
+  appointmentProposedByTherapist,
+  appointmentAcceptedByPatient,
+  appointmentProposalExpired,
 } from "./emailTemplates";
 
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -266,6 +269,162 @@ export async function notifyAppointmentCancelled({
     });
   } catch (err) {
     console.error("Error notificando cancelación de cita:", err);
+  }
+}
+
+// Al instante, cuando el TERAPEUTA agenda directo una cita con un paciente
+// suyo (botón "Agendar consulta con este paciente" en la ficha, a petición
+// de Gustavo 2026-09-21). El paciente tiene 24 horas para aceptar o
+// rechazar — ver acceptTherapistAppointment/declineTherapistAppointment en
+// dashboard/mis-citas/actions.ts y el barrido de vencimiento en engine.ts.
+export async function notifyAppointmentProposed({
+  appointmentId,
+  therapistId,
+  patientId,
+  scheduledAtIso,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  scheduledAtIso: string;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const whenLabel = whenLabelFor(scheduledAtIso);
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, patientEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      phonesById(supabase, [patientId]),
+      emailOf(supabase, patientId),
+    ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "ahí";
+
+    const { subject, html } = appointmentProposedByTherapist({ patientName, therapistName, whenLabel });
+    await dispatch({
+      supabase,
+      type: "appointment_proposed_patient",
+      relatedId: appointmentId,
+      recipientId: patientId,
+      email: patientEmail,
+      phone: normalizePhone(phones.get(patientId)),
+      subject,
+      html,
+      whatsappTemplate: "lemy_appointment_proposed_patient",
+      whatsappParams: [patientName, therapistName, whenLabel],
+      push: {
+        title: "Tu terapeuta agendó una cita contigo",
+        body: `Tienes 24 horas para aceptarla o rechazarla — ${whenLabel}.`,
+        url: "/dashboard?tab=citas",
+      },
+    });
+  } catch (err) {
+    console.error("Error notificando propuesta de cita del terapeuta:", err);
+  }
+}
+
+// Al instante, cuando el paciente acepta una propuesta del terapeuta sin
+// pago con tarjeta de por medio (efectivo) — todavía le falta al terapeuta
+// confirmarla desde su panel, así que se le avisa para que no se quede ahí
+// sin resolver.
+export async function notifyAppointmentAccepted({
+  appointmentId,
+  therapistId,
+  patientId,
+  scheduledAtIso,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  scheduledAtIso: string;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const whenLabel = whenLabelFor(scheduledAtIso);
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, therapistEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      phonesById(supabase, [therapistId]),
+      emailOf(supabase, therapistId),
+    ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "tu paciente";
+
+    const { subject, html } = appointmentAcceptedByPatient({ therapistName, patientName, whenLabel });
+    await dispatch({
+      supabase,
+      type: "appointment_accepted_therapist",
+      relatedId: appointmentId,
+      recipientId: therapistId,
+      email: therapistEmail,
+      phone: normalizePhone(phones.get(therapistId)),
+      subject,
+      html,
+      whatsappTemplate: "lemy_appointment_accepted_therapist",
+      whatsappParams: [therapistName, patientName, whenLabel],
+      push: {
+        title: "Tu paciente aceptó la cita",
+        body: `${patientName} aceptó — falta que la confirmes.`,
+        url: "/dashboard?tab=citas",
+      },
+    });
+  } catch (err) {
+    console.error("Error notificando aceptación de cita propuesta:", err);
+  }
+}
+
+// Disparado desde el barrido del cron (runNotificationSweep, cada 15 min)
+// cuando pasan 24 horas sin que el paciente responda a una propuesta del
+// terapeuta — la cita ya se canceló sola, esto solo avisa.
+export async function notifyAppointmentProposalExpired({
+  appointmentId,
+  therapistId,
+  patientId,
+  scheduledAtIso,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  scheduledAtIso: string;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const whenLabel = whenLabelFor(scheduledAtIso);
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, therapistEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      phonesById(supabase, [therapistId]),
+      emailOf(supabase, therapistId),
+    ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "el paciente";
+
+    const { subject, html } = appointmentProposalExpired({ therapistName, patientName, whenLabel });
+    await dispatch({
+      supabase,
+      type: "appointment_proposal_expired_therapist",
+      relatedId: appointmentId,
+      recipientId: therapistId,
+      email: therapistEmail,
+      phone: normalizePhone(phones.get(therapistId)),
+      subject,
+      html,
+      whatsappTemplate: "lemy_appointment_proposal_expired",
+      whatsappParams: [therapistName, patientName, whenLabel],
+      push: {
+        title: "Horario liberado",
+        body: `${patientName} no respondió a tiempo — ${whenLabel} ya quedó libre.`,
+        url: "/dashboard?tab=citas",
+      },
+    });
+  } catch (err) {
+    console.error("Error notificando vencimiento de propuesta de cita:", err);
   }
 }
 

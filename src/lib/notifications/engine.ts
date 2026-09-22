@@ -10,6 +10,7 @@ import {
   therapistOnboardingChecklist,
   referralInvite,
   reviewRequest,
+  appointmentProposalExpired,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -38,6 +39,9 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_confirmed_patient",
   "appointment_cancelled",
   "appointment_rescheduled",
+  "appointment_proposed_patient",
+  "appointment_accepted_therapist",
+  "appointment_proposal_expired_therapist",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -572,7 +576,87 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  // 8. Vencimiento de propuestas de cita hechas por el terapeuta (botón
+  // "Agendar consulta con este paciente", a petición de Gustavo
+  // 2026-09-21): si pasaron 24 horas sin que el paciente acepte o rechace,
+  // se cancela sola y se le avisa al terapeuta de que el horario ya quedó
+  // libre. No usa isDue/tolerancia como los demás disparadores de arriba —
+  // aquí basta con "ya venció", sin ventana de tiempo objetivo.
+  const { data: expiredProposals } = await supabase
+    .from("appointments")
+    .select("id, therapist_id, patient_id, scheduled_at")
+    .eq("status", "pending_patient_acceptance")
+    .not("patient_acceptance_expires_at", "is", null)
+    .lt("patient_acceptance_expires_at", new Date(now).toISOString());
+
+  checked += expiredProposals?.length ?? 0;
+
+  for (const a of expiredProposals ?? []) {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          status: "cancelled",
+          cancelled_by: "system",
+          cancellation_reason: "El paciente no respondió dentro de las 24 horas.",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", a.id)
+        .eq("status", "pending_patient_acceptance");
+
+      if (error) continue;
+
+      const whenLabel = whenLabelForEngine(a.scheduled_at as string);
+      const [{ data: therapistRow }, { data: patientProfile }, phones, therapistEmail] = await Promise.all([
+        supabase.from("therapists").select("display_name").eq("id", a.therapist_id as string).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", a.patient_id as string).maybeSingle(),
+        phonesById(supabase, [a.therapist_id as string]),
+        emailOf(supabase, a.therapist_id as string),
+      ]);
+
+      const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+      const patientName = (patientProfile?.full_name as string | undefined) ?? "el paciente";
+
+      const { subject, html } = appointmentProposalExpired({ therapistName, patientName, whenLabel });
+      await dispatch({
+        supabase,
+        type: "appointment_proposal_expired_therapist",
+        relatedId: a.id as string,
+        recipientId: a.therapist_id as string,
+        email: therapistEmail,
+        phone: normalizePhone(phones.get(a.therapist_id as string)),
+        subject,
+        html,
+        whatsappTemplate: "lemy_appointment_proposal_expired",
+        whatsappParams: [therapistName, patientName, whenLabel],
+        push: {
+          title: "Horario liberado",
+          body: `${patientName} no respondió a tiempo — ${whenLabel} ya quedó libre.`,
+          url: "/dashboard?tab=citas",
+        },
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (appointment_proposal_expired → appointment ${a.id}):`, err);
+    }
+  }
+
   return { checked, sent };
+}
+
+// Mismo cálculo que whenLabelFor en instant.ts (duplicado a propósito, igual
+// que ya se hace en otros archivos de este módulo — no vale la pena una
+// dependencia cruzada entre engine.ts e instant.ts solo por esto).
+const OAXACA_UTC_OFFSET_MIN_ENGINE = 6 * 60;
+const WEEKDAY_LABELS_ENGINE = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+function whenLabelForEngine(iso: string) {
+  const local = new Date(new Date(iso).getTime() - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
+  const weekday = WEEKDAY_LABELS_ENGINE[local.getUTCDay()];
+  const d = local.getUTCDate();
+  const m = local.getUTCMonth() + 1;
+  const hh = String(local.getUTCHours()).padStart(2, "0");
+  const mm = String(local.getUTCMinutes()).padStart(2, "0");
+  return `${weekday} ${d}/${m} · ${hh}:${mm}`;
 }
 
 export { isWhatsAppConfigured };

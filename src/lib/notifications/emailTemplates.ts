@@ -172,6 +172,60 @@ export function appointmentRescheduled(params: {
   };
 }
 
+// Al instante, cuando el TERAPEUTA agenda directo una cita con un paciente
+// suyo (ficha de paciente → "Agendar consulta con este paciente", a
+// petición de Gustavo 2026-09-21) — el paciente tiene 24 horas para
+// aceptar (y pagar, si aplica con tarjeta) o rechazar antes de que el
+// horario se libere solo.
+export function appointmentProposedByTherapist(params: {
+  patientName: string;
+  therapistName: string;
+  whenLabel: string;
+}) {
+  const { patientName, therapistName, whenLabel } = params;
+  return {
+    subject: `${therapistName} agendó una cita contigo — tienes 24 horas para aceptarla`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <p><strong>${therapistName}</strong> agendó una cita contigo para el <strong>${whenLabel}</strong>.</p>
+      <p>Tienes <strong>24 horas</strong> para aceptarla o rechazarla. Si no respondes en ese tiempo, el horario se libera automáticamente.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Responder ahora →</a></p>
+    `),
+  };
+}
+
+// Al instante, cuando el paciente acepta una cita propuesta por el
+// terapeuta y no requiere pago con tarjeta (efectivo) — todavía falta que
+// el terapeuta la confirme desde su panel (mismo paso final que cualquier
+// otra solicitud pendiente de confirmar).
+export function appointmentAcceptedByPatient(params: { therapistName: string; patientName: string; whenLabel: string }) {
+  const { therapistName, patientName, whenLabel } = params;
+  return {
+    subject: `${patientName} aceptó la cita — ${whenLabel}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <p><strong>${patientName}</strong> aceptó la cita que le propusiste para el <strong>${whenLabel}</strong>.</p>
+      <p>Solo falta que la confirmes desde tu panel para dejarla lista.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ir a confirmarla →</a></p>
+    `),
+  };
+}
+
+// Cuando pasan las 24 horas sin que el paciente responda a una propuesta —
+// el barrido del cron cancela la cita sola y le avisa al terapeuta de que
+// el horario ya quedó libre otra vez.
+export function appointmentProposalExpired(params: { therapistName: string; patientName: string; whenLabel: string }) {
+  const { therapistName, patientName, whenLabel } = params;
+  return {
+    subject: `${patientName} no respondió a tiempo — horario liberado`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <p><strong>${patientName}</strong> no respondió dentro de las 24 horas a la cita que le propusiste para el <strong>${whenLabel}</strong>, así que se canceló y el horario ya quedó libre otra vez.</p>
+      <p><a href="https://lemy.mx/dashboard/pacientes" style="color: #2F5233;">Ver mis pacientes →</a></p>
+    `),
+  };
+}
+
 // Tabla comparativa en HTML de tabla (no flex/grid — la mayoría de clientes
 // de correo los ignoran) para el correo de bienvenida de terapeuta nuevo.
 function planComparisonTable() {
