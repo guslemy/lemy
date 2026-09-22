@@ -20,10 +20,10 @@ export type BrandCoverSpec = {
 };
 
 const PALETTE = {
-  forest: "#1e3a2e",
-  forestDeep: "#132720",
-  rose: "#e3b7ac",
-  roseDeep: "#c1786a",
+  forest: "#21382b",
+  forestDeep: "#16251d",
+  rose: "#cfbfb8",
+  roseDeep: "#a38374",
   sageWhite: "#f2f5ef",
   card: "#fbfaf5",
 };

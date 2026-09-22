@@ -180,11 +180,8 @@ export function SiteHeaderClient({
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
         <div className="flex items-center gap-1">
           <PwaNavButtons />
-          <Link href="/" className="flex items-center gap-2.5 font-display text-[1.7rem] font-semibold text-forest">
-            <span className="relative h-[18px] w-[26px] flex-none">
-              <span className="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-forest/90" />
-              <span className="absolute left-[10px] top-0.5 h-4 w-4 rounded-full bg-rose mix-blend-multiply" />
-            </span>
+          <Link href="/" className="flex items-center gap-2 font-display text-[1.7rem] font-semibold text-forest">
+            <img src="/brand/isologo-verde.png" alt="" aria-hidden="true" className="h-7 w-7 flex-none" />
             Lemy
           </Link>
         </div>

@@ -33,10 +33,12 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 gap-10 border-b border-white/15 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-sage-white">
-              <span className="relative h-4 w-[22px] flex-none">
-                <span className="absolute left-0 top-0.5 h-3.5 w-3.5 rounded-full bg-forest/90" />
-                <span className="absolute left-[9px] top-0.5 h-3.5 w-3.5 rounded-full bg-rose mix-blend-multiply" />
-              </span>
+              <img
+                src="/brand/isologo-crema-acento.png"
+                alt=""
+                aria-hidden="true"
+                className="h-6 w-6 flex-none"
+              />
               Lemy
             </Link>
             <p className="mt-3.5 max-w-[260px] text-sm text-sage-white/60">

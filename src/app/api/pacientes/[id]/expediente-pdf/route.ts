@@ -56,9 +56,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     doc.on("end", () => resolve(Buffer.concat(chunks)));
   });
 
-  const H1 = () => doc.fontSize(18).fillColor("#1E3A2E").font("Helvetica-Bold");
-  const H2 = () => doc.fontSize(12).fillColor("#1E3A2E").font("Helvetica-Bold");
-  const LABEL = () => doc.fontSize(9).fillColor("#C1786A").font("Helvetica-Bold");
+  const H1 = () => doc.fontSize(18).fillColor("#21382B").font("Helvetica-Bold");
+  const H2 = () => doc.fontSize(12).fillColor("#21382B").font("Helvetica-Bold");
+  const LABEL = () => doc.fontSize(9).fillColor("#A38374").font("Helvetica-Bold");
   const BODY = () => doc.fontSize(10).fillColor("#182420").font("Helvetica");
 
   function field(label: string, value?: string | null) {

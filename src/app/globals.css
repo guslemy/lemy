@@ -1,16 +1,21 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────
-   Sistema de diseño Lemy — extraído del demo visual
-   aprobado por Gustavo (verde bosque + rosa + dorado)
+   Sistema de diseño Lemy — refresh de marca aprobado
+   por Gustavo el 2026-09-22 (verde #21382b + acento
+   taupe #a38374 en vez del rosa-terracota original;
+   --rose/--rose-deep conservan su nombre para no tener
+   que tocar cada clase del sitio, pero ya son el nuevo
+   acento). --forest-deep y --rose son tintes derivados
+   de esos dos valores exactos, no vinieron dados.
    ───────────────────────────────────────────── */
 :root {
   --sage-white: #f2f5ef;
-  --forest: #1e3a2e;
-  --forest-deep: #132720;
+  --forest: #21382b;
+  --forest-deep: #16251d;
   --ink: #182420;
-  --rose: #e3b7ac;
-  --rose-deep: #c1786a;
+  --rose: #cfbfb8;
+  --rose-deep: #a38374;
   --gold: #b99433;
   --card: #fbfaf5;
   --line: #dce3d6;
@@ -31,7 +36,7 @@
   --color-line-dark: var(--line-dark);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-lg: 28px;
