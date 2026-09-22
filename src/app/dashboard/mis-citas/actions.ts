@@ -106,15 +106,26 @@ export async function acceptTherapistAppointment(formData: FormData) {
       )
   );
 
+  // A petición de Gustavo (2026-09-21): el mismo margen de 24 horas aplica
+  // ahora también del lado del terapeuta — desde que la cita entra a
+  // "pending_payment" (aquí, o en una solicitud normal, ver
+  // requestAppointmentForUser en lib/appointments.ts) tiene 24 horas para
+  // confirmarla antes de que el barrido del cron la cancele sola.
+  const therapistConfirmationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
   if (cardAvailable) {
-    // El pago con tarjeta es el que de verdad "reserva" el horario — se
-    // limpia el vencimiento de 24h aquí porque, si el paciente completa el
-    // pago, el estado ya deja de depender de ese plazo (y si cancela el
-    // pago a medias, la cita se queda igual que cualquier otra con pago
-    // pendiente, sin un plazo de aceptación aparte que ya no aplica).
+    // El vencimiento de ACEPTACIÓN (patient_acceptance_expires_at) ya no
+    // aplica en cuanto el paciente acepta — se limpia y arranca en su lugar
+    // el vencimiento de CONFIRMACIÓN del terapeuta, incluso si el paciente
+    // termina abandonando el Checkout a medias (antes esa situación se
+    // quedaba bloqueando el horario para siempre sin que nadie se enterara).
     await supabase
       .from("appointments")
-      .update({ status: "pending_payment", patient_acceptance_expires_at: null })
+      .update({
+        status: "pending_payment",
+        patient_acceptance_expires_at: null,
+        therapist_confirmation_expires_at: therapistConfirmationExpiresAt,
+      })
       .eq("id", appointmentId)
       .eq("patient_id", user.id);
 
@@ -125,7 +136,12 @@ export async function acceptTherapistAppointment(formData: FormData) {
 
   const { error } = await supabase
     .from("appointments")
-    .update({ status: "pending_payment", payment_status: "efectivo", patient_acceptance_expires_at: null })
+    .update({
+      status: "pending_payment",
+      payment_status: "efectivo",
+      patient_acceptance_expires_at: null,
+      therapist_confirmation_expires_at: therapistConfirmationExpiresAt,
+    })
     .eq("id", appointmentId)
     .eq("patient_id", user.id);
 

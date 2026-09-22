@@ -152,6 +152,7 @@ export async function confirmAppointment(formData: FormData) {
       google_calendar_event_id: eventId,
       meeting_link: meetingLink,
       location_address: address,
+      therapist_confirmation_expires_at: null,
     })
     .eq("id", appointmentId)
     .eq("therapist_id", user.id);

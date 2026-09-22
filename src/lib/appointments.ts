@@ -134,6 +134,15 @@ export async function requestAppointmentForUser(
   // después de esta función).
   const needsPayment = paymentMethod === "card";
 
+  // A petición de Gustavo (2026-09-21): 24 horas de plazo para que el
+  // terapeuta confirme desde que la cita entra a "pending_payment" — sin
+  // importar si es en efectivo, con tarjeta ya pagada, o (el caso que antes
+  // se quedaba colgado para siempre sin que nadie lo notara) un pago con
+  // tarjeta que el paciente nunca llegó a completar en Stripe Checkout. El
+  // barrido del cron cancela sola la que se pase de este plazo — ver
+  // runNotificationSweep en lib/notifications/engine.ts.
+  const therapistConfirmationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
   const { data: inserted } = await supabase
     .from("appointments")
     .insert({
@@ -146,6 +155,7 @@ export async function requestAppointmentForUser(
       payment_status: needsPayment ? "pending" : "efectivo",
       price,
       therapist_service_id: servicePrice !== null ? therapistServiceId : null,
+      therapist_confirmation_expires_at: therapistConfirmationExpiresAt,
     })
     .select("id")
     .single();

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
+import { refundAppointmentPayment } from "@/lib/appointment-checkout";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
 import { sendPushToUser } from "@/lib/webpush";
@@ -11,6 +12,8 @@ import {
   referralInvite,
   reviewRequest,
   appointmentProposalExpired,
+  appointmentConfirmationExpiredPatient,
+  appointmentConfirmationExpiredTherapist,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -42,6 +45,8 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_proposed_patient",
   "appointment_accepted_therapist",
   "appointment_proposal_expired_therapist",
+  "appointment_confirmation_expired_patient",
+  "appointment_confirmation_expired_therapist",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -638,6 +643,103 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       sent += 1;
     } catch (err) {
       console.error(`Error en barrido (appointment_proposal_expired → appointment ${a.id}):`, err);
+    }
+  }
+
+  // 9. Vencimiento de confirmación del terapeuta (a petición de Gustavo
+  // 2026-09-21): cualquier cita en "pending_payment" — venga de una
+  // solicitud normal (efectivo o tarjeta) o de que el paciente aceptó una
+  // propuesta del terapeuta — tiene 24 horas para que el terapeuta la
+  // confirme. Cubre de paso un caso que antes se quedaba bloqueando el
+  // horario para siempre sin que nadie se enterara: un pago con tarjeta que
+  // el paciente empezó en Stripe Checkout pero nunca terminó de pagar
+  // (payment_status se queda en "pending" — ahí no hay nada que reembolsar,
+  // solo se libera el horario).
+  const { data: expiredConfirmations } = await supabase
+    .from("appointments")
+    .select("id, therapist_id, patient_id, scheduled_at, payment_status")
+    .eq("status", "pending_payment")
+    .not("therapist_confirmation_expires_at", "is", null)
+    .lt("therapist_confirmation_expires_at", new Date(now).toISOString());
+
+  checked += expiredConfirmations?.length ?? 0;
+
+  for (const a of expiredConfirmations ?? []) {
+    try {
+      const wasPaid = a.payment_status === "paid";
+      const refunded = wasPaid ? await refundAppointmentPayment(a.id as string) : false;
+
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          status: "cancelled",
+          cancelled_by: "system",
+          cancellation_reason: "El terapeuta no confirmó dentro de las 24 horas.",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", a.id)
+        .eq("status", "pending_payment");
+
+      if (error) continue;
+
+      const whenLabel = whenLabelForEngine(a.scheduled_at as string);
+      const [{ data: therapistRow }, { data: patientProfile }, therapistPhones, therapistEmail, patientEmail] =
+        await Promise.all([
+          supabase.from("therapists").select("display_name").eq("id", a.therapist_id as string).maybeSingle(),
+          supabase.from("profiles").select("full_name").eq("id", a.patient_id as string).maybeSingle(),
+          phonesById(supabase, [a.therapist_id as string]),
+          emailOf(supabase, a.therapist_id as string),
+          emailOf(supabase, a.patient_id as string),
+        ]);
+
+      const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+      const patientName = (patientProfile?.full_name as string | undefined) ?? "el paciente";
+
+      const forPatient = appointmentConfirmationExpiredPatient({
+        patientName,
+        therapistName,
+        whenLabel,
+        refunded,
+      });
+      await dispatch({
+        supabase,
+        type: "appointment_confirmation_expired_patient",
+        relatedId: a.id as string,
+        recipientId: a.patient_id as string,
+        email: patientEmail,
+        phone: null,
+        subject: forPatient.subject,
+        html: forPatient.html,
+        whatsappTemplate: "lemy_appointment_confirmation_expired_patient",
+        whatsappParams: [patientName, therapistName, whenLabel],
+      });
+
+      const forTherapist = appointmentConfirmationExpiredTherapist({
+        therapistName,
+        patientName,
+        whenLabel,
+        refunded,
+      });
+      await dispatch({
+        supabase,
+        type: "appointment_confirmation_expired_therapist",
+        relatedId: a.id as string,
+        recipientId: a.therapist_id as string,
+        email: therapistEmail,
+        phone: normalizePhone(therapistPhones.get(a.therapist_id as string)),
+        subject: forTherapist.subject,
+        html: forTherapist.html,
+        whatsappTemplate: "lemy_appointment_confirmation_expired_therapist",
+        whatsappParams: [therapistName, patientName, whenLabel],
+        push: {
+          title: "Cita cancelada — no se confirmó a tiempo",
+          body: `${patientName} — ${whenLabel}. El horario ya quedó libre.`,
+          url: "/dashboard?tab=citas",
+        },
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (appointment_confirmation_expired → appointment ${a.id}):`, err);
     }
   }
 
