@@ -12,6 +12,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [howHeard, setHowHeard] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "check-email">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -36,12 +37,19 @@ export function EmailAuthForm({ next }: { next?: string }) {
       if (data.user) {
         const { data: profileRow } = await supabase
           .from("profiles")
-          .select("deactivated_at")
+          .select("deactivated_at, account_closed_at")
           .eq("id", data.user.id)
           .maybeSingle();
         if (profileRow?.deactivated_at) {
           await supabase.auth.signOut();
           setErrorMsg("Esta cuenta está desactivada. Contacta a soporte si crees que es un error.");
+          setStatus("idle");
+          return;
+        }
+        // Cuenta cerrada por el propio usuario (ver dashboard/cerrar-cuenta).
+        if (profileRow?.account_closed_at) {
+          await supabase.auth.signOut();
+          setErrorMsg("Esta cuenta fue cerrada.");
           setStatus("idle");
           return;
         }
@@ -69,7 +77,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
         password,
         options: {
           emailRedirectTo: confirmUrl.toString(),
-          data: { full_name: fullName.trim(), phone: phone.trim() },
+          data: { full_name: fullName.trim(), phone: phone.trim(), how_heard_about_lemy: howHeard || null },
         },
       });
       if (error) {
@@ -112,6 +120,22 @@ export function EmailAuthForm({ next }: { next?: string }) {
             onChange={(e) => setPhone(e.target.value)}
             className="input-lemy"
           />
+          <select
+            value={howHeard}
+            onChange={(e) => setHowHeard(e.target.value)}
+            className="input-lemy text-[#5A665F]"
+          >
+            <option value="">¿Cómo te enteraste de Lemy? (opcional)</option>
+            <option value="Búsqueda en Google / internet">Búsqueda en Google / internet</option>
+            <option value="Instagram / redes sociales">Instagram / redes sociales</option>
+            <option value="Recomendación de un(a) amigo(a) o familiar">
+              Recomendación de un(a) amigo(a) o familiar
+            </option>
+            <option value="Recomendación de otro profesional de salud">
+              Recomendación de otro profesional de salud
+            </option>
+            <option value="Otro">Otro</option>
+          </select>
         </>
       )}
       <input

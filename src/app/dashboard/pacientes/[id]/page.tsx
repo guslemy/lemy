@@ -26,6 +26,7 @@ import {
   listCustomFields,
   listEvaluations,
   listPatientDocuments,
+  getHistoryLink,
 } from "@/lib/clinical-record";
 import { PatientFichaTabs } from "@/components/patient-ficha/ficha-tabs";
 
@@ -110,10 +111,11 @@ export default async function PatientDetailPage({
     customFields: Awaited<ReturnType<typeof listCustomFields>>;
     evaluations: Awaited<ReturnType<typeof listEvaluations>>;
     documents: Awaited<ReturnType<typeof listPatientDocuments>>;
+    historyLink: Awaited<ReturnType<typeof getHistoryLink>>;
   } | null = null;
 
   if (isGestiona) {
-    const [clinicalProfile, clinicalHistory, sessionNotes, customFields, evaluations, documents] =
+    const [clinicalProfile, clinicalHistory, sessionNotes, customFields, evaluations, documents, historyLink] =
       await Promise.all([
         getClinicalProfile(supabase, user.id, patientId),
         getClinicalHistory(supabase, user.id, patientId),
@@ -121,6 +123,7 @@ export default async function PatientDetailPage({
         listCustomFields(supabase, user.id),
         listEvaluations(supabase, user.id, patientId),
         listPatientDocuments(supabase, user.id, patientId),
+        getHistoryLink(supabase, user.id, patientId),
       ]);
     fichaData = {
       profile: clinicalProfile,
@@ -129,6 +132,7 @@ export default async function PatientDetailPage({
       customFields,
       evaluations,
       documents,
+      historyLink,
     };
   }
 
@@ -267,6 +271,7 @@ export default async function PatientDetailPage({
                 customFields={fichaData.customFields}
                 evaluations={fichaData.evaluations}
                 documents={fichaData.documents}
+                historyLink={fichaData.historyLink}
                 defaultEnfoqueFamilia={null}
                 cashPendingCount={
                   (history ?? []).filter((a) => a.payment_status === "efectivo" && !a.cash_confirmed_at).length

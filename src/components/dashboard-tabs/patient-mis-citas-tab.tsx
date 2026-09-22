@@ -6,6 +6,7 @@ import {
   updatePatientPhone,
   acceptTherapistAppointment,
   declineTherapistAppointment,
+  uploadPatientDocumentAsPatient,
 } from "@/app/dashboard/mis-citas/actions";
 
 // Vista del paciente: sus solicitudes/sesiones agendadas, con opción de
@@ -109,6 +110,24 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
   const therapistById = new Map(
     (rawTherapists ?? []).map((t) => [t.id, { display_name: t.display_name, slug: t.slug } as TherapistInfo])
   );
+
+  // Documentos compartidos por terapeuta — misma tabla que usa la ficha del
+  // terapeuta (patient_documents), filtrada por RLS a lo que le corresponde
+  // ver a este paciente (nunca consentimientos, ver 0040).
+  const { data: rawDocuments } = therapistIds.length
+    ? await supabase
+        .from("patient_documents")
+        .select("id, therapist_id, file_path, file_name, note, uploaded_by_role, created_at")
+        .eq("patient_id", user.id)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const documentsByTherapist = new Map<string, typeof rawDocuments>();
+  for (const doc of rawDocuments ?? []) {
+    const list = documentsByTherapist.get(doc.therapist_id as string) ?? [];
+    list.push(doc);
+    documentsByTherapist.set(doc.therapist_id as string, list);
+  }
 
   return (
     <div>
@@ -262,6 +281,59 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
           })}
         </div>
       )}
+
+      {therapistIds.length > 0 && (
+        <div className="mt-10 border-t border-line pt-6">
+          <h2 className="mb-3 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-rose-deep">
+            Documentos compartidos
+          </h2>
+          {therapistIds.map((tid) => {
+            const therapist = therapistById.get(tid);
+            const docs = documentsByTherapist.get(tid) ?? [];
+            return (
+              <div key={tid} className="mb-5 rounded-2xl border border-line bg-card p-5">
+                <p className="mb-3 font-medium text-forest">{therapist?.display_name ?? "Terapeuta"}</p>
+                {docs.length === 0 && (
+                  <p className="mb-3 text-[0.85rem] text-[#7C877F]">Sin documentos compartidos todavía.</p>
+                )}
+                {docs.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-b-0">
+                    <div className="text-[0.88rem] text-[#37433D]">
+                      <p>{d.file_name ?? d.note ?? "Documento"}</p>
+                      {d.file_name && d.note && <p className="text-[0.76rem] text-[#8B978F]">{d.note}</p>}
+                    </div>
+                    <span className="text-[0.74rem] text-[#8B978F]">
+                      {d.uploaded_by_role === "therapist" ? "Tu terapeuta" : "Tú"}
+                    </span>
+                  </div>
+                ))}
+                <form action={uploadPatientDocumentAsPatient} className="mt-3 flex flex-wrap items-center gap-2.5">
+                  <input type="hidden" name="therapist_id" value={tid} />
+                  <input type="file" name="file" className="text-[0.8rem]" />
+                  <input
+                    type="text"
+                    name="note"
+                    placeholder="Comentario o link (opcional)"
+                    className="input-lemy min-w-[160px] flex-1"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-forest px-4 py-1.5 text-[0.82rem] font-semibold text-forest"
+                  >
+                    Compartir
+                  </button>
+                </form>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-10 border-t border-line pt-6">
+        <a href="/dashboard/cerrar-cuenta" className="text-[0.8rem] text-[#8B978F] hover:text-rose-deep">
+          Cerrar mi cuenta
+        </a>
+      </div>
     </div>
   );
 }

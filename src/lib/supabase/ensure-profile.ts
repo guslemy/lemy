@@ -22,6 +22,10 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
       // Google normalmente no manda teléfono, pero por si algún proveedor sí
       // lo trae (o si signUp con correo/contraseña lo pasó en options.data).
       phone: user.user_metadata?.phone ?? null,
+      // Solo llega en registro por correo/contraseña (ver email-auth-form.tsx)
+      // — Google no pasa por ese formulario, así que a esos usuarios les
+      // queda null. Insight de growth, no bloquea nada.
+      how_heard_about_lemy: user.user_metadata?.how_heard_about_lemy ?? null,
       role: isLemyTeam ? "admin" : "patient", // por default paciente; therapist se activa en onboarding
     });
   }

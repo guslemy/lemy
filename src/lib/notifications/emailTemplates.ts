@@ -298,6 +298,51 @@ export function appointmentPaymentAbandonedCancelled(params: { patientName: stri
   };
 }
 
+// ─────────────────────────────────────────────
+// Cierre de cuenta — ver conversación con Gustavo del 2026-09-22.
+// Terapeuta: retención real de 90 días (ver engine.ts), pero el mensaje NO
+// lo menciona — se le dice que no se guardará, para que exporte ya.
+// Paciente: cierre inmediato, sin promesa de respaldo (no la hay).
+// ─────────────────────────────────────────────
+export function therapistAccountClosed(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "Confirmamos el cierre de tu cuenta en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Confirmamos que cerraste tu cuenta de terapeuta en Lemy. Tu perfil ya no es visible y tu suscripción quedó cancelada.</p>
+      <p><strong>Importante:</strong> por la NOM-004-SSA3-2012 debes conservar el expediente de tus pacientes por un mínimo de 5 años. Tu expediente en Lemy no se conservará por motivos de seguridad, así que si aún no lo descargaste, hazlo antes de que se elimine por completo.</p>
+      <p>Si cambias de opinión, contáctanos a hola@lemy.mx.</p>
+    `),
+  };
+}
+
+export function patientAccountClosed(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "Confirmamos el cierre de tu cuenta en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Confirmamos que cerraste tu cuenta en Lemy. Ya no podrás iniciar sesión con ella.</p>
+      <p>Tu salud mental es importante. Si en algún momento quieres retomar un proceso terapéutico, aquí vas a encontrar a quien pueda acompañarte.</p>
+    `),
+  };
+}
+
+// Aviso al terapeuta cuando un paciente lleva ~1 mes sin visitarlo —
+// recordatorio de exportar el expediente para cumplir con la NOM.
+export function patientDormancyNotice(params: { therapistName: string; patientName: string }) {
+  const { therapistName, patientName } = params;
+  return {
+    subject: `${patientName} no te ha visitado en el último mes`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <p><strong>${patientName}</strong> no te ha visitado en el último mes. Recuerda que puedes descargar su historial clínico desde su ficha para conservarlo en tus expedientes personales y cumplir con la NOM-004-SSA3-2012.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=pacientes" style="color: #2F5233;">Ir a mis pacientes →</a></p>
+    `),
+  };
+}
+
 // Tabla comparativa en HTML de tabla (no flex/grid — la mayoría de clientes
 // de correo los ignoran) para el correo de bienvenida de terapeuta nuevo.
 function planComparisonTable() {

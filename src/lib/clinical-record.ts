@@ -205,6 +205,61 @@ export type PatientDocumentRow = {
   createdAtIso: string;
 };
 
+// ─────────────────────────────────────────────
+// Vincular con paciente anterior — ver patient_history_links (0040).
+// ─────────────────────────────────────────────
+export type HistoryLinkSummary = {
+  linkedPatientId: string;
+  linkedFullName: string | null;
+  finalizedNotesCount: number;
+  historyUpdatedAtIso: string | null;
+};
+
+export async function getHistoryLink(
+  supabase: SupabaseClient,
+  therapistId: string,
+  patientId: string
+): Promise<HistoryLinkSummary | null> {
+  const { data: link } = await supabase
+    .from("patient_history_links")
+    .select("linked_patient_id")
+    .eq("therapist_id", therapistId)
+    .eq("patient_id", patientId)
+    .maybeSingle();
+
+  if (!link) return null;
+  const linkedPatientId = link.linked_patient_id as string;
+
+  const [{ data: linkedProfile }, { count: notesCount }, { data: historyRow }] = await Promise.all([
+    supabase
+      .from("patient_clinical_profile")
+      .select("full_name")
+      .eq("therapist_id", therapistId)
+      .eq("patient_id", linkedPatientId)
+      .maybeSingle(),
+    supabase
+      .from("session_notes")
+      .select("id", { count: "exact", head: true })
+      .eq("therapist_id", therapistId)
+      .eq("patient_id", linkedPatientId)
+      .eq("status", "final")
+      .is("deleted_at", null),
+    supabase
+      .from("patient_clinical_history")
+      .select("updated_at")
+      .eq("therapist_id", therapistId)
+      .eq("patient_id", linkedPatientId)
+      .maybeSingle(),
+  ]);
+
+  return {
+    linkedPatientId,
+    linkedFullName: (linkedProfile?.full_name as string | undefined) ?? null,
+    finalizedNotesCount: notesCount ?? 0,
+    historyUpdatedAtIso: (historyRow?.updated_at as string | undefined) ?? null,
+  };
+}
+
 export async function listPatientDocuments(
   supabase: SupabaseClient,
   therapistId: string,

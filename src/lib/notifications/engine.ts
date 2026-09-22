@@ -17,6 +17,7 @@ import {
   appointmentConfirmationExpiredTherapist,
   appointmentPaymentReminder,
   appointmentPaymentAbandonedCancelled,
+  patientDormancyNotice,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -52,6 +53,8 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_confirmation_expired_therapist",
   "appointment_payment_reminder_patient",
   "appointment_payment_abandoned_patient",
+  "account_closed_therapist",
+  "account_closed_patient",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -858,6 +861,106 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       sent += 1;
     } catch (err) {
       console.error(`Error en barrido (appointment_payment_reminder/abandoned → appointment ${a.id}):`, err);
+    }
+  }
+
+  // 12. Purga real de cuentas de terapeuta cerradas hace 90+ días (ver
+  // dashboard/cerrar-cuenta/actions.ts y 0041) — borra SOLO la credencial de
+  // auth.users; profiles/patients/citas/expediente sobreviven a propósito
+  // (0041 quitó el cascade), es lo que otros terapeutas o el propio dueño
+  // podría necesitar seguir viendo del lado de sus propios pacientes.
+  // deleteUser en un usuario ya purgado en una corrida anterior simplemente
+  // truena con "not found" — se ignora en silencio, no hay columna aparte
+  // para marcar "ya purgado" (no vale la pena el costo de otra migración
+  // solo para evitar un intento de más cada 5 min sobre un puñado de filas).
+  const RETENTION_DAYS = 90;
+  const { data: closedTherapists } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("role", "therapist")
+    .lte("account_closed_at", new Date(now - RETENTION_DAYS * DAY_MS).toISOString())
+    .not("account_closed_at", "is", null);
+
+  checked += closedTherapists?.length ?? 0;
+  for (const t of closedTherapists ?? []) {
+    try {
+      await supabase.auth.admin.deleteUser(t.id as string);
+    } catch {
+      // Ya purgado en una corrida anterior, o algún otro error transitorio
+      // — no hay nada más que hacer aquí, se reintenta en la siguiente
+      // corrida sin costo real.
+    }
+  }
+
+  // 13. Aviso de inactividad al terapeuta: un paciente sin visitarlo hace
+  // ~1 mes, con recordatorio de descargar su expediente por la NOM (a
+  // petición de Gustavo 2026-09-22). Se calcula agrupando en memoria (no
+  // hay tantas citas en esta escala como para que valga la pena una
+  // agregación en SQL) y se deduplica con therapist_patient_dormancy_notices
+  // — se vuelve a disparar solo si hay una cita MÁS RECIENTE que el último
+  // aviso (o sea, si el paciente volvió y luego se volvió a ausentar).
+  const DORMANCY_DAYS = 30;
+  const DORMANCY_TOLERANCE_MS = 2 * DAY_MS;
+  const { data: relevantAppointments } = await supabase
+    .from("appointments")
+    .select("therapist_id, patient_id, scheduled_at")
+    .in("status", ["confirmed", "completed"])
+    .lte("scheduled_at", new Date(now).toISOString());
+
+  const lastSeenByPair = new Map<string, { therapistId: string; patientId: string; lastMs: number }>();
+  for (const a of relevantAppointments ?? []) {
+    const key = `${a.therapist_id}::${a.patient_id}`;
+    const ms = new Date(a.scheduled_at as string).getTime();
+    const existing = lastSeenByPair.get(key);
+    if (!existing || ms > existing.lastMs) {
+      lastSeenByPair.set(key, { therapistId: a.therapist_id as string, patientId: a.patient_id as string, lastMs: ms });
+    }
+  }
+
+  for (const { therapistId, patientId, lastMs } of lastSeenByPair.values()) {
+    if (!isDue(lastMs + DORMANCY_DAYS * DAY_MS, DORMANCY_TOLERANCE_MS, now)) continue;
+    checked += 1;
+    try {
+      const { data: notice } = await supabase
+        .from("therapist_patient_dormancy_notices")
+        .select("notified_at")
+        .eq("therapist_id", therapistId)
+        .eq("patient_id", patientId)
+        .maybeSingle();
+      // Ya se avisó para esta MISMA ausencia (el aviso es de después de la
+      // última cita) — no se repite.
+      if (notice && new Date(notice.notified_at as string).getTime() >= lastMs) continue;
+
+      const [{ data: therapistRow }, { data: patientProfile }] = await Promise.all([
+        supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      ]);
+      const therapistName = (therapistRow?.display_name as string | undefined) ?? "";
+      const patientName = (patientProfile?.full_name as string | undefined) ?? "tu paciente";
+      const therapistEmail = await emailOf(supabase, therapistId);
+
+      const { subject, html } = patientDormancyNotice({ therapistName, patientName });
+      await dispatch({
+        supabase,
+        type: "patient_dormancy_notice",
+        relatedId: `${therapistId}::${patientId}::${lastMs}`,
+        recipientId: therapistId,
+        email: therapistEmail,
+        phone: null,
+        subject,
+        html,
+        emailOnly: true,
+      });
+
+      await supabase
+        .from("therapist_patient_dormancy_notices")
+        .upsert(
+          { therapist_id: therapistId, patient_id: patientId, notified_at: new Date().toISOString() },
+          { onConflict: "therapist_id,patient_id" }
+        );
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (patient_dormancy_notice → ${therapistId}/${patientId}):`, err);
     }
   }
 

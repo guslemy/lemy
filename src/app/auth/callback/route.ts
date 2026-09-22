@@ -22,12 +22,20 @@ export async function GET(request: NextRequest) {
       // admin) — no la borramos, pero tampoco la dejamos entrar.
       const { data: profileRow } = await supabase
         .from("profiles")
-        .select("deactivated_at, role")
+        .select("deactivated_at, account_closed_at, role")
         .eq("id", data.user.id)
         .maybeSingle();
       if (profileRow?.deactivated_at) {
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/login?desactivada=1`);
+      }
+      // Cuenta cerrada por el propio usuario (ver dashboard/cerrar-cuenta) —
+      // distinto de deactivated_at (acción de admin, reversible): esta no se
+      // reactiva desde el panel, solo existe mientras dura la retención de
+      // 90 días de terapeuta antes de la purga real (ver notifications/engine.ts).
+      if (profileRow?.account_closed_at) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/login?cuenta_cerrada=1`);
       }
 
       // Si Google mandó un refresh token (pedimos access_type=offline +

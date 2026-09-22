@@ -445,3 +445,17 @@ export async function linkPreviousPatient(formData: FormData) {
 
   revalidatePath(fichaPath(patientId));
 }
+
+export async function unlinkPreviousPatient(formData: FormData) {
+  const { supabase, user } = await requireGestionaTherapist();
+  const patientId = String(formData.get("patient_id") || "");
+  if (!patientId) return;
+
+  await supabase
+    .from("patient_history_links")
+    .delete()
+    .eq("therapist_id", user.id)
+    .eq("patient_id", patientId);
+
+  revalidatePath(fichaPath(patientId));
+}

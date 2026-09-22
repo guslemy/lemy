@@ -17,6 +17,59 @@ async function requireUser() {
   return { supabase, user };
 }
 
+// Documentos compartidos, del lado del paciente — sube a la MISMA tabla
+// patient_documents que usa la ficha del terapeuta (ver
+// dashboard/pacientes/ficha-actions.ts), respetando su RLS: el paciente
+// solo puede insertar categoría "compartido" y visible_to_patient=true
+// (nunca consentimientos, nunca algo oculto para sí mismo). Requiere que
+// exista al menos una cita con ese terapeuta — mismo criterio de "nadie
+// escribe sobre una relación que no existe" que se usa en toda la app.
+const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
+
+export async function uploadPatientDocumentAsPatient(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const therapistId = String(formData.get("therapist_id") || "");
+  const note = String(formData.get("note") || "").trim() || null;
+  const file = formData.get("file") as File | null;
+  if (!therapistId) return;
+
+  const { count } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("therapist_id", therapistId)
+    .eq("patient_id", user.id);
+  if (!count) return;
+  if (file && file.size > MAX_DOCUMENT_BYTES) return;
+  if (!file && !note) return;
+
+  let filePath: string | null = null;
+  let fileName: string | null = null;
+  let fileSizeBytes: number | null = null;
+
+  if (file && file.size > 0) {
+    filePath = `${therapistId}/${user.id}/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from("patient-documents").upload(filePath, file);
+    if (error) return;
+    fileName = file.name;
+    fileSizeBytes = file.size;
+  }
+
+  await supabase.from("patient_documents").insert({
+    therapist_id: therapistId,
+    patient_id: user.id,
+    category: "compartido",
+    visible_to_patient: true,
+    file_path: filePath,
+    file_name: fileName,
+    file_size_bytes: fileSizeBytes,
+    note,
+    uploaded_by: user.id,
+    uploaded_by_role: "patient",
+  });
+
+  revalidatePath("/dashboard");
+}
+
 // Se guarda aquí (no en el flujo de reserva de un clic) para no meterle
 // fricción a agendar — el paciente lo llena la primera vez que entra a ver
 // sus citas, y con eso ya le llegan los recordatorios por WhatsApp.

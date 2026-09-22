@@ -10,7 +10,14 @@ import {
   deletePatientDocument,
 } from "@/app/dashboard/pacientes/ficha-actions";
 import { SessionNotesTab } from "./session-notes-builder";
-import type { ClinicalProfile, EvaluationRow, PatientDocumentRow, SessionNoteRow } from "@/lib/clinical-record";
+import { LinkPreviousPatient } from "./link-previous-patient";
+import type {
+  ClinicalProfile,
+  EvaluationRow,
+  HistoryLinkSummary,
+  PatientDocumentRow,
+  SessionNoteRow,
+} from "@/lib/clinical-record";
 import type { ClinicalHistoryContent } from "@/lib/clinical-record-crypto";
 
 const TABS = [
@@ -98,6 +105,7 @@ export function PatientFichaTabs({
   documents,
   cashPendingCount,
   defaultEnfoqueFamilia,
+  historyLink,
 }: {
   patientId: string;
   therapistDisplayName: string;
@@ -118,6 +126,7 @@ export function PatientFichaTabs({
   documents: PatientDocumentRow[];
   cashPendingCount: number;
   defaultEnfoqueFamilia: string | null;
+  historyLink: HistoryLinkSummary | null;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("resumen");
 
@@ -143,7 +152,8 @@ export function PatientFichaTabs({
         </div>
       )}
 
-      <div className="flex overflow-x-auto border-b border-line">
+      <div className="flex items-center justify-between border-b border-line pr-5">
+      <div className="flex overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -158,6 +168,13 @@ export function PatientFichaTabs({
             {tab.label}
           </button>
         ))}
+      </div>
+        <a
+          href={`/api/pacientes/${patientId}/expediente-pdf`}
+          className="whitespace-nowrap text-[0.82rem] font-semibold text-forest hover:underline"
+        >
+          Exportar expediente (PDF)
+        </a>
       </div>
 
       <div className="p-7">
@@ -207,7 +224,9 @@ export function PatientFichaTabs({
         )}
 
         {activeTab === "datos" && (
-          <form action={saveClinicalProfile}>
+          <div>
+            <LinkPreviousPatient patientId={patientId} existingLink={historyLink} />
+            <form action={saveClinicalProfile}>
             <input type="hidden" name="patient_id" value={patientId} />
             <h3 className="mb-4 font-display text-[1rem] text-forest">Información de contacto</h3>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -262,7 +281,8 @@ export function PatientFichaTabs({
                 Guardar cambios
               </button>
             </div>
-          </form>
+            </form>
+          </div>
         )}
 
         {activeTab === "historia" && (

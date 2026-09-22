@@ -142,6 +142,12 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
           </form>
         </div>
       </div>
+
+      <div className="mt-10 border-t border-line pt-6">
+        <a href="/dashboard/cerrar-cuenta" className="text-[0.82rem] text-[#8B978F] hover:text-rose-deep">
+          Cerrar mi cuenta
+        </a>
+      </div>
     </div>
   );
 }

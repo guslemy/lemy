@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // pdfkit (exportación del expediente a PDF, ver
+  // api/pacientes/[id]/expediente-pdf) depende de fontkit, que usa un
+  // decorador de @swc/helpers que el bundler de Turbopack no resuelve bien
+  // (revienta el build con "Export applyDecoratedDescriptor doesn't exist").
+  // serverExternalPackages saca este paquete del bundling y lo deja como
+  // require() nativo de Node en tiempo de ejecución — ahí sí funciona sin
+  // problema, es exactamente para lo que existe esta opción.
+  serverExternalPackages: ["pdfkit", "fontkit"],
   // Next.js limita a 1 MB el body de cualquier Server Action por default —
   // uploadTherapistPhoto (dashboard/perfil) es una Server Action, y casi
   // cualquier foto de celular real pesa más de 1 MB. Sin este ajuste, esas
