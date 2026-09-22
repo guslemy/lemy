@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getPatientInfoMap } from "@/lib/patient-info";
 import { AttendanceGate } from "@/components/attendance-gate";
-import { markSessionCompleted, cancelAppointmentTherapist, rescheduleAppointment } from "./citas/actions";
+import { markSessionCompleted, markNoShowTherapist, rescheduleAppointment } from "./citas/actions";
 
 // Envuelve TODO /dashboard/* (perfil, disponibilidad, pacientes, la ficha de
 // un paciente, etc.) — a petición de Gustavo (2026-09-21): el pop-up de
@@ -37,7 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           item={gateItem}
           markCompletedAction={markSessionCompleted}
           rescheduleAction={rescheduleAppointment}
-          cancelAction={cancelAppointmentTherapist}
+          markNoShowAction={markNoShowTherapist}
         />
       )}
       {children}
@@ -70,6 +70,7 @@ async function buildGateItem(supabase: Awaited<ReturnType<typeof createClient>>,
 
   return {
     id: next.id as string,
+    patientId: next.patient_id as string,
     patientName,
     scheduledAtIso: next.scheduled_at as string,
     totalPending: count ?? 1,

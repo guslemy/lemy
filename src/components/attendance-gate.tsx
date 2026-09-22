@@ -18,6 +18,7 @@ import { useState } from "react";
 // verdad actual.
 export type AttendanceGateItem = {
   id: string;
+  patientId: string;
   patientName: string;
   scheduledAtIso: string;
   totalPending: number;
@@ -41,14 +42,21 @@ export function AttendanceGate({
   item,
   markCompletedAction,
   rescheduleAction,
-  cancelAction,
+  markNoShowAction,
 }: {
   item: AttendanceGateItem;
   markCompletedAction: (formData: FormData) => void;
   rescheduleAction: (formData: FormData) => void;
-  cancelAction: (formData: FormData) => void;
+  // A petición de Gustavo (2026-09-21): esto marca la cita como "no_show"
+  // (no "cancelled") — para que sí cuente en el aviso de "paciente con
+  // inasistencias recurrentes" (ver noShowCounts en therapist-citas-tab.tsx)
+  // y en las estadísticas mensuales. Reutiliza markNoShowTherapist tal cual
+  // (dashboard/citas/actions.ts) — sin campo de motivo, a diferencia de la
+  // cancelación real: aquí no se está cancelando nada, se está registrando
+  // un hecho (el paciente no llegó).
+  markNoShowAction: (formData: FormData) => void;
 }) {
-  const [mode, setMode] = useState<"elegir" | "reagendar" | "cancelar">("elegir");
+  const [mode, setMode] = useState<"elegir" | "reagendar">("elegir");
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-forest-deep/60 px-4 backdrop-blur-sm">
@@ -82,13 +90,16 @@ export function AttendanceGate({
             >
               Reagendar
             </button>
-            <button
-              type="button"
-              onClick={() => setMode("cancelar")}
-              className="w-full rounded-full border border-line px-5 py-2.5 text-[0.9rem] font-medium text-rose-deep transition-colors hover:border-rose-deep"
-            >
-              Cancelar cita
-            </button>
+            <form action={markNoShowAction}>
+              <input type="hidden" name="appointment_id" value={item.id} />
+              <input type="hidden" name="patient_id" value={item.patientId} />
+              <button
+                type="submit"
+                className="w-full rounded-full border border-line px-5 py-2.5 text-[0.9rem] font-medium text-rose-deep transition-colors hover:border-rose-deep"
+              >
+                El paciente no llegó
+              </button>
+            </form>
           </div>
         )}
 
@@ -105,31 +116,6 @@ export function AttendanceGate({
                 className="flex-1 rounded-full bg-forest px-5 py-2.5 text-[0.88rem] font-semibold text-sage-white hover:bg-forest-deep"
               >
                 Confirmar nuevo horario
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("elegir")}
-                className="rounded-full border border-line px-4 py-2.5 text-[0.85rem] text-forest hover:border-forest"
-              >
-                Atrás
-              </button>
-            </div>
-          </form>
-        )}
-
-        {mode === "cancelar" && (
-          <form action={cancelAction} className="mt-5 flex flex-col gap-3">
-            <input type="hidden" name="appointment_id" value={item.id} />
-            <label className="block">
-              <span className="mb-1.5 block text-[0.82rem] font-medium text-forest">Motivo (opcional)</span>
-              <input type="text" name="reason" placeholder="¿Qué pasó?" className="input-lemy" />
-            </label>
-            <div className="flex gap-2.5">
-              <button
-                type="submit"
-                className="flex-1 rounded-full bg-rose-deep px-5 py-2.5 text-[0.88rem] font-semibold text-white hover:bg-[#a86356]"
-              >
-                Confirmar cancelación
               </button>
               <button
                 type="button"
