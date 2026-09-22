@@ -75,3 +75,48 @@ export async function startAppointmentCheckout(appointmentId: string): Promise<s
 
   return session.url;
 }
+
+// Antes de que el barrido del cron libere un horario por "no se completó el
+// pago a tiempo" (20 minutos, ver runNotificationSweep en
+// lib/notifications/engine.ts, a petición de Gustavo 2026-09-21), se
+// confirma directo con Stripe si esa Checkout Session sí se completó — por
+// si nuestro webhook (checkout.session.completed) falló o se retrasó justo
+// en esa ventana tan corta. Devuelve true si Stripe dice que el pago SÍ se
+// completó (en cuyo caso quien llama debe confirmar la cita en vez de
+// cancelarla — ver el uso en engine.ts, que se autorrepara llamando a
+// confirmAppointmentAndCreateEvent en ese caso). false ante cualquier duda
+// (sesión no encontrada, no pagada, error de red) — mejor cancelar de más
+// por error de red que dejar un horario bloqueado para siempre.
+export async function verifyCheckoutSessionPaid(appointmentId: string): Promise<boolean> {
+  try {
+    const stripe = getStripe();
+    const supabase = createServiceClient();
+
+    const { data: appointment } = await supabase
+      .from("appointments")
+      .select("id, therapist_id, stripe_checkout_session_id")
+      .eq("id", appointmentId)
+      .maybeSingle();
+
+    if (!appointment?.stripe_checkout_session_id) return false;
+
+    const { data: therapist } = await supabase
+      .from("therapists")
+      .select("stripe_connect_account_id")
+      .eq("id", appointment.therapist_id)
+      .maybeSingle();
+
+    if (!therapist?.stripe_connect_account_id) return false;
+
+    const session = await stripe.checkout.sessions.retrieve(
+      appointment.stripe_checkout_session_id as string,
+      undefined,
+      { stripeAccount: therapist.stripe_connect_account_id }
+    );
+
+    return session.payment_status === "paid";
+  } catch (err) {
+    console.error(`Error verificando con Stripe el pago de la cita ${appointmentId}:`, err);
+    return false;
+  }
+}

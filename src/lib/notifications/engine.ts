@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
+import { verifyCheckoutSessionPaid } from "@/lib/appointment-checkout";
+import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
 import { sendPushToUser } from "@/lib/webpush";
@@ -13,6 +15,8 @@ import {
   appointmentProposalExpired,
   appointmentConfirmationExpiredPatient,
   appointmentConfirmationExpiredTherapist,
+  appointmentPaymentReminder,
+  appointmentPaymentAbandonedCancelled,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,6 +50,8 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_proposal_expired_therapist",
   "appointment_confirmation_expired_patient",
   "appointment_confirmation_expired_therapist",
+  "appointment_payment_reminder_patient",
+  "appointment_payment_abandoned_patient",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -645,16 +651,13 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
-  // 9. Vencimiento de confirmación del terapeuta (a petición de Gustavo
-  // 2026-09-21): una cita en "pending_payment" en EFECTIVO (o una con
-  // tarjeta que el paciente nunca terminó de pagar en Stripe Checkout,
-  // payment_status se queda en "pending") tiene 24 horas para que el
-  // terapeuta la confirme (efectivo) o para que el paciente complete el
-  // pago (tarjeta abandonada) — si no, se libera el horario sola. Un pago
-  // con tarjeta que sí se completó NUNCA debería llegar hasta aquí: se
-  // confirma solo, sin pasar por este estado (ver confirmAppointmentAndCreateEvent,
-  // disparado desde el webhook de Stripe Connect en cuanto se cobra) — no
-  // hace falta ni tiene sentido reembolsar nada aquí.
+  // 9. Vencimiento de confirmación del terapeuta — 24 horas, EXCLUSIVO de
+  // citas en EFECTIVO (a petición de Gustavo 2026-09-21). Una cita con
+  // tarjeta nunca trae therapist_confirmation_expires_at: si se paga, se
+  // confirma sola (ver confirmAppointmentAndCreateEvent, disparado desde el
+  // webhook de Stripe Connect); si no se paga, tiene su propio plazo mucho
+  // más corto (pasos 10 y 11 de aquí abajo). Por eso no hace falta ni
+  // tiene sentido reembolsar nada en este paso.
   const { data: expiredConfirmations } = await supabase
     .from("appointments")
     .select("id, therapist_id, patient_id, scheduled_at, payment_status")
@@ -742,6 +745,119 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       sent += 1;
     } catch (err) {
       console.error(`Error en barrido (appointment_confirmation_expired → appointment ${a.id}):`, err);
+    }
+  }
+
+  // 10. Recordatorio de "¿qué pasó con tu pago?" a los 5 minutos, si una
+  // cita con tarjeta todavía no se completa (checkout abandonado, tarjeta
+  // rechazada, etc. — a petición de Gustavo 2026-09-21). Se calcula directo
+  // desde created_at, sin columna nueva: no hace falta guardar un plazo
+  // aparte solo para esto. El dedup normal de dispatch() (por tipo +
+  // related_id) evita que se repita en cada corrida del barrido mientras la
+  // cita sigue en este estado.
+  const PAYMENT_REMINDER_MIN = 5;
+  const PAYMENT_RELEASE_MIN = 20;
+  const { data: unpaidCandidates } = await supabase
+    .from("appointments")
+    .select("id, therapist_id, patient_id, scheduled_at, created_at, stripe_checkout_session_id")
+    .eq("status", "pending_payment")
+    .eq("payment_status", "pending")
+    .not("stripe_checkout_session_id", "is", null)
+    .lte("created_at", new Date(now - PAYMENT_REMINDER_MIN * 60 * 1000).toISOString());
+
+  checked += unpaidCandidates?.length ?? 0;
+
+  for (const a of unpaidCandidates ?? []) {
+    const ageMin = (now - new Date(a.created_at as string).getTime()) / (60 * 1000);
+    const whenLabel = whenLabelForEngine(a.scheduled_at as string);
+
+    try {
+      if (ageMin < PAYMENT_RELEASE_MIN) {
+        // Todavía dentro de la ventana de 20 min — solo el recordatorio
+        // suave, la cita sigue viva.
+        const [{ data: therapistRow }, { data: patientProfile }, patientEmail] = await Promise.all([
+          supabase.from("therapists").select("display_name").eq("id", a.therapist_id as string).maybeSingle(),
+          supabase.from("profiles").select("full_name").eq("id", a.patient_id as string).maybeSingle(),
+          emailOf(supabase, a.patient_id as string),
+        ]);
+        const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+        const patientName = (patientProfile?.full_name as string | undefined) ?? "ahí";
+
+        const { subject, html } = appointmentPaymentReminder({ patientName, therapistName, whenLabel });
+        await dispatch({
+          supabase,
+          type: "appointment_payment_reminder_patient",
+          relatedId: a.id as string,
+          recipientId: a.patient_id as string,
+          email: patientEmail,
+          phone: null,
+          subject,
+          html,
+          whatsappTemplate: "lemy_appointment_payment_reminder",
+          whatsappParams: [patientName, therapistName, whenLabel],
+          push: {
+            title: "¿Qué pasó con tu pago?",
+            body: `Tu cita con ${therapistName} sigue esperando el pago.`,
+            url: "/dashboard?tab=citas",
+          },
+        });
+        sent += 1;
+        continue;
+      }
+
+      // 11. Ya pasaron los 20 minutos — antes de liberar el horario, se
+      // verifica directo con Stripe por si nuestro webhook falló o se
+      // retrasó (a petición de Gustavo 2026-09-21, para no cancelarle por
+      // error una cita a alguien que sí pagó). Si Stripe dice que sí se
+      // pagó, nos autorreparamos confirmando la cita aquí mismo en vez de
+      // cancelarla.
+      const actuallyPaid = await verifyCheckoutSessionPaid(a.id as string);
+      if (actuallyPaid) {
+        await supabase.from("appointments").update({ payment_status: "paid" }).eq("id", a.id);
+        await confirmAppointmentAndCreateEvent(a.id as string);
+        console.error(
+          `Webhook de Stripe perdido/retrasado para la cita ${a.id} — se confirmó desde el barrido de respaldo.`
+        );
+        continue;
+      }
+
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          status: "cancelled",
+          cancelled_by: "system",
+          cancellation_reason: "El pago con tarjeta no se completó dentro de los 20 minutos.",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", a.id)
+        .eq("status", "pending_payment");
+
+      if (error) continue;
+
+      const [{ data: therapistRow }, { data: patientProfile }, patientEmail] = await Promise.all([
+        supabase.from("therapists").select("display_name").eq("id", a.therapist_id as string).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", a.patient_id as string).maybeSingle(),
+        emailOf(supabase, a.patient_id as string),
+      ]);
+      const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+      const patientName = (patientProfile?.full_name as string | undefined) ?? "ahí";
+
+      const { subject, html } = appointmentPaymentAbandonedCancelled({ patientName, therapistName, whenLabel });
+      await dispatch({
+        supabase,
+        type: "appointment_payment_abandoned_patient",
+        relatedId: a.id as string,
+        recipientId: a.patient_id as string,
+        email: patientEmail,
+        phone: null,
+        subject,
+        html,
+        whatsappTemplate: "lemy_appointment_payment_abandoned",
+        whatsappParams: [patientName, therapistName, whenLabel],
+      });
+      sent += 1;
+    } catch (err) {
+      console.error(`Error en barrido (appointment_payment_reminder/abandoned → appointment ${a.id}):`, err);
     }
   }
 

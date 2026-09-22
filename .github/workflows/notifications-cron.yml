@@ -5,9 +5,20 @@ name: Disparar barrido de notificaciones
 # checarse cada 15 min. Por eso el cron de Vercel se quitó de vercel.json y
 # lo reemplazamos por este workflow de GitHub Actions (gratis, sin límite de
 # frecuencia), que simplemente llama al mismo endpoint por HTTPS.
+#
+# Cada 5 min (antes cada 15) desde que se agregó el aviso de "no se completó
+# el pago con tarjeta" (5 min de recordatorio, 20 min para liberar el
+# horario, a petición de Gustavo 2026-09-21) — con 15 min de por medio esos
+# plazos hubieran sido bastante menos precisos de lo que pide esa función.
+# OJO: GitHub Actions no garantiza puntualidad exacta en cron jobs
+# programados (documentado por GitHub, se puede atrasar en momentos de
+# carga alta), así que en la práctica el recordatorio puede llegar unos
+# minutos después de los 5, y la liberación del horario unos minutos
+# después de los 20 — no es instantáneo, pero sí mucho más ajustado que
+# antes.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 jobs:

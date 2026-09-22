@@ -265,6 +265,39 @@ export function appointmentConfirmationExpiredTherapist(params: {
   };
 }
 
+// A los 5 minutos de crear una cita con pago por tarjeta, si el pago
+// todavía no se completó (checkout abandonado, tarjeta rechazada, etc.) —
+// a petición de Gustavo (2026-09-21). Recordatorio suave, la cita sigue
+// viva todavía — el aviso de que se liberó el horario es otro, a los 20 min
+// (appointmentPaymentAbandonedCancelled).
+export function appointmentPaymentReminder(params: { patientName: string; therapistName: string; whenLabel: string }) {
+  const { patientName, therapistName, whenLabel } = params;
+  return {
+    subject: `¿Qué pasó con tu pago? — cita con ${therapistName}`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <p>Empezaste a reservar una cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong>, pero no vemos que se haya completado el pago.</p>
+      <p>Tienes unos minutos más para terminarlo antes de que se libere el horario — si tu tarjeta fue rechazada o simplemente cambiaste de opinión, no necesitas hacer nada.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ver mis citas →</a></p>
+    `),
+  };
+}
+
+// A los 20 minutos, si el pago con tarjeta sigue sin completarse — el
+// horario ya se liberó.
+export function appointmentPaymentAbandonedCancelled(params: { patientName: string; therapistName: string; whenLabel: string }) {
+  const { patientName, therapistName, whenLabel } = params;
+  return {
+    subject: `Se liberó el horario con ${therapistName} — no se completó el pago`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <p>Como no se completó el pago de tu cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong>, liberamos el horario para que otra persona pueda tomarlo.</p>
+      <p>Puedes volver a agendar cuando quieras.</p>
+      <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar un horario →</a></p>
+    `),
+  };
+}
+
 // Tabla comparativa en HTML de tabla (no flex/grid — la mayoría de clientes
 // de correo los ignoran) para el correo de bienvenida de terapeuta nuevo.
 function planComparisonTable() {

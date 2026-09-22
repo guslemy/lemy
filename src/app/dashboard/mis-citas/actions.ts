@@ -106,26 +106,17 @@ export async function acceptTherapistAppointment(formData: FormData) {
       )
   );
 
-  // A petición de Gustavo (2026-09-21): el mismo margen de 24 horas aplica
-  // ahora también del lado del terapeuta — desde que la cita entra a
-  // "pending_payment" (aquí, o en una solicitud normal, ver
-  // requestAppointmentForUser en lib/appointments.ts) tiene 24 horas para
-  // confirmarla antes de que el barrido del cron la cancele sola.
-  const therapistConfirmationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
   if (cardAvailable) {
     // El vencimiento de ACEPTACIÓN (patient_acceptance_expires_at) ya no
-    // aplica en cuanto el paciente acepta — se limpia y arranca en su lugar
-    // el vencimiento de CONFIRMACIÓN del terapeuta, incluso si el paciente
-    // termina abandonando el Checkout a medias (antes esa situación se
-    // quedaba bloqueando el horario para siempre sin que nadie se enterara).
+    // aplica en cuanto el paciente acepta. No se pone ningún
+    // therapist_confirmation_expires_at aquí — un pago con tarjeta no
+    // completado tiene su propio plazo, mucho más corto (5 min de
+    // recordatorio, 20 min para liberar el horario, calculado directo desde
+    // appointments.created_at — ver runNotificationSweep en engine.ts), y un
+    // pago que SÍ se completa se confirma solo sin pasar por ningún plazo.
     await supabase
       .from("appointments")
-      .update({
-        status: "pending_payment",
-        patient_acceptance_expires_at: null,
-        therapist_confirmation_expires_at: therapistConfirmationExpiresAt,
-      })
+      .update({ status: "pending_payment", patient_acceptance_expires_at: null })
       .eq("id", appointmentId)
       .eq("patient_id", user.id);
 
@@ -133,6 +124,12 @@ export async function acceptTherapistAppointment(formData: FormData) {
     if (!checkoutUrl) redirect("/dashboard?tab=citas&error=1");
     redirect(checkoutUrl);
   }
+
+  // A petición de Gustavo (2026-09-21): 24 horas de plazo para que el
+  // terapeuta confirme — esto sí aplica aquí porque esta rama es en
+  // efectivo (sin pago real de por medio, así que no hay checkout que
+  // pueda "no completarse").
+  const therapistConfirmationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   const { error } = await supabase
     .from("appointments")
