@@ -3,8 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
-import { savePatientNotes, markNoShowTherapist, createAppointmentForPatient } from "../../citas/actions";
-import { MarkNoShowForm, SaveNotesForm } from "../../citas/citas-client";
+import {
+  savePatientNotes,
+  markNoShowTherapist,
+  createAppointmentForPatient,
+  rescheduleAppointment,
+} from "../../citas/actions";
+import { MarkNoShowForm, SaveNotesForm, RescheduleForm } from "../../citas/citas-client";
 import { createClinicalNote, softDeleteClinicalNote } from "../clinical-notes-actions";
 import { decryptClinicalNote, isClinicalNotesEncryptionConfigured } from "@/lib/clinical-notes-crypto";
 import { getAvailableSlots } from "@/lib/availability";
@@ -270,10 +275,16 @@ export default async function PatientDetailPage({
                 // futuras ni sobre las que nunca llegaron a confirmarse.
                 const isPast = new Date(a.scheduled_at as string).getTime() < new Date().getTime();
                 const canMarkNoShow = a.status === "confirmed" && isPast;
+                // A petición de Gustavo (2026-09-21): reagendar también
+                // desde aquí, para cualquier sesión que todavía no ha
+                // pasado y sigue "viva" (no cancelada ni ya resuelta) —
+                // mismo RescheduleForm/rescheduleAppointment que ya se usa
+                // en la pestaña de Consultas.
+                const canReschedule = !isPast && a.status !== "cancelled" && a.status !== "completed";
                 return (
                   <div
                     key={a.id}
-                    className="flex items-center justify-between rounded-2xl border border-line bg-card px-5 py-3.5"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-card px-5 py-3.5"
                   >
                     <p className="text-[0.9rem] text-forest">{formatOaxaca(a.scheduled_at as string)}</p>
                     <div className="flex items-center gap-3">
@@ -282,10 +293,17 @@ export default async function PatientDetailPage({
                           ? "Cancelada"
                           : a.status === "confirmed"
                             ? "Confirmada"
-                            : a.status === "no_show"
-                              ? "No asistió"
-                              : "Pendiente"}
+                            : a.status === "completed"
+                              ? "Completada"
+                              : a.status === "no_show"
+                                ? "No asistió"
+                                : a.status === "pending_patient_acceptance"
+                                  ? "Propuesta enviada"
+                                  : "Pendiente"}
                       </span>
+                      {canReschedule && (
+                        <RescheduleForm appointmentId={a.id} rescheduleAction={rescheduleAppointment} />
+                      )}
                       {canMarkNoShow && (
                         <MarkNoShowForm
                           appointmentId={a.id}
