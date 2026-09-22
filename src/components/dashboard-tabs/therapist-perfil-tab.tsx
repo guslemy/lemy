@@ -74,7 +74,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected, verification_status"
+        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected, google_calendar_freebusy_ok, verification_status"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -176,7 +176,17 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
         <h2 className="mb-3 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">
           Google Calendar
         </h2>
-        {therapist?.google_calendar_connected ? (
+        {therapist?.google_calendar_connected && therapist?.google_calendar_freebusy_ok === false ? (
+          <>
+            <p className="mb-4 text-[0.88rem] text-rose-deep">
+              ⚠️ Conectado, pero con un permiso pendiente: Lemy no está pudiendo revisar los eventos
+              que ya tienes en tu Google Calendar, así que puede ofrecer como disponible un horario
+              que en realidad ya tienes ocupado. Desconéctalo y vuelve a conectarlo para arreglarlo —
+              toma menos de un minuto.
+            </p>
+            <GoogleCalendarConnectButton label="Reconectar Google Calendar" />
+          </>
+        ) : therapist?.google_calendar_connected ? (
           <p className="text-[0.88rem] text-forest">✓ Conectado — tus citas confirmadas crean el evento y el Meet automáticamente.</p>
         ) : (
           <>

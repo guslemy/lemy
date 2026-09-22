@@ -72,14 +72,33 @@ export async function requestAppointmentForUser(
     modality = "online";
   }
 
-  // Revalidar que el horario sigue libre (por si alguien más lo tomó justo antes)
-  const { data: clash } = await supabase
+  const durationMin = serviceDurationMin ?? therapist.session_duration_min ?? 50;
+
+  // Revalidar que el horario sigue libre (por si alguien más lo tomó justo
+  // antes). Traslape real de rango, no solo coincidencia exacta de inicio:
+  // antes esto solo comparaba scheduled_at === scheduledAt, así que una
+  // cita de 60 min ya confirmada a las 10:00 NO bloqueaba una nueva de
+  // 30 min a las 10:30 (empiezan en minutos distintos aunque se encimen) —
+  // mismo criterio de traslape que ya usa getAvailableSlots en
+  // src/lib/availability.ts, para que el chequeo final sea al menos tan
+  // estricto como la lista de horarios que ya vio el paciente.
+  const newStartMs = new Date(scheduledAt).getTime();
+  const newEndMs = newStartMs + durationMin * 60 * 1000;
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const { data: nearby } = await supabase
     .from("appointments")
-    .select("id")
+    .select("scheduled_at, duration_min")
     .eq("therapist_id", therapist.id)
-    .eq("scheduled_at", scheduledAt)
     .neq("status", "cancelled")
-    .maybeSingle();
+    .gte("scheduled_at", new Date(newStartMs - dayMs).toISOString())
+    .lte("scheduled_at", new Date(newStartMs + dayMs).toISOString());
+
+  const clash = (nearby ?? []).some((a) => {
+    const aStartMs = new Date(a.scheduled_at as string).getTime();
+    const aEndMs = aStartMs + ((a.duration_min as number | null) ?? 50) * 60 * 1000;
+    return newStartMs < aEndMs && newEndMs > aStartMs;
+  });
 
   if (clash) return { ok: false, reason: "taken" };
 
@@ -121,7 +140,7 @@ export async function requestAppointmentForUser(
       therapist_id: therapist.id,
       patient_id: userId,
       scheduled_at: scheduledAt,
-      duration_min: serviceDurationMin ?? therapist.session_duration_min ?? 50,
+      duration_min: durationMin,
       modality,
       status: "pending_payment",
       payment_status: needsPayment ? "pending" : "efectivo",

@@ -7,7 +7,13 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
 
-export class GoogleCalendarError extends Error {}
+export class GoogleCalendarError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 // Intercambia el refresh token guardado por un access token de corta
 // duración. Se hace en cada confirmación — no cacheamos el access token en
@@ -184,7 +190,10 @@ export async function queryFreeBusy(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new GoogleCalendarError(`No se pudo consultar freebusy de Google Calendar: ${body}`);
+    throw new GoogleCalendarError(
+      `No se pudo consultar freebusy de Google Calendar: ${body}`,
+      res.status
+    );
   }
 
   const data = (await res.json()) as {
