@@ -18,6 +18,16 @@ import {
   type BookForPatientDaySlots,
   type BookForPatientService,
 } from "@/components/therapist-book-for-patient";
+import { hasGestionaPlan } from "@/lib/plan-features";
+import {
+  getClinicalProfile,
+  getClinicalHistory,
+  listSessionNotes,
+  listCustomFields,
+  listEvaluations,
+  listPatientDocuments,
+} from "@/lib/clinical-record";
+import { PatientFichaTabs } from "@/components/patient-ficha/ficha-tabs";
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -62,7 +72,7 @@ export default async function PatientDetailPage({
 
   const { data: history } = await supabase
     .from("appointments")
-    .select("id, scheduled_at, status, modality")
+    .select("id, scheduled_at, status, modality, payment_status, cash_confirmed_at, price")
     .eq("therapist_id", user.id)
     .eq("patient_id", patientId)
     .order("scheduled_at", { ascending: false });
@@ -79,10 +89,48 @@ export default async function PatientDetailPage({
   const { data: therapistRow } = await supabase
     .from("therapists")
     .select(
-      "session_duration_min, is_online_available, is_in_person_available, therapist_services ( id, price, duration_min, service:service_catalog ( nombre ) )"
+      "display_name, subscription_plan, subscription_status, session_duration_min, is_online_available, is_in_person_available, therapist_services ( id, price, duration_min, service:service_catalog ( nombre ) )"
     )
     .eq("id", user.id)
     .maybeSingle();
+
+  // Ficha completa (7 pestañas) — exclusiva del plan Gestiona, ver
+  // lib/plan-features.ts. Empieza conserva la vista simple de siempre
+  // (notas libres + historial clínico en bitácora) más abajo en esta
+  // misma página.
+  const isGestiona = hasGestionaPlan(
+    therapistRow?.subscription_plan ?? null,
+    therapistRow?.subscription_status ?? null
+  );
+
+  let fichaData: {
+    profile: Awaited<ReturnType<typeof getClinicalProfile>>;
+    history: Awaited<ReturnType<typeof getClinicalHistory>>;
+    sessionNotes: Awaited<ReturnType<typeof listSessionNotes>>;
+    customFields: Awaited<ReturnType<typeof listCustomFields>>;
+    evaluations: Awaited<ReturnType<typeof listEvaluations>>;
+    documents: Awaited<ReturnType<typeof listPatientDocuments>>;
+  } | null = null;
+
+  if (isGestiona) {
+    const [clinicalProfile, clinicalHistory, sessionNotes, customFields, evaluations, documents] =
+      await Promise.all([
+        getClinicalProfile(supabase, user.id, patientId),
+        getClinicalHistory(supabase, user.id, patientId),
+        listSessionNotes(supabase, user.id, patientId),
+        listCustomFields(supabase, user.id),
+        listEvaluations(supabase, user.id, patientId),
+        listPatientDocuments(supabase, user.id, patientId),
+      ]);
+    fichaData = {
+      profile: clinicalProfile,
+      history: clinicalHistory,
+      sessionNotes,
+      customFields,
+      evaluations,
+      documents,
+    };
+  }
 
   const bookServices: BookForPatientService[] = (
     (therapistRow?.therapist_services ?? []) as unknown as {
@@ -208,7 +256,35 @@ export default async function PatientDetailPage({
             />
           </div>
 
-          {clinicalNotesEnabled && (
+          {isGestiona && fichaData && (
+            <div className="mt-6">
+              <PatientFichaTabs
+                patientId={patientId}
+                therapistDisplayName={(therapistRow?.display_name as string) ?? "tu terapeuta"}
+                profile={fichaData.profile}
+                history={fichaData.history?.content ?? {}}
+                sessionNotes={fichaData.sessionNotes}
+                customFields={fichaData.customFields}
+                evaluations={fichaData.evaluations}
+                documents={fichaData.documents}
+                defaultEnfoqueFamilia={null}
+                cashPendingCount={
+                  (history ?? []).filter((a) => a.payment_status === "efectivo" && !a.cash_confirmed_at).length
+                }
+                appointmentsForCitas={(history ?? []).map((a) => ({
+                  id: a.id as string,
+                  scheduledAtIso: a.scheduled_at as string,
+                  status: a.status as string,
+                  modality: a.modality as string,
+                  paymentStatus: a.payment_status as string,
+                  cashConfirmedAt: a.cash_confirmed_at as string | null,
+                  price: a.price as number,
+                }))}
+              />
+            </div>
+          )}
+
+          {!isGestiona && clinicalNotesEnabled && (
             <section className="signature-corner mt-6 rounded-[28px] border border-line bg-card p-7">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
                 Historial clínico
