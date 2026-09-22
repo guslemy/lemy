@@ -74,6 +74,7 @@ type TherapistDetail = {
   facebook_url: string | null;
   tiktok_url: string | null;
   whatsapp_public: string | null;
+  booking_policy_url: string | null;
   therapist_specialties: { specialty: CatalogItem | null }[] | null;
   therapist_approaches: { approach: CatalogItem | null }[] | null;
   therapist_postgraduate_studies: PostgraduateStudy[] | null;
@@ -115,7 +116,7 @@ async function getTherapist(slug: string) {
        verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
        subscription_plan, subscription_status,
-       instagram_url, facebook_url, tiktok_url, whatsapp_public,
+       instagram_url, facebook_url, tiktok_url, whatsapp_public, booking_policy_url,
        therapist_specialties ( specialty:specialties ( slug, nombre_coloquial, descripcion_coloquial ) ),
        therapist_approaches ( approach:therapeutic_approaches ( slug, nombre_tecnico, nombre_coloquial, descripcion_coloquial ) ),
        therapist_postgraduate_studies ( degree_type, program_name, institution, completion_year, license_number ),
@@ -251,11 +252,16 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   // contador de cara al público. Reviews sí es real desde este cambio: la
   // tabla `reviews` existe desde 0001_init.sql, y ahora el flujo en
   // /resena/[appointmentId] la llena de verdad.
+  // Desde 2026-09-21 sí existe un momento en el código que asigna
+  // "completed" (ver AttendanceGate / markSessionCompleted) — una sesión
+  // pasada ya resuelta como "sí se llevó a cabo" migra de "confirmed" a
+  // "completed", así que hay que contar ambas para no des-contar sesiones
+  // reales de este número de cara al público.
   const { count: sessionsCount } = await supabase
     .from("appointments")
     .select("id", { count: "exact", head: true })
     .eq("therapist_id", therapist.id)
-    .eq("status", "confirmed")
+    .in("status", ["confirmed", "completed"])
     .lte("scheduled_at", new Date().toISOString());
 
   const { data: publishedReviews } = await supabase
@@ -673,6 +679,20 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                 <h2 className="mt-2.5 font-display text-[1.4rem] text-forest">
                   Elige un horario disponible
                 </h2>
+
+                {therapist.booking_policy_url && (
+                  <p className="mt-2 text-[0.85rem] text-[#7C877F]">
+                    Revisa mi política de reservas aquí:{" "}
+                    <a
+                      href={therapist.booking_policy_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-forest underline"
+                    >
+                      {therapist.booking_policy_url}
+                    </a>
+                  </p>
+                )}
 
                 {solicitado === "1" && (
                   <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">

@@ -74,7 +74,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
     supabase
       .from("therapists")
       .select(
-        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, google_calendar_connected, google_calendar_freebusy_ok, verification_status"
+        "display_name, slug, tagline, bio, city, zona, country, state, gender, birth_date, profession, professional_license_number, university, graduation_year, therapy_types, languages, client_niches, price_min, price_max, is_online_available, is_in_person_available, address, is_published, photo_url, instagram_url, facebook_url, tiktok_url, whatsapp_public, booking_policy_url, google_calendar_connected, google_calendar_freebusy_ok, verification_status"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -440,6 +440,20 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
               durationMin: s.duration_min,
             }))}
           />
+
+          <div className="mt-6 border-t border-line pt-5">
+            <Field
+              label="Política de reservas (opcional)"
+              hint={'Si tienes tu propia política (cancelaciones, retrasos, etc.), pega aquí el link — en tu perfil público se muestra como "Revisa mi política de reservas aquí:".'}
+            >
+              <input
+                name="booking_policy_url"
+                defaultValue={therapist?.booking_policy_url ?? ""}
+                placeholder="https://..."
+                className="input-lemy"
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="signature-corner rounded-[28px] border border-line bg-card p-7">

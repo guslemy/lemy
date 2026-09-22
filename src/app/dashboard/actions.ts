@@ -184,6 +184,7 @@ export async function saveTherapistProfile(formData: FormData) {
   const facebook_url = normalizeUrl(String(formData.get("facebook_url") || ""));
   const tiktok_url = normalizeUrl(String(formData.get("tiktok_url") || ""));
   const whatsapp_public = String(formData.get("whatsapp_public") || "").trim() || null;
+  const booking_policy_url = normalizeUrl(String(formData.get("booking_policy_url") || ""));
 
   await supabase.from("profiles").update({ phone }).eq("id", user.id);
 
@@ -252,6 +253,7 @@ export async function saveTherapistProfile(formData: FormData) {
       facebook_url,
       tiktok_url,
       whatsapp_public,
+      booking_policy_url,
       ...(photo_url ? { photo_url } : {}),
     })
     .eq("id", user.id);
