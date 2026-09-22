@@ -4,12 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getAccessToken, createCalendarEvent, updateCalendarEvent } from "@/lib/google-calendar";
-import { fallbackMeetingLink } from "@/lib/video-link";
+import { getAccessToken, updateCalendarEvent } from "@/lib/google-calendar";
+import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
 import {
   notifyAppointmentCancelled,
-  notifyAppointmentConfirmed,
   notifyAppointmentRescheduled,
   notifyAppointmentProposed,
 } from "@/lib/notifications/instant";
@@ -32,12 +31,14 @@ async function requireTherapist() {
   return { supabase, user };
 }
 
-// El terapeuta confirma una cita solicitada. Si tiene Google Calendar
-// conectado, se crea el evento real con Meet autogenerado (mejor
-// experiencia). Si no — o si Google falla por cualquier razón — la cita se
-// confirma igual con una sala de respaldo (Jitsi, sin cuenta de nadie) más
-// una invitación de calendario (.ics) por correo. Nadie se queda bloqueado
-// por no tener Gmail.
+// El terapeuta confirma una cita EN EFECTIVO — a petición de Gustavo
+// (2026-09-21), este botón manual ya solo aplica a ese caso: una cita
+// pagada con tarjeta se confirma sola en cuanto Stripe avisa que se cobró
+// (ver confirmAppointmentAndCreateEvent en lib/appointment-confirm.ts,
+// disparado desde el webhook de Stripe Connect) — pedirle al terapeuta un
+// clic aparte para algo que el paciente ya pagó no tiene ningún propósito
+// real. La creación del evento de Google Calendar / sala de respaldo Jitsi
+// vive ahora en esa función compartida, no aquí.
 export async function confirmAppointment(formData: FormData) {
   const { supabase, user } = await requireTherapist();
   const appointmentId = String(formData.get("appointment_id") || "");
@@ -45,131 +46,19 @@ export async function confirmAppointment(formData: FormData) {
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, scheduled_at, duration_min, status, payment_status, modality")
+    .select("id, status, payment_status")
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
     .maybeSingle();
 
-  if (!appointment) redirect("/dashboard?tab=citas&citas_error=1");
-  if (appointment.status !== "pending_payment") {
-    redirect("/dashboard?tab=citas&citas_error=1");
-  }
-  // No se puede confirmar una cita con pago por tarjeta pendiente — el
-  // paciente pudo haber cerrado Stripe Checkout a medias. Las citas en
-  // efectivo (terapeuta sin Stripe Connect activo, payment_status
-  // "efectivo") nunca pasan por Checkout, así que se confirman igual.
-  if (appointment.payment_status !== "paid" && appointment.payment_status !== "efectivo") {
+  if (!appointment || appointment.status !== "pending_payment" || appointment.payment_status !== "efectivo") {
     redirect("/dashboard?tab=citas&citas_error=1");
   }
 
-  const modality: "online" | "presencial" = appointment.modality === "presencial" ? "presencial" : "online";
-
-  const { data: therapist } = await supabase
-    .from("therapists")
-    .select("display_name, address")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // Solo se lleva la dirección si la cita es presencial — para una cita en
-  // línea no tiene sentido ni debe aparecer en ningún lado.
-  const address = modality === "presencial" ? therapist?.address ?? null : null;
-
-  const serviceClient = createServiceClient();
-
-  const { data: refreshToken } = await serviceClient.rpc("get_google_refresh_token", {
-    p_user_id: user.id,
-  });
-
-  const { data: patientAuth } = await serviceClient.auth.admin.getUserById(appointment.patient_id);
-  const patientEmail = patientAuth?.user?.email;
-  const therapistEmail = user.email;
-
-  if (!patientEmail || !therapistEmail) {
-    redirect("/dashboard?tab=citas&citas_error=1");
-  }
-
-  const { data: patientProfile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", appointment.patient_id)
-    .maybeSingle();
-
-  const startIso = new Date(appointment.scheduled_at).toISOString();
-  const endIso = new Date(
-    new Date(appointment.scheduled_at).getTime() + appointment.duration_min * 60 * 1000
-  ).toISOString();
-
-  const therapistName = therapist?.display_name ?? "tu terapeuta";
-  const patientName = patientProfile?.full_name ?? "tu paciente";
-
-  let eventId: string | null = null;
-  let meetingLink: string | null = null;
-  const modalityLabel = modality === "online" ? "en línea" : "presencial";
-
-  if (refreshToken) {
-    try {
-      const accessToken = await getAccessToken(refreshToken);
-      const created = await createCalendarEvent({
-        accessToken,
-        summary: `Sesión Lemy (${modalityLabel}) — ${therapistName} y ${patientName}`,
-        description:
-          modality === "online"
-            ? "Sesión en línea agendada a través de Lemy."
-            : "Sesión presencial agendada a través de Lemy.",
-        startIso,
-        endIso,
-        therapistEmail,
-        patientEmail,
-        modality,
-        location: modality === "presencial" ? address : null,
-      });
-      eventId = created.eventId;
-      meetingLink = created.meetingLink;
-    } catch (err) {
-      console.error("Error creando evento en Google Calendar, se usa la sala de respaldo:", err);
-      // El refresh token que teníamos guardado ya no sirve (expiró, se
-      // revocó, etc.) — corregimos el flag para que el terapeuta vea el
-      // aviso de "reconectar" en su perfil en vez de creer que sigue
-      // conectado cuando en realidad ya no está pasando nada.
-      await serviceClient
-        .from("therapists")
-        .update({ google_calendar_connected: false })
-        .eq("id", user.id);
-    }
-  }
-
-  // La sala de respaldo (Jitsi) solo aplica a sesiones en línea — una cita
-  // presencial nunca debe traer un link de videollamada, sea cual sea el
-  // motivo por el que Google no se pudo usar.
-  if (modality === "online" && !meetingLink) {
-    meetingLink = fallbackMeetingLink(appointmentId);
-  }
-
-  await supabase
-    .from("appointments")
-    .update({
-      status: "confirmed",
-      google_calendar_event_id: eventId,
-      meeting_link: meetingLink,
-      location_address: address,
-      therapist_confirmation_expires_at: null,
-    })
-    .eq("id", appointmentId)
-    .eq("therapist_id", user.id);
-
-  await notifyAppointmentConfirmed({
-    appointmentId,
-    therapistId: user.id,
-    patientId: appointment.patient_id,
-    scheduledAtIso: appointment.scheduled_at,
-    durationMin: appointment.duration_min,
-    modality,
-    meetingLink,
-    address,
-  });
+  const ok = await confirmAppointmentAndCreateEvent(appointmentId);
 
   revalidatePath("/dashboard");
-  redirect("/dashboard?tab=citas&citas_confirmado=1");
+  redirect(ok ? "/dashboard?tab=citas&citas_confirmado=1" : "/dashboard?tab=citas&citas_error=1");
 }
 
 // El terapeuta cancela una cita propia (pendiente o ya confirmada). No borra

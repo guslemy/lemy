@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
-import { refundAppointmentPayment } from "@/lib/appointment-checkout";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
 import { sendPushToUser } from "@/lib/webpush";
@@ -647,14 +646,15 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
   }
 
   // 9. Vencimiento de confirmación del terapeuta (a petición de Gustavo
-  // 2026-09-21): cualquier cita en "pending_payment" — venga de una
-  // solicitud normal (efectivo o tarjeta) o de que el paciente aceptó una
-  // propuesta del terapeuta — tiene 24 horas para que el terapeuta la
-  // confirme. Cubre de paso un caso que antes se quedaba bloqueando el
-  // horario para siempre sin que nadie se enterara: un pago con tarjeta que
-  // el paciente empezó en Stripe Checkout pero nunca terminó de pagar
-  // (payment_status se queda en "pending" — ahí no hay nada que reembolsar,
-  // solo se libera el horario).
+  // 2026-09-21): una cita en "pending_payment" en EFECTIVO (o una con
+  // tarjeta que el paciente nunca terminó de pagar en Stripe Checkout,
+  // payment_status se queda en "pending") tiene 24 horas para que el
+  // terapeuta la confirme (efectivo) o para que el paciente complete el
+  // pago (tarjeta abandonada) — si no, se libera el horario sola. Un pago
+  // con tarjeta que sí se completó NUNCA debería llegar hasta aquí: se
+  // confirma solo, sin pasar por este estado (ver confirmAppointmentAndCreateEvent,
+  // disparado desde el webhook de Stripe Connect en cuanto se cobra) — no
+  // hace falta ni tiene sentido reembolsar nada aquí.
   const { data: expiredConfirmations } = await supabase
     .from("appointments")
     .select("id, therapist_id, patient_id, scheduled_at, payment_status")
@@ -666,8 +666,12 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
 
   for (const a of expiredConfirmations ?? []) {
     try {
-      const wasPaid = a.payment_status === "paid";
-      const refunded = wasPaid ? await refundAppointmentPayment(a.id as string) : false;
+      // Defensa por si el webhook de Stripe todavía no alcanza a procesar
+      // el pago (hay una ventana de milisegundos entre que se marca
+      // payment_status "paid" y que se confirma la cita) — mejor esperar a
+      // la siguiente corrida del barrido que cancelar por accidente una
+      // cita que sí se pagó.
+      if (a.payment_status === "paid") continue;
 
       const { error } = await supabase
         .from("appointments")
@@ -699,7 +703,6 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
         patientName,
         therapistName,
         whenLabel,
-        refunded,
       });
       await dispatch({
         supabase,
@@ -718,7 +721,6 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
         therapistName,
         patientName,
         whenLabel,
-        refunded,
       });
       await dispatch({
         supabase,

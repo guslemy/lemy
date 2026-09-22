@@ -43,12 +43,21 @@ export default async function GraciasPage({
 
   const { data: appointment } = await supabase
     .from("appointments")
-    .select("id, therapist_id, patient_id, scheduled_at, modality")
+    .select("id, therapist_id, patient_id, scheduled_at, modality, status, meeting_link, location_address")
     .eq("id", appointmentId)
     .eq("patient_id", user.id)
     .maybeSingle();
 
   if (!appointment) notFound();
+
+  // Un pago con tarjeta se confirma solo en cuanto Stripe avisa que se
+  // cobró (ver confirmAppointmentAndCreateEvent, disparado desde el
+  // webhook de Stripe Connect) — normalmente ya está "confirmed" para
+  // cuando el paciente vuelve a esta página. isConfirmed cubre también el
+  // rarísimo caso en que el webhook todavía no alcanza a procesarse (la
+  // página cae de vuelta al copy genérico de "espera la confirmación",
+  // que sigue siendo cierto un instante más).
+  const isConfirmed = appointment.status === "confirmed";
 
   const { data: therapist } = await supabase
     .from("therapists")
@@ -68,13 +77,19 @@ export default async function GraciasPage({
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[640px]">
           <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
-            Solicitud enviada
+            {isConfirmed ? "Cita confirmada" : "Solicitud enviada"}
           </p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
-            ¡Listo! Tu solicitud con {therapistFirstName} quedó registrada
+            {isConfirmed
+              ? `¡Listo! Tu cita con ${therapistFirstName} ya está confirmada`
+              : `¡Listo! Tu solicitud con ${therapistFirstName} quedó registrada`}
           </h1>
           <p className="mt-3 text-[0.95rem] text-[#3E4B44]">
-            En cuanto {therapistFirstName} la confirme, te avisamos por correo.
+            {isConfirmed
+              ? modality === "online" && appointment.meeting_link
+                ? "Te mandamos el link de tu sesión por correo, junto con una invitación de calendario."
+                : "Te mandamos los detalles de tu sesión por correo, junto con una invitación de calendario."
+              : `En cuanto ${therapistFirstName} la confirme, te avisamos por correo.`}
           </p>
 
           <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
@@ -108,8 +123,9 @@ export default async function GraciasPage({
               <li className="flex gap-3 rounded-2xl border border-line bg-card p-4 text-[0.9rem] text-[#3E4B44]">
                 <span className="text-forest">1.</span>
                 <span>
-                  Espera la confirmación de {therapistFirstName} — te llega por correo (y WhatsApp,
-                  próximamente) en cuanto acepte tu solicitud.
+                  {isConfirmed
+                    ? "Tu cita ya quedó lista — no necesitas esperar nada más de nuestro lado."
+                    : `Espera la confirmación de ${therapistFirstName} — te llega por correo (y WhatsApp, próximamente) en cuanto acepte tu solicitud.`}
                 </span>
               </li>
               <li className="flex gap-3 rounded-2xl border border-line bg-card p-4 text-[0.9rem] text-[#3E4B44]">

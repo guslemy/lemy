@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
-import { notifyAppointmentRequested } from "@/lib/notifications/instant";
+import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 
 // Endpoint APARTE del webhook normal (api/stripe/webhook) porque los
 // eventos que ocurren DENTRO de una cuenta conectada (Direct charges de
@@ -48,29 +48,20 @@ export async function POST(req: Request) {
       }
 
       // El paciente pagó su cita (Direct charge en la cuenta del
-      // terapeuta). Recién aquí se le avisa al terapeuta de la solicitud —
-      // antes de esto, la cita existe pero nadie fue notificado.
+      // terapeuta). A petición de Gustavo (2026-09-21): un pago con tarjeta
+      // YA ES la confirmación — no se le pide al terapeuta ningún clic
+      // aparte. Se marca payment_status "paid" y de inmediato se corre la
+      // misma lógica que antes solo se disparaba con el clic manual
+      // (crear el evento real de Google Calendar o la sala de respaldo, y
+      // avisarle a ambos con "cita confirmada" en vez de "nueva solicitud").
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.metadata?.lemy_kind !== "appointment_payment") break;
         const appointmentId = session.metadata?.appointment_id;
         if (!appointmentId) break;
 
-        const { data: appointment } = await supabase
-          .from("appointments")
-          .update({ payment_status: "paid" })
-          .eq("id", appointmentId)
-          .select("id, therapist_id, patient_id, scheduled_at")
-          .maybeSingle();
-
-        if (appointment) {
-          await notifyAppointmentRequested({
-            appointmentId: appointment.id,
-            therapistId: appointment.therapist_id,
-            patientId: appointment.patient_id,
-            scheduledAtIso: appointment.scheduled_at,
-          });
-        }
+        await supabase.from("appointments").update({ payment_status: "paid" }).eq("id", appointmentId);
+        await confirmAppointmentAndCreateEvent(appointmentId);
         break;
       }
 

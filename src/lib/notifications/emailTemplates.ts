@@ -226,24 +226,22 @@ export function appointmentProposalExpired(params: { therapistName: string; pati
   };
 }
 
-// Cuando el TERAPEUTA no confirma una cita dentro de las 24 horas (a
-// petición de Gustavo 2026-09-21, ver runNotificationSweep en engine.ts) —
-// aplica tanto a solicitudes normales (efectivo o tarjeta) como a
-// propuestas del terapeuta ya aceptadas por el paciente. Si ya se había
-// cobrado con tarjeta, el mensaje avisa del reembolso automático.
+// Cuando una cita EN EFECTIVO (o una con tarjeta que el paciente nunca
+// terminó de pagar) no se resuelve dentro de las 24 horas (a petición de
+// Gustavo 2026-09-21, ver runNotificationSweep en engine.ts). Un pago con
+// tarjeta ya cobrado nunca llega hasta aquí — ese se confirma solo en
+// cuanto se cobra, sin pasar por este estado.
 export function appointmentConfirmationExpiredPatient(params: {
   patientName: string;
   therapistName: string;
   whenLabel: string;
-  refunded: boolean;
 }) {
-  const { patientName, therapistName, whenLabel, refunded } = params;
+  const { patientName, therapistName, whenLabel } = params;
   return {
     subject: `Tu cita con ${therapistName} se canceló — no se confirmó a tiempo`,
     html: wrap(`
       <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
       <p>Tu cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong> no se confirmó dentro de las 24 horas, así que se canceló automáticamente.</p>
-      ${refunded ? `<p>Ya procesamos el reembolso completo de tu pago — debería reflejarse en tu tarjeta en los próximos días, según los tiempos de tu banco.</p>` : ""}
       <p>Puedes volver a agendar cuando quieras.</p>
       <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar un horario →</a></p>
     `),
@@ -254,16 +252,14 @@ export function appointmentConfirmationExpiredTherapist(params: {
   therapistName: string;
   patientName: string;
   whenLabel: string;
-  refunded: boolean;
 }) {
-  const { therapistName, patientName, whenLabel, refunded } = params;
+  const { therapistName, patientName, whenLabel } = params;
   return {
     subject: `No confirmaste a tiempo — se canceló la cita con ${patientName}`,
     html: wrap(`
       <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
       <p>La cita con <strong>${patientName}</strong> para el <strong>${whenLabel}</strong> no se confirmó dentro de las 24 horas, así que se canceló sola y el horario ya quedó libre otra vez.</p>
-      ${refunded ? `<p>Como ya se había cobrado con tarjeta, le devolvimos su pago completo a ${patientName.split(" ")[0]}, incluida la comisión de Lemy sobre ese cobro.</p>` : ""}
-      <p>Recuerda confirmar tus solicitudes dentro de las primeras 24 horas para no perderlas.</p>
+      <p>Recuerda confirmar tus solicitudes en efectivo dentro de las primeras 24 horas para no perderlas.</p>
       <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ir a mis citas →</a></p>
     `),
   };

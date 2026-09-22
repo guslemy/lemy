@@ -137,15 +137,15 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
     }
   }
 
-  // Se muestran como "por confirmar" las que ya llegaron a pagarse por
-  // tarjeta, o las que son en efectivo (nunca pasan por Stripe Checkout, así
-  // que no hay nada que esperar). Lo que NO se muestra es una reserva con
-  // pago por tarjeta que se quedó a medias (el paciente cerró la pestaña, la
-  // tarjeta falló, etc.) — esa no debe generar ninguna expectativa de que
-  // hay que confirmar algo.
-  const pending = appointments.filter(
-    (a) => a.status === "pending_payment" && (a.payment_status === "paid" || a.payment_status === "efectivo")
-  );
+  // Solo aparecen aquí las citas EN EFECTIVO — a petición de Gustavo
+  // (2026-09-21), un pago con tarjeta ya se confirma solo en cuanto Stripe
+  // avisa que se cobró (ver confirmAppointmentAndCreateEvent, disparado
+  // desde el webhook), así que nunca debería llegar hasta esta lista. Lo que
+  // tampoco se muestra es una reserva con pago por tarjeta que se quedó a
+  // medias (el paciente cerró la pestaña, la tarjeta falló, etc.) — esa no
+  // debe generar ninguna expectativa de que hay que confirmar algo; se
+  // libera sola a las 24 horas (ver runNotificationSweep en engine.ts).
+  const pending = appointments.filter((a) => a.status === "pending_payment" && a.payment_status === "efectivo");
   // Solo próximas — a petición de Gustavo (2026-09-21), las que ya pasaron
   // no deben quedarse aquí mostrándose para siempre. Su resolución (marcar
   // que sí se llevó a cabo, reagendar o cancelar) pasa ahora por el pop-up
