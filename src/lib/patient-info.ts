@@ -10,10 +10,10 @@ export type PatientInfo = {
 };
 
 // Arma un perfil básico de cada paciente para el terapeuta que lo atiende:
-// contacto, última cita (con este terapeuta) y sus notas privadas. El
-// correo no vive en `profiles` (solo en auth.users), así que se resuelve
-// con el service client — la única forma de leerlo fuera del propio dueño
-// de la cuenta.
+// contacto, última cita (con este terapeuta) y sus notas privadas. Todo se
+// resuelve con el service client: el correo porque no vive en `profiles`
+// (solo en auth.users), y el nombre/teléfono porque la RLS de `profiles`
+// solo deja a cada quien leer su propia fila (ver comentario abajo).
 export async function getPatientInfoMap(
   supabase: SupabaseClient,
   therapistId: string,
@@ -22,7 +22,17 @@ export async function getPatientInfoMap(
   const map = new Map<string, PatientInfo>();
   if (!patientIds.length) return map;
 
-  const { data: profiles } = await supabase
+  // `profiles` tiene RLS "cada quien ve solo su propia fila" (auth.uid() =
+  // id) — con el cliente normal del terapeuta esta consulta siempre
+  // regresaba 0 filas para sus pacientes (nunca es su propio id), y
+  // full_name caía en null para todos, mostrando "Paciente" en toda la UI
+  // del terapeuta aunque el dato sí existiera. Se usa el service client
+  // (como ya se hacía para el correo) porque para acá abajo la lista de
+  // `patientIds` ya viene acotada a pacientes con una cita real con este
+  // terapeuta — no es una fuga de datos, es leer lo que igual le
+  // corresponde ver.
+  const serviceClient = createServiceClient();
+  const { data: profiles } = await serviceClient
     .from("profiles")
     .select("id, full_name, phone")
     .in("id", patientIds);
@@ -51,7 +61,6 @@ export async function getPatientInfoMap(
     (notesRows ?? []).map((n) => [n.patient_id as string, n.notes as string | null])
   );
 
-  const serviceClient = createServiceClient();
   for (const id of patientIds) {
     const profile = (profiles ?? []).find((p) => p.id === id);
     const { data: authUser } = await serviceClient.auth.admin.getUserById(id);
