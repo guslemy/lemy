@@ -5,8 +5,25 @@ import { getAccessToken, queryFreeBusy, GoogleCalendarError, type BusyRange } fr
 // Cuánto tiempo se cachea la consulta a Google antes de volver a pedirla —
 // el balance entre "no mostrar un horario que el terapeuta ya ocupó en
 // Google" y "no depender de que Google responda rápido en cada visita al
-// perfil público". Ver conversación con Gustavo sobre esta decisión.
-const CACHE_SECONDS = 180;
+// perfil público". Ver conversación con Gustavo sobre esta decisión
+// (2026-09-21): quiere que se sienta prácticamente en tiempo real, así que
+// se dejó en 30s en vez de los 180s originales.
+//
+// OJO — por qué existe redondearAlBalde() más abajo: unstable_cache usa los
+// ARGUMENTOS de la función como parte de la llave de caché (además de
+// keyParts). rangeStartIso/rangeEndIso venían de `new Date()` con precisión
+// de milisegundos, así que cada llamada tenía una llave distinta a la
+// anterior — el caché nunca se reutilizaba, cada visita al perfil golpeaba
+// a Google en vivo sin ninguna protección, muy distinto de lo que decía
+// este comentario. Redondear a baldes de CACHE_SECONDS antes de armar la
+// llave es lo que hace que el caché sí sirva de algo.
+const CACHE_SECONDS = 30;
+
+function redondearAlBalde(iso: string, bucketMs: number, direction: "down" | "up"): string {
+  const ms = new Date(iso).getTime();
+  const rounder = direction === "down" ? Math.floor : Math.ceil;
+  return new Date(rounder(ms / bucketMs) * bucketMs).toISOString();
+}
 
 async function fetchBusyRangesUncached(
   therapistId: string,
@@ -61,6 +78,25 @@ async function fetchBusyRangesUncached(
   }
 }
 
-export const getBusyRanges = unstable_cache(fetchBusyRangesUncached, ["therapist-google-freebusy"], {
-  revalidate: CACHE_SECONDS,
-});
+const cachedFetchBusyRanges = unstable_cache(
+  fetchBusyRangesUncached,
+  ["therapist-google-freebusy"],
+  { revalidate: CACHE_SECONDS }
+);
+
+// Punto de entrada real — redondea el rango de búsqueda a "baldes" del
+// mismo tamaño que CACHE_SECONDS antes de pasarlo a la función cacheada,
+// para que la llave de caché sea estable dentro de esa ventana (ver
+// comentario de CACHE_SECONDS arriba). rangeStart se redondea hacia abajo y
+// rangeEnd hacia arriba — el rango consultado a Google queda ligeramente
+// más ancho, nunca más angosto, así que nunca se pierde información real.
+export async function getBusyRanges(
+  therapistId: string,
+  rangeStartIso: string,
+  rangeEndIso: string
+): Promise<BusyRange[]> {
+  const bucketMs = CACHE_SECONDS * 1000;
+  const bucketedStart = redondearAlBalde(rangeStartIso, bucketMs, "down");
+  const bucketedEnd = redondearAlBalde(rangeEndIso, bucketMs, "up");
+  return cachedFetchBusyRanges(therapistId, bucketedStart, bucketedEnd);
+}
