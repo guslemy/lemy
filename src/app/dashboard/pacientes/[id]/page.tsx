@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
 import { savePatientNotes, markNoShowTherapist } from "../../citas/actions";
-import { MarkNoShowForm } from "../../citas/citas-client";
+import { MarkNoShowForm, SaveNotesForm } from "../../citas/citas-client";
 import { createClinicalNote, softDeleteClinicalNote } from "../clinical-notes-actions";
 import { decryptClinicalNote, isClinicalNotesEncryptionConfigured } from "@/lib/clinical-notes-crypto";
 
@@ -100,25 +100,11 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <p className="mt-2 text-[0.92rem] text-[#3E4B44]">{info?.email ?? "—"}</p>
             <p className="text-[0.92rem] text-[#3E4B44]">{info?.phone ?? "—"}</p>
 
-            <form action={savePatientNotes} className="mt-6">
-              <input type="hidden" name="patient_id" value={patientId} />
-              <label className="mb-1.5 block font-mono text-[0.7rem] uppercase tracking-[0.08em] text-rose-deep">
-                Notas privadas
-              </label>
-              <textarea
-                name="notes"
-                defaultValue={info?.notes ?? ""}
-                rows={4}
-                placeholder="Solo tú puedes ver esto…"
-                className="input-lemy w-full resize-none"
-              />
-              <button
-                type="submit"
-                className="mt-3 rounded-full bg-forest px-5 py-2 text-[0.88rem] font-semibold text-sage-white hover:bg-forest-deep"
-              >
-                Guardar notas
-              </button>
-            </form>
+            <SaveNotesForm
+              patientId={patientId}
+              initialNotes={info?.notes ?? null}
+              saveNotesAction={savePatientNotes}
+            />
           </div>
 
           {clinicalNotesEnabled && (

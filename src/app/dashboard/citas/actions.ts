@@ -228,13 +228,25 @@ export async function markNoShowTherapist(formData: FormData) {
 // (a diferencia de las demás acciones de esta página) para que el popup
 // del paciente se quede abierto después de guardar, en vez de mandar a la
 // persona hasta arriba de la página.
-export async function savePatientNotes(formData: FormData) {
+//
+// Firma de useActionState (prevState, formData) en vez de solo (formData):
+// antes esta acción no regresaba nada, así que aunque el guardado sí
+// funcionaba, no había ninguna forma de que la UI supiera que ya terminó —
+// se sentía "como que no hace nada". Con el { ok } de regreso, SaveNotesForm
+// (citas-client.tsx) puede mostrar "Tu nota se ha actualizado" justo cuando
+// el guardado se confirma.
+export type SaveNotesState = { ok: boolean };
+
+export async function savePatientNotes(
+  _prevState: SaveNotesState,
+  formData: FormData
+): Promise<SaveNotesState> {
   const { supabase, user } = await requireTherapist();
   const patientId = String(formData.get("patient_id") || "");
   const notes = String(formData.get("notes") || "");
-  if (!patientId) return;
+  if (!patientId) return { ok: false };
 
-  await supabase
+  const { error } = await supabase
     .from("therapist_patient_notes")
     .upsert(
       { therapist_id: user.id, patient_id: patientId, notes, updated_at: new Date().toISOString() },
@@ -243,6 +255,7 @@ export async function savePatientNotes(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/pacientes/${patientId}`);
+  return { ok: !error };
 }
 
 // Reagenda una cita propia a un nuevo horario. No hay pago por cita hoy

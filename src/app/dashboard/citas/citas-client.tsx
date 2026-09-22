@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useActionState, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import type { SaveNotesState } from "./actions";
 
 // Dos widgets chicos que necesitan estado local: el popup de datos del
 // paciente (abrir/cerrar) y el formulario de reagendar (mostrar/ocultar el
@@ -22,6 +23,72 @@ function formatOaxaca(iso: string) {
   return `${weekday} ${d}/${m} · ${hh}:${mm}`;
 }
 
+// Formulario de notas privadas, compartido entre el popup de citas y la
+// ficha completa del paciente (dashboard/pacientes/[id]). Antes era un
+// <form action={...}> plano: el guardado sí funcionaba, pero nada en la
+// pantalla cambiaba al terminar, así que se sentía como que no hacía nada.
+// useActionState nos da el resultado de la acción sin necesitar un
+// redirect — mostramos "Tu nota se ha actualizado" un par de segundos y se
+// oculta sola.
+export function SaveNotesForm({
+  patientId,
+  initialNotes,
+  saveNotesAction,
+  compact = false,
+}: {
+  patientId: string;
+  initialNotes: string | null;
+  saveNotesAction: (prevState: SaveNotesState, formData: FormData) => Promise<SaveNotesState>;
+  compact?: boolean;
+}) {
+  const [state, formAction, pending] = useActionState<SaveNotesState, FormData>(saveNotesAction, {
+    ok: false,
+  });
+  const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    if (!state.ok) return;
+    setShowSaved(true);
+    const t = setTimeout(() => setShowSaved(false), 2500);
+    return () => clearTimeout(t);
+    // Cada submit exitoso regresa un objeto { ok: true } nuevo — la
+    // referencia cambia aunque el valor sea "igual", así que el efecto sí
+    // vuelve a dispararse en guardados repetidos seguidos.
+  }, [state]);
+
+  return (
+    <form action={formAction} className={compact ? "mt-4" : "mt-6"}>
+      <input type="hidden" name="patient_id" value={patientId} />
+      <label className="mb-1.5 block font-mono text-[0.7rem] uppercase tracking-[0.08em] text-rose-deep">
+        Notas privadas
+      </label>
+      <textarea
+        name="notes"
+        defaultValue={initialNotes ?? ""}
+        rows={compact ? 3 : 4}
+        placeholder="Solo tú puedes ver esto…"
+        className={`input-lemy w-full resize-none ${compact ? "text-[0.88rem]" : ""}`}
+      />
+      <div className={compact ? "mt-3 flex items-center justify-between gap-3" : "mt-3"}>
+        <button
+          type="submit"
+          disabled={pending}
+          className={
+            compact
+              ? "rounded-full bg-forest px-4 py-1.5 text-[0.82rem] font-semibold text-sage-white hover:bg-forest-deep disabled:opacity-60"
+              : "rounded-full bg-forest px-5 py-2 text-[0.88rem] font-semibold text-sage-white hover:bg-forest-deep disabled:opacity-60"
+          }
+        >
+          {pending ? "Guardando…" : "Guardar notas"}
+        </button>
+        {showSaved && (
+          <span className="text-[0.82rem] font-medium text-forest">✓ Tu nota se ha actualizado</span>
+        )}
+      </div>
+    </form>
+  );
+}
+
 export type PatientPopupInfo = {
   email: string | null;
   phone: string | null;
@@ -38,7 +105,7 @@ export function PatientInfoPopup({
   patientId: string;
   name: string;
   info: PatientPopupInfo;
-  saveNotesAction: (formData: FormData) => void;
+  saveNotesAction: (prevState: SaveNotesState, formData: FormData) => Promise<SaveNotesState>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -86,33 +153,19 @@ export function PatientInfoPopup({
               </p>
             </div>
 
-            <form action={saveNotesAction} className="mt-4">
-              <input type="hidden" name="patient_id" value={patientId} />
-              <label className="mb-1.5 block font-mono text-[0.7rem] uppercase tracking-[0.08em] text-rose-deep">
-                Notas privadas
-              </label>
-              <textarea
-                name="notes"
-                defaultValue={info.notes ?? ""}
-                rows={3}
-                placeholder="Solo tú puedes ver esto…"
-                className="input-lemy w-full resize-none text-[0.88rem]"
-              />
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <Link
-                  href={`/dashboard/pacientes/${patientId}`}
-                  className="text-[0.82rem] font-semibold text-rose-deep underline"
-                >
-                  Ver perfil completo →
-                </Link>
-                <button
-                  type="submit"
-                  className="rounded-full bg-forest px-4 py-1.5 text-[0.82rem] font-semibold text-sage-white hover:bg-forest-deep"
-                >
-                  Guardar notas
-                </button>
-              </div>
-            </form>
+            <Link
+              href={`/dashboard/pacientes/${patientId}`}
+              className="mt-4 inline-block text-[0.82rem] font-semibold text-rose-deep underline"
+            >
+              Ver perfil completo →
+            </Link>
+
+            <SaveNotesForm
+              patientId={patientId}
+              initialNotes={info.notes}
+              saveNotesAction={saveNotesAction}
+              compact
+            />
           </div>
         </div>
       )}
