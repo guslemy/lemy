@@ -22,8 +22,8 @@ export type BrandCoverSpec = {
 const PALETTE = {
   forest: "#21382b",
   forestDeep: "#16251d",
-  rose: "#cfbfb8",
-  roseDeep: "#a38374",
+  rose: "#e3b7ac",
+  roseDeep: "#c1786a",
   sageWhite: "#f2f5ef",
   card: "#fbfaf5",
 };
