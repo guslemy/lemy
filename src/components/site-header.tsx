@@ -6,7 +6,11 @@ import { SiteHeaderClient, type SiteRole } from "./site-header-client";
 // al header interactivo (que sigue siendo cliente por el menú móvil). Antes
 // el header no sabía si había sesión, así que alguien ya logueado seguía
 // viendo "Iniciar sesión" / "Soy terapeuta" en vez de un atajo a su panel.
-export async function SiteHeader({ inverted = false }: { inverted?: boolean } = {}) {
+// A Gustavo le gustó el header oscuro de la home (ver commit anterior,
+// "Cambios al Home") y pidió usarlo en todo el sitio — inverted ahora es
+// el default. Se deja el prop (en vez de borrar la rama "clara") por si
+// algún día se necesita una página con el header claro otra vez.
+export async function SiteHeader({ inverted = true }: { inverted?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },

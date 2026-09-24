@@ -180,17 +180,16 @@ export function SiteHeaderClient({
   isLoggedIn,
   role,
   unreadCount,
-  inverted = false,
+  inverted = true,
 }: {
   isLoggedIn: boolean;
   role: SiteRole;
   unreadCount: number;
-  // Solo la home lo pide ("Cambios al Home", 2026-09-24): header con los
-  // colores invertidos (fondo forest-deep, igual que el footer) y el logo
-  // en su versión clara — el resto del sitio se queda con el header claro
-  // de siempre. Nada de esto depende de la ruta (usePathname) porque
-  // <SiteHeader> ya se invoca a mano por página; la home simplemente le
-  // pasa inverted=true.
+  // Header con los colores invertidos (fondo forest-deep, igual que el
+  // footer) y el logo en su versión clara — es el default en todo el
+  // sitio desde que a Gustavo le gustó en la home (2026-09-24). Se deja
+  // como prop, no como algo fijo, por si algún día hace falta la versión
+  // clara en alguna página puntual.
   inverted?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);

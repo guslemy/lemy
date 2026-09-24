@@ -121,7 +121,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <SiteHeader inverted />
+      <SiteHeader />
 
       <main>
         {/* HERO */}
