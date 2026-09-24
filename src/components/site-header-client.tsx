@@ -33,19 +33,28 @@ function RightCtas({
   role,
   className = "",
   compactSignOut = false,
+  inverted = false,
 }: {
   isLoggedIn: boolean;
   role: SiteRole;
   className?: string;
   compactSignOut?: boolean;
+  inverted?: boolean;
 }) {
+  // En el header oscuro de la home, "ghost" (borde forest sobre fondo
+  // claro) y "primary" (bg-forest) se pierden contra el forest-deep del
+  // fondo — se usan las variantes ya pensadas para fondo oscuro (las
+  // mismas que el bloque "¿Eres terapeuta?" de esta misma página).
+  const secondaryVariant = inverted ? "outline-light" : "ghost";
+  const primaryVariant = inverted ? "rose" : "primary";
+
   if (!isLoggedIn) {
     return (
       <>
-        <Button href="/login" variant="ghost" className={className}>
+        <Button href="/login" variant={secondaryVariant} className={className}>
           Iniciar sesión
         </Button>
-        <Button href="/#terapeutas" variant="primary" className={className}>
+        <Button href="/#terapeutas" variant={primaryVariant} className={className}>
           Soy terapeuta
         </Button>
       </>
@@ -55,13 +64,13 @@ function RightCtas({
   if (role === "admin") {
     return (
       <>
-        <Button href="/dashboard" variant="ghost" className={className}>
+        <Button href="/dashboard" variant={secondaryVariant} className={className}>
           Dashboard
         </Button>
-        <Button href="/dashboard/admin" variant="primary" className={className}>
+        <Button href="/dashboard/admin" variant={primaryVariant} className={className}>
           Panel de contenido
         </Button>
-        <SignOutLink className={className} compact={compactSignOut} />
+        <SignOutLink className={className} compact={compactSignOut} inverted={inverted} />
       </>
     );
   }
@@ -69,13 +78,13 @@ function RightCtas({
   if (role === "therapist") {
     return (
       <>
-        <Button href="/dashboard" variant="ghost" className={className}>
+        <Button href="/dashboard" variant={secondaryVariant} className={className}>
           Dashboard
         </Button>
-        <Button href="/dashboard/pacientes" variant="primary" className={className}>
+        <Button href="/dashboard/pacientes" variant={primaryVariant} className={className}>
           Mis pacientes
         </Button>
-        <SignOutLink className={className} compact={compactSignOut} />
+        <SignOutLink className={className} compact={compactSignOut} inverted={inverted} />
       </>
     );
   }
@@ -83,10 +92,10 @@ function RightCtas({
   // Paciente
   return (
     <>
-      <Button href="/dashboard" variant="primary" className={className}>
+      <Button href="/dashboard" variant={primaryVariant} className={className}>
         Mi cuenta
       </Button>
-      <SignOutLink className={className} compact={compactSignOut} />
+      <SignOutLink className={className} compact={compactSignOut} inverted={inverted} />
     </>
   );
 }
@@ -122,16 +131,24 @@ function LogOutIcon() {
 // admin/terapeuta, que ya trae dos botones). Ahí se reduce a solo el ícono
 // con aria-label — en el menú móvil (que apila todo verticalmente, sin
 // competir por ancho) se queda como texto completo.
-function SignOutLink({ className = "", compact = false }: { className?: string; compact?: boolean }) {
+function SignOutLink({
+  className = "",
+  compact = false,
+  inverted = false,
+}: {
+  className?: string;
+  compact?: boolean;
+  inverted?: boolean;
+}) {
   return (
     <form action={signOut}>
       <button
         type="submit"
         aria-label="Cerrar sesión"
         title={compact ? "Cerrar sesión" : undefined}
-        className={`flex items-center gap-1.5 text-[0.85rem] font-medium text-[#7C877F] transition-colors hover:text-rose-deep ${
-          compact ? "border-l border-line pl-3.5" : ""
-        } ${className}`}
+        className={`flex items-center gap-1.5 text-[0.85rem] font-medium transition-colors ${
+          inverted ? "text-sage-white/70 hover:text-white" : "text-[#7C877F] hover:text-rose-deep"
+        } ${compact ? `border-l pl-3.5 ${inverted ? "border-white/20" : "border-line"}` : ""} ${className}`}
       >
         <LogOutIcon />
         {!compact && "Cerrar sesión"}
@@ -140,11 +157,13 @@ function SignOutLink({ className = "", compact = false }: { className?: string; 
   );
 }
 
-function NotificationBell({ unreadCount }: { unreadCount: number }) {
+function NotificationBell({ unreadCount, inverted = false }: { unreadCount: number; inverted?: boolean }) {
   return (
     <Link
       href="/dashboard/notificaciones"
-      className="relative text-[1.05rem] text-forest hover:text-rose-deep"
+      className={`relative text-[1.05rem] ${
+        inverted ? "text-sage-white hover:text-rose" : "text-forest hover:text-rose-deep"
+      }`}
       aria-label="Notificaciones"
     >
       🔔
@@ -161,10 +180,18 @@ export function SiteHeaderClient({
   isLoggedIn,
   role,
   unreadCount,
+  inverted = false,
 }: {
   isLoggedIn: boolean;
   role: SiteRole;
   unreadCount: number;
+  // Solo la home lo pide ("Cambios al Home", 2026-09-24): header con los
+  // colores invertidos (fondo forest-deep, igual que el footer) y el logo
+  // en su versión clara — el resto del sitio se queda con el header claro
+  // de siempre. Nada de esto depende de la ruta (usePathname) porque
+  // <SiteHeader> ya se invoca a mano por página; la home simplemente le
+  // pasa inverted=true.
+  inverted?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -176,13 +203,31 @@ export function SiteHeaderClient({
   const showAffinityTest = !(isLoggedIn && (role === "therapist" || role === "admin"));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-sage-white/86 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-50 backdrop-blur-md ${
+        inverted ? "border-b border-white/12 bg-forest-deep/92" : "border-b border-line bg-sage-white/86"
+      }`}
+    >
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
         <div className="flex items-center gap-1">
           <PwaNavButtons />
-          <Link href="/" className="flex items-center">
-            <img src="/brand/logo-horizontal-verde.png" alt="Lemy" className="h-9 w-auto flex-none" />
-          </Link>
+          {inverted ? (
+            // Igual que el logo del footer (isologo + "Lemy"), solo que más
+            // grande — así pidió Gustavo que se viera en la home.
+            <Link href="/" className="flex items-center gap-3 font-display text-[2.1rem] font-semibold text-sage-white">
+              <img
+                src="/brand/isologo-crema-acento.png"
+                alt=""
+                aria-hidden="true"
+                className="h-10 w-10 flex-none"
+              />
+              Lemy
+            </Link>
+          ) : (
+            <Link href="/" className="flex items-center">
+              <img src="/brand/logo-horizontal-verde.png" alt="Lemy" className="h-9 w-auto flex-none" />
+            </Link>
+          )}
         </div>
 
         <nav className="hidden items-center gap-6 text-sm font-medium xl:flex">
@@ -195,7 +240,11 @@ export function SiteHeaderClient({
             </Link>
           )}
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="group relative py-1 text-ink">
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`group relative py-1 ${inverted ? "text-sage-white/90" : "text-ink"}`}
+            >
               {link.label}
               <span className="absolute bottom-0 left-0 h-[1.5px] w-0 bg-rose-deep transition-all duration-300 group-hover:w-full" />
             </Link>
@@ -203,21 +252,25 @@ export function SiteHeaderClient({
         </nav>
 
         <div className="hidden items-center gap-5 xl:flex">
-          {isLoggedIn && <NotificationBell unreadCount={unreadCount} />}
-          <RightCtas isLoggedIn={isLoggedIn} role={role} compactSignOut />
+          {isLoggedIn && <NotificationBell unreadCount={unreadCount} inverted={inverted} />}
+          <RightCtas isLoggedIn={isLoggedIn} role={role} compactSignOut inverted={inverted} />
         </div>
 
         <button
           aria-label="Abrir menú"
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-1 text-[1.75rem] leading-none text-forest xl:hidden"
+          className={`p-1 text-[1.75rem] leading-none xl:hidden ${inverted ? "text-sage-white" : "text-forest"}`}
         >
           ☰
         </button>
       </div>
 
       {menuOpen && (
-        <nav className="flex flex-col gap-5 border-t border-line bg-sage-white px-6 py-6 xl:hidden">
+        <nav
+          className={`flex flex-col gap-5 border-t px-6 py-6 xl:hidden ${
+            inverted ? "border-white/12 bg-forest-deep text-sage-white" : "border-line bg-sage-white"
+          }`}
+        >
           {showAffinityTest && (
             <Link
               href={AFFINITY_TEST.href}
@@ -241,7 +294,7 @@ export function SiteHeaderClient({
               🔔 Notificaciones{unreadCount > 0 ? ` (${unreadCount > 9 ? "9+" : unreadCount})` : ""}
             </Link>
           )}
-          <RightCtas isLoggedIn={isLoggedIn} role={role} className="w-full" />
+          <RightCtas isLoggedIn={isLoggedIn} role={role} className="w-full" inverted={inverted} />
         </nav>
       )}
     </header>

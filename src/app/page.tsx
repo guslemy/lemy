@@ -121,7 +121,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader inverted />
 
       <main>
         {/* HERO */}
@@ -288,21 +288,23 @@ export default async function HomePage() {
 
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
-                  <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-br from-rose to-rose-deep font-display text-3xl font-semibold text-white">
-                    MT
-                  </div>
-                  <h3 className="mt-4.5 text-[1.4rem] text-forest">Mariana Torres</h3>
-                  <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">Psicóloga clínica · Céd. Prof. 8452XXX</p>
+                  <img
+                    src="https://vyyqjdtvgkrrlshuocoe.supabase.co/storage/v1/object/public/therapist-photos/cf3962e8-6170-428a-93ca-a3c7805d5e7f/foto.jpg"
+                    alt="Gema Moreno"
+                    className="h-[100px] w-[100px] rounded-full object-cover"
+                  />
+                  <h3 className="mt-4.5 text-[1.4rem] text-forest">Gema Moreno</h3>
+                  <p className="mt-1 font-mono text-[0.85rem] text-rose-deep">Psicoterapeuta · Cédula profesional verificada</p>
 
                   <div className="mt-5.5 space-y-2.5 text-[0.88rem] text-[#3E4B44]">
-                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Enfoque</strong>Cognitivo-conductual</div>
-                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Población</strong>Adultos, adultos jóvenes</div>
-                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Modalidad</strong>Online y presencial (CDMX)</div>
-                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Idiomas</strong>Español, inglés</div>
-                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Tarifa</strong>desde $600 MXN / sesión</div>
+                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Enfoque</strong>Gestalt</div>
+                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Población</strong>Adolescentes, adultos jóvenes y adultos</div>
+                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Modalidad</strong>En línea o presencial (Oaxaca)</div>
+                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Idiomas</strong>Español</div>
+                    <div><strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">Tarifa</strong>desde $500 MXN / sesión</div>
                   </div>
 
-                  <Button href="/login" variant="primary" className="mt-6 w-full">
+                  <Button href="/gema-moreno" variant="primary" className="mt-6 w-full">
                     Agendar consulta
                   </Button>
                 </div>
@@ -310,29 +312,32 @@ export default async function HomePage() {
                 <div>
                   <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">Sobre mí</h4>
                   <p className="mb-6.5 text-[0.96rem] text-[#37433D]">
-                    Llevo 9 años acompañando a personas que sienten que la ansiedad les ha quitado
-                    espacio en su vida diaria. Combino herramientas prácticas con un espacio donde no
-                    tienes que explicar de más para sentirte entendid@.
+                    Soy psicóloga y psicoterapeuta Gestalt. Mi trabajo está dirigido a personas adultas,
+                    con especial interés en la atención de mujeres. Integro la perspectiva de género
+                    como parte de mi práctica profesional, promoviendo procesos terapéuticos desde un
+                    enfoque humanista y contextual, adaptados a las necesidades y características de
+                    cada persona.
                   </p>
 
                   <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">Formación</h4>
                   <p className="mb-6.5 text-[0.96rem] text-[#37433D]">
-                    Lic. en Psicología, Universidad Iberoamericana · Maestría en Terapia
-                    Cognitivo-Conductual, UNAM · Certificación en manejo de crisis de ansiedad.
+                    Maestría en Psicoterapia Gestalt, Centro de Desarrollo Humano y Psicoterapia Gestalt
+                    (2022) · Diplomado en Intervención y Acompañamiento Terapéutico en Situaciones de
+                    Violencia, IGEFAMAC (2023).
                   </p>
 
                   <div className="mb-6.5 border-l-[3px] border-rose pl-4.5 font-display text-[1.02rem] italic text-forest">
-                    &quot;Llegué pensando que necesitaba &apos;arreglarme&apos;. Mariana me ayudó a entender que
-                    solo necesitaba herramientas que nadie me había enseñado.&quot;
+                    &quot;Gema es una persona muy cálida y me sentí muy a gusto compartiendo mi situación
+                    con ella. Me hizo sentir cómodo y escuchado.&quot;
                     <span className="mt-2 block font-sans text-[0.8rem] not-italic text-[#6B776F]">
-                      — Paciente, terapia en línea desde 2024
+                      — Paciente en Lemy
                     </span>
                   </div>
 
                   <h4 className="mb-2.5 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">Cómo trabajo</h4>
                   <p className="text-[0.96rem] text-[#37433D]">
-                    Primera sesión de valoración sin costo para ver si hay buena conexión. Sesiones de
-                    50 minutos, semanales o quincenales según tu proceso.
+                    Primera sesión de valoración ($600 MXN, 60 min): platican qué te trae a terapia y
+                    arman juntos un plan de trabajo. Sesiones de seguimiento de 60 minutos ($500 MXN).
                   </p>
                 </div>
               </div>

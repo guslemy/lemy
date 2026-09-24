@@ -6,7 +6,7 @@ import { SiteHeaderClient, type SiteRole } from "./site-header-client";
 // al header interactivo (que sigue siendo cliente por el menú móvil). Antes
 // el header no sabía si había sesión, así que alguien ya logueado seguía
 // viendo "Iniciar sesión" / "Soy terapeuta" en vez de un atajo a su panel.
-export async function SiteHeader() {
+export async function SiteHeader({ inverted = false }: { inverted?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,5 +23,5 @@ export async function SiteHeader() {
     unreadCount = unread;
   }
 
-  return <SiteHeaderClient isLoggedIn={Boolean(user)} role={role} unreadCount={unreadCount} />;
+  return <SiteHeaderClient isLoggedIn={Boolean(user)} role={role} unreadCount={unreadCount} inverted={inverted} />;
 }
