@@ -19,6 +19,7 @@ import {
   appointmentPaymentReminder,
   appointmentPaymentAbandonedCancelled,
   patientDormancyNotice,
+  monthlySummary,
 } from "./emailTemplates";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -994,6 +995,138 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  // 14. Resumen mensual: el día 1 de cada mes (hora de Oaxaca), a todo
+  // terapeuta con suscripción activa, con lo del mes que acaba de cerrar —
+  // a petición de Gustavo (2026-09-27). El cron corre cada 5 min, así que
+  // este bloque solo hace algo durante el día 1 completo; relatedId lleva el
+  // mes RESUMIDO (no el de envío) para que reintentos el mismo día 1 no
+  // dupliquen, y para que nunca choque entre meses distintos.
+  const nowOaxacaLocal = new Date(now - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
+  if (nowOaxacaLocal.getUTCDate() === 1) {
+    // Límites del mes que se resume (el anterior al actual) y del mes previo
+    // a ese, en hora de Oaxaca, expresados como instantes UTC para comparar
+    // directo contra scheduled_at/created_at (que están en UTC).
+    const oaxacaMidnightUtcMs = (year: number, month0: number, day: number) =>
+      Date.UTC(year, month0, day, 0, 0, 0) + OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000;
+
+    const curYear = nowOaxacaLocal.getUTCFullYear();
+    const curMonth0 = nowOaxacaLocal.getUTCMonth(); // mes actual, 0-indexado
+    const prevMonthStartMs = oaxacaMidnightUtcMs(curYear, curMonth0 - 1, 1);
+    const prevMonthEndMs = oaxacaMidnightUtcMs(curYear, curMonth0, 1); // exclusivo
+    const prevPrevMonthStartMs = oaxacaMidnightUtcMs(curYear, curMonth0 - 2, 1);
+
+    const summarizedMonthKey = new Date(prevMonthStartMs).toISOString().slice(0, 7); // YYYY-MM
+    const monthLabel = monthLabelEsFor(prevMonthStartMs);
+
+    const { data: activeForSummary } = await supabase
+      .from("therapists")
+      .select("id, display_name")
+      .eq("subscription_status", "active");
+
+    checked += activeForSummary?.length ?? 0;
+
+    if (activeForSummary && activeForSummary.length > 0) {
+      const therapistIds = activeForSummary.map((t) => t.id as string);
+
+      // Todas las citas de estos terapeutas hasta el fin del mes resumido
+      // (sin límite inferior): se necesita el historial completo para saber
+      // cuál fue la PRIMERA cita de cada paciente con cada terapeuta (así se
+      // define "paciente nuevo" en el resto del código, ver ficha-tabs.tsx),
+      // no solo lo que cae dentro del mes.
+      const { data: allAppts } = await supabase
+        .from("appointments")
+        .select("therapist_id, patient_id, scheduled_at, status, price, payment_status")
+        .in("therapist_id", therapistIds)
+        .lt("scheduled_at", new Date(prevMonthEndMs).toISOString());
+
+      const { data: monthReviews } = await supabase
+        .from("reviews")
+        .select("therapist_id, rating")
+        .in("therapist_id", therapistIds)
+        .gte("created_at", new Date(prevMonthStartMs).toISOString())
+        .lt("created_at", new Date(prevMonthEndMs).toISOString());
+
+      // Primera cita de cada pareja terapeuta/paciente, para detectar
+      // "paciente nuevo este mes".
+      const firstApptByPair = new Map<string, number>();
+      for (const a of allAppts ?? []) {
+        const key = `${a.therapist_id}::${a.patient_id}`;
+        const ms = new Date(a.scheduled_at as string).getTime();
+        const existing = firstApptByPair.get(key);
+        if (existing === undefined || ms < existing) firstApptByPair.set(key, ms);
+      }
+
+      type Stats = { completed: number; income: number; cancelled: number };
+      const statsFor = (therapistId: string, startMs: number, endMs: number): Stats => {
+        let completed = 0;
+        let income = 0;
+        let cancelled = 0;
+        for (const a of allAppts ?? []) {
+          if (a.therapist_id !== therapistId) continue;
+          const ms = new Date(a.scheduled_at as string).getTime();
+          if (ms < startMs || ms >= endMs) continue;
+          if (a.status === "completed") {
+            completed += 1;
+            if (a.payment_status === "paid") income += Number(a.price ?? 0);
+          } else if (a.status === "cancelled") {
+            cancelled += 1;
+          }
+        }
+        return { completed, income, cancelled };
+      };
+
+      const pctChange = (current: number, previous: number): number | null =>
+        previous === 0 ? null : Math.round(((current - previous) / previous) * 100);
+
+      for (const t of activeForSummary) {
+        const therapistId = t.id as string;
+        const relatedId = `${therapistId}-${summarizedMonthKey}`;
+        checked += 1;
+        try {
+          const cur = statsFor(therapistId, prevMonthStartMs, prevMonthEndMs);
+          const prev = statsFor(therapistId, prevPrevMonthStartMs, prevMonthStartMs);
+          const newPatients = [...firstApptByPair.entries()].filter(
+            ([key, ms]) => key.startsWith(`${therapistId}::`) && ms >= prevMonthStartMs && ms < prevMonthEndMs
+          ).length;
+          const reviewsForTherapist = (monthReviews ?? []).filter((r) => r.therapist_id === therapistId);
+          const reviewsAvgRating =
+            reviewsForTherapist.length > 0
+              ? reviewsForTherapist.reduce((sum, r) => sum + (r.rating as number), 0) / reviewsForTherapist.length
+              : null;
+
+          const email = await emailOf(supabase, therapistId);
+          const { subject, html } = monthlySummary({
+            name: (t.display_name as string) || "ahí",
+            monthLabel,
+            income: cur.income,
+            incomePctChange: pctChange(cur.income, prev.income),
+            consultations: cur.completed,
+            consultationsPctChange: pctChange(cur.completed, prev.completed),
+            newPatients,
+            cancellations: cur.cancelled,
+            reviewsCount: reviewsForTherapist.length,
+            reviewsAvgRating,
+          });
+
+          await dispatch({
+            supabase,
+            type: "monthly_summary",
+            relatedId,
+            recipientId: therapistId,
+            email,
+            phone: null,
+            subject,
+            html,
+            emailOnly: true,
+          });
+          sent += 1;
+        } catch (err) {
+          console.error(`Error en barrido (monthly_summary → therapist ${therapistId}):`, err);
+        }
+      }
+    }
+  }
+
   return { checked, sent };
 }
 
@@ -1002,6 +1135,16 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
 // dependencia cruzada entre engine.ts e instant.ts solo por esto).
 const OAXACA_UTC_OFFSET_MIN_ENGINE = 6 * 60;
 const WEEKDAY_LABELS_ENGINE = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MONTH_LABELS_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+// Usada por el resumen mensual: recibe el instante UTC que representa la
+// medianoche (hora de Oaxaca) del día 1 de un mes, y devuelve "agosto 2026".
+function monthLabelEsFor(utcMs: number) {
+  const local = new Date(utcMs - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
+  return `${MONTH_LABELS_ES[local.getUTCMonth()]} ${local.getUTCFullYear()}`;
+}
 function whenLabelForEngine(iso: string) {
   const local = new Date(new Date(iso).getTime() - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
   const weekday = WEEKDAY_LABELS_ENGINE[local.getUTCDay()];

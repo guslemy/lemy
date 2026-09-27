@@ -702,3 +702,71 @@ export function internalVerificationSubmitted(params: { therapistName: string; t
     `),
   };
 }
+
+// Resumen mensual: el día 1 de cada mes, a todo terapeuta con suscripción
+// activa, con lo que pasó en el mes que acaba de cerrar (a petición de
+// Gustavo 2026-09-27 — el noveno hueco identificado en el inventario de
+// notificaciones, el único que se dejó pendiente a propósito hasta ahora).
+// pctChange viene ya calculado (null cuando el mes anterior fue 0, para no
+// mostrar un "+∞%" sin sentido).
+function pctChangeLabel(pct: number | null): string {
+  if (pct === null) return "";
+  const sign = pct > 0 ? "+" : "";
+  return ` <span style="color: ${pct >= 0 ? "#21382b" : "#8B978F"};">(${sign}${pct}% vs. mes anterior)</span>`;
+}
+
+export function monthlySummary(params: {
+  name: string;
+  monthLabel: string; // ej. "agosto 2026"
+  income: number;
+  incomePctChange: number | null;
+  consultations: number;
+  consultationsPctChange: number | null;
+  newPatients: number;
+  cancellations: number;
+  reviewsCount: number;
+  reviewsAvgRating: number | null;
+}) {
+  const {
+    name,
+    monthLabel,
+    income,
+    incomePctChange,
+    consultations,
+    consultationsPctChange,
+    newPatients,
+    cancellations,
+    reviewsCount,
+    reviewsAvgRating,
+  } = params;
+  return {
+    subject: `Tu resumen de ${monthLabel} en Lemy`,
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
+      <p>Así te fue en <strong>${monthLabel}</strong>:</p>
+      <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; color: #3E4B44;">Ingresos</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; text-align: right; font-weight: 600; color: #21382b;">$${Math.round(income)} MXN${pctChangeLabel(incomePctChange)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; color: #3E4B44;">Consultas atendidas</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; text-align: right; font-weight: 600; color: #21382b;">${consultations}${pctChangeLabel(consultationsPctChange)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; color: #3E4B44;">Pacientes nuevos</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; text-align: right; font-weight: 600; color: #21382b;">${newPatients}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; color: #3E4B44;">Cancelaciones</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #E4E9DF; text-align: right; font-weight: 600; color: #21382b;">${cancellations}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #3E4B44;">Reseñas recibidas</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #21382b;">${reviewsCount}${reviewsAvgRating !== null ? ` (prom. ${reviewsAvgRating.toFixed(1)}★)` : ""}</td>
+        </tr>
+      </table>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mi panel →</a></p>
+    `),
+  };
+}

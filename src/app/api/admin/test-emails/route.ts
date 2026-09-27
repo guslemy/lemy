@@ -34,6 +34,7 @@ import {
   patientWelcome,
   googleCalendarReconnectNeeded,
   internalVerificationSubmitted,
+  monthlySummary,
 } from "@/lib/notifications/emailTemplates";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export const dynamic = "force-dynamic";
 // datos ni notification_log) a una dirección de prueba de un jalón, en vez
 // de tener que disparar cada trigger real uno por uno.
 //
-// Ampliada 2026-09-27 para cubrir las 37 plantillas que existen hoy (todas
+// Ampliada 2026-09-27 para cubrir las 38 plantillas que existen hoy (todas
 // menos appointment_1h_therapist, que no manda correo — es push-only).
 //
 // Protegida con el mismo patrón que /api/cron/notifications (Authorization:
@@ -140,6 +141,18 @@ export async function GET(req: Request) {
     patientWelcome({ name: "María López" }),
     googleCalendarReconnectNeeded({ name: "Gustavo" }),
     internalVerificationSubmitted({ therapistName: "Gustavo Castellanos", therapistId: "00000000-0000-0000-0000-000000000000" }),
+    monthlySummary({
+      name: "Gustavo",
+      monthLabel: "agosto 2026",
+      income: 14200,
+      incomePctChange: 18,
+      consultations: 22,
+      consultationsPctChange: -5,
+      newPatients: 4,
+      cancellations: 2,
+      reviewsCount: 3,
+      reviewsAvgRating: 4.7,
+    }),
   ];
 
   const resend = getResendClient();
