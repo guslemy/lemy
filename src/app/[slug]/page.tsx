@@ -58,6 +58,7 @@ type TherapistDetail = {
   client_niches: string[] | null;
   therapy_types: string[] | null;
   profession: string | null;
+  professional_license_number: string | null;
   is_online_available: boolean;
   is_in_person_available: boolean;
   price_min: number | null;
@@ -111,7 +112,7 @@ async function getTherapist(slug: string) {
     .from("therapists")
     .select(
       `id, slug, display_name, photo_url, city, zona, tagline, bio, languages, client_niches,
-       therapy_types, profession,
+       therapy_types, profession, professional_license_number,
        is_online_available, is_in_person_available, price_min, price_max, session_duration_min,
        verification_status, created_at,
        stripe_connect_charges_enabled, accepts_card_payment, accepts_cash_payment,
@@ -498,6 +499,20 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                     Datos generales
                   </h4>
                   <div className="space-y-2.5 text-[0.88rem] text-[#3E4B44]">
+                    {/* Solo se muestra si ya está verificado (a petición de
+                        Gustavo, 2026-09-27) — antes de la verificación es un
+                        número autoreportado sin confirmar contra el
+                        documento real, y mostrarlo como dato de confianza
+                        sería engañoso. */}
+                    {therapist.verification_status === "verified" &&
+                      therapist.professional_license_number && (
+                        <div>
+                          <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
+                            Cédula profesional
+                          </strong>
+                          {therapist.professional_license_number}
+                        </div>
+                      )}
                     <div>
                       <strong className="mr-2.5 inline-block min-w-[110px] font-semibold text-forest">
                         Modalidad
