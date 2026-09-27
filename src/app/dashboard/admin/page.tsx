@@ -60,6 +60,8 @@ export default async function AdminPage({
   searchParams: Promise<{
     tab?: string;
     q?: string;
+    qc?: string;
+    uid?: string;
     desactivado?: string;
     reactivado?: string;
     verificacion_actualizada?: string;
@@ -68,7 +70,7 @@ export default async function AdminPage({
     error?: string;
   }>;
 }) {
-  const { tab, q, desactivado, reactivado, verificacion_actualizada, guardado, eliminado, error } =
+  const { tab, q, qc, uid, desactivado, reactivado, verificacion_actualizada, guardado, eliminado, error } =
     await searchParams;
 
   const supabase = await createClient();
@@ -117,6 +119,18 @@ export default async function AdminPage({
   const therapistById = new Map((therapistRows ?? []).map((t) => [t.id, t]));
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? ""]));
   const videos = (rawVideos ?? []) as unknown as VideoRow[];
+
+  // ── Pestaña: Comunicaciones (historial de correos, a petición de
+  // Gustavo 2026-09-27) — solo trae los correos de un usuario concreto
+  // cuando ya se eligió uno (?uid=), para no cargar toda la tabla de golpe.
+  const { data: emailLogRows } = uid
+    ? await serviceClient
+        .from("email_log")
+        .select("id, notification_type, subject, html, sent_at")
+        .eq("recipient_id", uid)
+        .order("sent_at", { ascending: false })
+        .limit(200)
+    : { data: [] as { id: string; notification_type: string; subject: string; html: string; sent_at: string }[] };
 
   // Documentos de verificación: una consulta para todos los terapeutas +
   // URLs firmadas (el bucket es privado, ver migración 0030) — válidas 20
@@ -184,6 +198,25 @@ export default async function AdminPage({
       );
     });
 
+  // Mismo patrón de búsqueda por nombre/correo que "Gestión de usuarios",
+  // pero con su propio parámetro (?qc=) para no pisarse con el de esa
+  // pestaña si ambas quedan con texto buscado a la vez.
+  const queryComs = (qc ?? "").trim().toLowerCase();
+  const comsUserRows = (profiles ?? [])
+    .map((p) => ({ id: p.id, full_name: p.full_name, email: emailById.get(p.id) ?? "" }))
+    .filter((r) => {
+      if (!queryComs) return false; // sin buscar nada, no listamos a todo el mundo de una vez
+      return (r.full_name ?? "").toLowerCase().includes(queryComs) || r.email.toLowerCase().includes(queryComs);
+    });
+
+  const selectedComsUser = uid
+    ? {
+        id: uid,
+        full_name: (profiles ?? []).find((p) => p.id === uid)?.full_name ?? null,
+        email: emailById.get(uid) ?? "",
+      }
+    : null;
+
   const tabs: PanelTab[] = [
     {
       key: "contenido",
@@ -220,6 +253,18 @@ export default async function AdminPage({
           desactivado={desactivado}
           reactivado={reactivado}
           error={error}
+        />
+      ),
+    },
+    {
+      key: "comunicaciones",
+      label: "Comunicaciones",
+      content: (
+        <ComunicacionesTab
+          qc={qc}
+          matches={comsUserRows}
+          selectedUser={selectedComsUser}
+          emails={emailLogRows ?? []}
         />
       ),
     },
@@ -578,6 +623,147 @@ function UsuariosTab({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// Historial de correos por usuario — a petición de Gustavo (2026-09-27),
+// para poder revisar el contenido exacto de un correo cuando un cliente
+// habla haciendo referencia a "el correo que me llegó tal día". Solo trae
+// correos mandados DESPUÉS de que se agregó email_log (migración
+// 0043) — no hay forma de recuperar contenido de correos anteriores.
+function ComunicacionesTab({
+  qc,
+  matches,
+  selectedUser,
+  emails,
+}: {
+  qc?: string;
+  matches: { id: string; full_name: string | null; email: string }[];
+  selectedUser: { id: string; full_name: string | null; email: string } | null;
+  emails: { id: string; notification_type: string; subject: string; html: string; sent_at: string }[];
+}) {
+  return (
+    <div>
+      <p className="text-[0.95rem] text-[#3E4B44]">
+        Busca a un usuario para ver los correos que le hemos mandado, con el contenido exacto de cada
+        uno.
+      </p>
+
+      <form method="GET" className="mt-6 flex gap-2.5">
+        <input type="hidden" name="tab" value="comunicaciones" />
+        <input
+          type="text"
+          name="qc"
+          defaultValue={qc ?? ""}
+          placeholder="Buscar por nombre o correo…"
+          className="input-lemy flex-1"
+        />
+        <button
+          type="submit"
+          className="rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-sage-white hover:bg-forest-deep"
+        >
+          Buscar
+        </button>
+      </form>
+
+      {qc && !selectedUser && (
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[480px] text-left text-[0.85rem]">
+            <thead className="bg-forest/[0.04] text-[0.72rem] uppercase tracking-[0.06em] text-[#7C877F]">
+              <tr>
+                <th className="px-4 py-3">Nombre</th>
+                <th className="px-4 py-3">Correo</th>
+                <th className="px-4 py-3">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {matches.map((m) => (
+                <tr key={m.id} className="border-t border-line">
+                  <td className="px-4 py-3 text-forest">{m.full_name || "—"}</td>
+                  <td className="px-4 py-3 text-[#5A665F]">{m.email}</td>
+                  <td className="px-4 py-3">
+                    <a
+                      href={`?tab=comunicaciones&qc=${encodeURIComponent(qc)}&uid=${m.id}`}
+                      className="text-[0.85rem] font-medium text-forest hover:text-rose-deep"
+                    >
+                      Ver correos →
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {matches.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-[#8B978F]">
+                    Nadie coincide con &quot;{qc}&quot;.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-forest/[0.04] px-5 py-4">
+            <div>
+              <p className="font-medium text-forest">{selectedUser.full_name || "—"}</p>
+              <p className="text-[0.85rem] text-[#5A665F]">{selectedUser.email}</p>
+            </div>
+            <a
+              href="?tab=comunicaciones"
+              className="text-[0.85rem] font-medium text-forest hover:text-rose-deep"
+            >
+              ← Buscar a alguien más
+            </a>
+          </div>
+
+          <p className="mt-5 text-[0.85rem] text-[#7C877F]">
+            {emails.length} correo{emails.length === 1 ? "" : "s"} registrado{emails.length === 1 ? "" : "s"}
+            {emails.length > 0 && " · haz clic en uno para ver el contenido completo"}
+          </p>
+
+          <div className="mt-3 space-y-2.5">
+            {emails.map((e) => (
+              <details
+                key={e.id}
+                className="group overflow-hidden rounded-2xl border border-line bg-card"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-[0.9rem] font-medium text-forest">{e.subject}</p>
+                    <p className="mt-0.5 text-[0.78rem] text-[#8B978F]">
+                      {new Date(e.sent_at).toLocaleString("es-MX", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                      {" · "}
+                      {e.notification_type}
+                    </p>
+                  </div>
+                  <span className="flex-none text-[0.8rem] text-forest group-open:hidden">Ver →</span>
+                  <span className="hidden flex-none text-[0.8rem] text-forest group-open:inline">Ocultar</span>
+                </summary>
+                <div className="border-t border-line">
+                  <iframe
+                    srcDoc={e.html}
+                    sandbox=""
+                    title={e.subject}
+                    className="h-[520px] w-full bg-white"
+                  />
+                </div>
+              </details>
+            ))}
+            {emails.length === 0 && (
+              <p className="rounded-2xl border border-line px-5 py-6 text-center text-[0.85rem] text-[#8B978F]">
+                No hay correos registrados para este usuario todavía (solo se guardan los mandados
+                después de activar este historial).
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

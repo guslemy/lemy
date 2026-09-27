@@ -156,6 +156,24 @@ export async function dispatch(input: DispatchInput) {
         ...(input.attachments ? { attachments: input.attachments } : {}),
       });
       await logSent(supabase, type, relatedId, "email", recipientId);
+
+      // Historial de correos para soporte (a petición de Gustavo,
+      // 2026-09-27): notification_log de arriba solo evita duplicados, no
+      // guarda el contenido real — esto sí, para poder revisar "qué decía
+      // el correo que le llegó tal día" desde /dashboard/admin. Falla en
+      // silencio si la tabla aún no existe (antes de correr la migración) o
+      // si algo sale mal — nunca debe tumbar el envío real del correo.
+      try {
+        await supabase.from("email_log").insert({
+          recipient_id: recipientId,
+          recipient_email: email,
+          notification_type: type,
+          subject,
+          html,
+        });
+      } catch (logErr) {
+        console.error(`Error guardando historial de correo (${type} → ${email}):`, logErr);
+      }
     } catch (err) {
       console.error(`Error mandando email (${type} → ${email}):`, err);
     }
