@@ -5,11 +5,11 @@ import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
 
 const BRAND = "Lemy";
 
-// Logo real de la marca (el mismo horizontal-crema-mono que usa el header
-// del sitio sobre fondo oscuro, ver public/brand/) — se referencia como URL
-// absoluta a lemy.mx porque un correo no puede leer archivos del proyecto,
-// solo direcciones accesibles desde internet.
-const LOGO_URL = "https://lemy.mx/brand/logo-horizontal-crema-mono.png";
+// Isologo (icono verde/crema con acento) que también usa el footer del
+// sitio junto a la palabra "Lemy" — se referencia como URL absoluta a
+// lemy.mx porque un correo no puede leer archivos del proyecto, solo
+// direcciones accesibles desde internet.
+const LOGO_ICON_URL = "https://lemy.mx/brand/isologo-crema-acento.png";
 
 // Diseño con tablas (no <div> con flex/grid) a propósito: es lo único que
 // Outlook de escritorio renderiza de forma confiable — el resto de clientes
@@ -20,7 +20,16 @@ function wrap(bodyHtml: string) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #E4E9DF;">
       <tr>
         <td style="background: #21382b; padding: 24px 32px;">
-          <img src="${LOGO_URL}" alt="${BRAND}" width="120" style="display: block; height: auto; border: 0;" />
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding-right: 8px; vertical-align: middle;">
+                <img src="${LOGO_ICON_URL}" alt="" width="26" height="26" style="display: block; border: 0;" />
+              </td>
+              <td style="vertical-align: middle; font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 600; color: #f2f5ef;">
+                ${BRAND}
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
       <tr>
