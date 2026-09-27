@@ -5,12 +5,38 @@ import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
 
 const BRAND = "Lemy";
 
+// Logo real de la marca (el mismo horizontal-crema-mono que usa el header
+// del sitio sobre fondo oscuro, ver public/brand/) — se referencia como URL
+// absoluta a lemy.mx porque un correo no puede leer archivos del proyecto,
+// solo direcciones accesibles desde internet.
+const LOGO_URL = "https://lemy.mx/brand/logo-horizontal-crema-mono.png";
+
+// Diseño con tablas (no <div> con flex/grid) a propósito: es lo único que
+// Outlook de escritorio renderiza de forma confiable — el resto de clientes
+// de correo (Gmail, Apple Mail, etc.) también lo soportan sin problema, así
+// que tablas es la opción segura para los tres.
 function wrap(bodyHtml: string) {
-  return `<div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #1F2A22;">
-    <p style="font-family: monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #B4574B;">${BRAND}</p>
-    ${bodyHtml}
-    <p style="margin-top: 32px; font-size: 13px; color: #8B978F;">— El equipo de Lemy</p>
-    <p style="margin-top: 8px; font-size: 12px; color: #B7C0BA;">Este es un correo automático, no respondas a este mensaje. Si necesitas ayuda, escríbenos a hola@lemy.mx.</p>
+  return `<div style="background: #f2f5ef; padding: 32px 16px; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #E4E9DF;">
+      <tr>
+        <td style="background: #21382b; padding: 24px 32px;">
+          <img src="${LOGO_URL}" alt="${BRAND}" width="120" style="display: block; height: auto; border: 0;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 32px 32px 8px; color: #1F2A22; font-size: 15px; line-height: 1.55;">
+          ${bodyHtml}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 32px 28px;">
+          <div style="border-top: 1px solid #E4E9DF; padding-top: 18px;">
+            <p style="margin: 0; font-size: 13px; color: #8B978F;">— El equipo de Lemy</p>
+            <p style="margin: 6px 0 0; font-size: 12px; color: #B7C0BA;">Este es un correo automático, no respondas a este mensaje. Si necesitas ayuda, escríbenos a <a href="mailto:hola@lemy.mx" style="color: #8B978F;">hola@lemy.mx</a>.</p>
+          </div>
+        </td>
+      </tr>
+    </table>
   </div>`;
 }
 
@@ -22,11 +48,11 @@ export function verificationRejected(params: { name: string; reason?: string }) 
   return {
     subject: "Tu verificación en Lemy necesita un ajuste",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Revisamos los documentos que subiste para verificar tu perfil en Lemy, y por ahora no pudimos aprobarlos.</p>
       ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ""}
       <p>Puedes volver a subirlos desde tu panel cuando quieras — solo actualiza el documento que haga falta.</p>
-      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Ir a mi perfil →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/perfil" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mi perfil →</a></p>
     `),
   };
 }
@@ -39,11 +65,11 @@ export function trialEnding(params: { name: string; daysLeft: number }) {
         ? "Tu prueba gratis en Lemy termina mañana"
         : `Tu prueba gratis en Lemy termina en ${daysLeft} días`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tu prueba gratis de 15 días en Lemy ${
         daysLeft === 1 ? "termina mañana" : `termina en ${daysLeft} días`
       }. Si quieres que tu perfil siga visible para pacientes sin interrupción, suscríbete cuando quieras desde tu panel.</p>
-      <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Ir a mi suscripción →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mi suscripción →</a></p>
     `),
   };
 }
@@ -56,11 +82,11 @@ export function renewalReminder(params: { name: string; daysLeft: number; plan: 
         ? "Tu suscripción a Lemy se renueva mañana"
         : `Tu suscripción a Lemy se renueva en ${daysLeft} días`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Te avisamos que tu suscripción${plan ? ` al plan ${plan}` : ""} se renueva ${
         daysLeft === 1 ? "mañana" : `en ${daysLeft} días`
       }. No necesitas hacer nada si todo sigue igual — el cobro es automático con el método de pago que registraste.</p>
-      <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Ver mi suscripción →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mi suscripción →</a></p>
     `),
   };
 }
@@ -76,9 +102,9 @@ export function appointmentRequestedTherapist(params: {
   return {
     subject: `Nueva solicitud de cita — ${patientName}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p><strong>${patientName}</strong> solicitó una cita contigo para el <strong>${whenLabel}</strong>.</p>
-      <p><a href="https://lemy.mx/dashboard/citas" style="color: #2F5233;">Ir a confirmarla →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a confirmarla →</a></p>
     `),
   };
 }
@@ -96,10 +122,10 @@ export function appointmentRequestedPatient(params: {
   return {
     subject: `Recibimos tu solicitud con ${therapistName}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p>Tu solicitud de cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong> quedó registrada.</p>
       <p>En cuanto ${therapistName.split(" ")[0]} la confirme, te avisamos con el enlace de tu sesión.</p>
-      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/mis-citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis citas →</a></p>
     `),
   };
 }
@@ -123,11 +149,11 @@ export function appointmentConfirmed(params: {
   return {
     subject: `Cita confirmada — ${whenLabel}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${recipientName}</h1>
       <p>Tu cita <strong>${modality === "online" ? "en línea" : "presencial"}</strong> con <strong>${otherPartyName}</strong> quedó confirmada para el <strong>${whenLabel}</strong>.</p>
       ${
         modality === "online" && meetingLink
-          ? `<p><a href="${meetingLink}" style="color: #2F5233;">Entrar a la videollamada →</a></p>`
+          ? `<p style="margin: 24px 0 0;"><a href="${meetingLink}" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Entrar a la videollamada →</a></p>`
           : ""
       }
       ${
@@ -136,7 +162,7 @@ export function appointmentConfirmed(params: {
           : ""
       }
       <p>Te dejamos adjunta la invitación de calendario — ábrela para agregarla a Gmail, Outlook, Apple Calendar o el que uses.</p>
-      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/mis-citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis citas →</a></p>
     `),
   };
 }
@@ -151,7 +177,7 @@ export function appointmentCancelledNotice(params: {
   return {
     subject: `Cita cancelada — ${whenLabel}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${recipientName}</h1>
       <p>${cancelledByLabel} canceló la cita del <strong>${whenLabel}</strong> con ${otherPartyName}.</p>
     `),
   };
@@ -166,7 +192,7 @@ export function appointmentRescheduled(params: {
   return {
     subject: `Tu cita cambió de horario — nuevo horario ${newWhenLabel}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${recipientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${recipientName}</h1>
       <p>${otherPartyName} movió la cita a un nuevo horario: <strong>${newWhenLabel}</strong>.</p>
     `),
   };
@@ -186,10 +212,10 @@ export function appointmentProposedByTherapist(params: {
   return {
     subject: `${therapistName} agendó una cita contigo — tienes 24 horas para aceptarla`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p><strong>${therapistName}</strong> agendó una cita contigo para el <strong>${whenLabel}</strong>.</p>
       <p>Tienes <strong>24 horas</strong> para aceptarla o rechazarla. Si no respondes en ese tiempo, el horario se libera automáticamente.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Responder ahora →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Responder ahora →</a></p>
     `),
   };
 }
@@ -203,10 +229,10 @@ export function appointmentAcceptedByPatient(params: { therapistName: string; pa
   return {
     subject: `${patientName} aceptó la cita — ${whenLabel}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p><strong>${patientName}</strong> aceptó la cita que le propusiste para el <strong>${whenLabel}</strong>.</p>
       <p>Solo falta que la confirmes desde tu panel para dejarla lista.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ir a confirmarla →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a confirmarla →</a></p>
     `),
   };
 }
@@ -219,9 +245,9 @@ export function appointmentProposalExpired(params: { therapistName: string; pati
   return {
     subject: `${patientName} no respondió a tiempo — horario liberado`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p><strong>${patientName}</strong> no respondió dentro de las 24 horas a la cita que le propusiste para el <strong>${whenLabel}</strong>, así que se canceló y el horario ya quedó libre otra vez.</p>
-      <p><a href="https://lemy.mx/dashboard/pacientes" style="color: #2F5233;">Ver mis pacientes →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/pacientes" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis pacientes →</a></p>
     `),
   };
 }
@@ -240,10 +266,10 @@ export function appointmentConfirmationExpiredPatient(params: {
   return {
     subject: `Tu cita con ${therapistName} se canceló — no se confirmó a tiempo`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p>Tu cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong> no se confirmó dentro de las 24 horas, así que se canceló automáticamente.</p>
       <p>Puedes volver a agendar cuando quieras.</p>
-      <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar un horario →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/buscar" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Buscar un horario →</a></p>
     `),
   };
 }
@@ -257,10 +283,10 @@ export function appointmentConfirmationExpiredTherapist(params: {
   return {
     subject: `No confirmaste a tiempo — se canceló la cita con ${patientName}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p>La cita con <strong>${patientName}</strong> para el <strong>${whenLabel}</strong> no se confirmó dentro de las 24 horas, así que se canceló sola y el horario ya quedó libre otra vez.</p>
       <p>Recuerda confirmar tus solicitudes en efectivo dentro de las primeras 24 horas para no perderlas.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ir a mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mis citas →</a></p>
     `),
   };
 }
@@ -275,10 +301,10 @@ export function appointmentPaymentReminder(params: { patientName: string; therap
   return {
     subject: `¿Qué pasó con tu pago? — cita con ${therapistName}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p>Empezaste a reservar una cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong>, pero no vemos que se haya completado el pago.</p>
       <p>Tienes unos minutos más para terminarlo antes de que se libere el horario — si tu tarjeta fue rechazada o simplemente cambiaste de opinión, no necesitas hacer nada.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=citas" style="color: #2F5233;">Ver mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis citas →</a></p>
     `),
   };
 }
@@ -290,10 +316,10 @@ export function appointmentPaymentAbandonedCancelled(params: { patientName: stri
   return {
     subject: `Se liberó el horario con ${therapistName} — no se completó el pago`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p>Como no se completó el pago de tu cita con <strong>${therapistName}</strong> para el <strong>${whenLabel}</strong>, liberamos el horario para que otra persona pueda tomarlo.</p>
       <p>Puedes volver a agendar cuando quieras.</p>
-      <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar un horario →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/buscar" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Buscar un horario →</a></p>
     `),
   };
 }
@@ -309,7 +335,7 @@ export function therapistAccountClosed(params: { name: string }) {
   return {
     subject: "Confirmamos el cierre de tu cuenta en Lemy",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Confirmamos que cerraste tu cuenta de terapeuta en Lemy. Tu perfil ya no es visible y tu suscripción quedó cancelada.</p>
       <p><strong>Importante:</strong> por la NOM-004-SSA3-2012 debes conservar el expediente de tus pacientes por un mínimo de 5 años. Tu expediente en Lemy no se conservará por motivos de seguridad, así que si aún no lo descargaste, hazlo antes de que se elimine por completo.</p>
       <p>Si cambias de opinión, contáctanos a hola@lemy.mx.</p>
@@ -322,7 +348,7 @@ export function patientAccountClosed(params: { name: string }) {
   return {
     subject: "Confirmamos el cierre de tu cuenta en Lemy",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Confirmamos que cerraste tu cuenta en Lemy. Ya no podrás iniciar sesión con ella.</p>
       <p>Tu salud mental es importante. Si en algún momento quieres retomar un proceso terapéutico, aquí vas a encontrar a quien pueda acompañarte.</p>
     `),
@@ -336,9 +362,9 @@ export function patientDormancyNotice(params: { therapistName: string; patientNa
   return {
     subject: `${patientName} no te ha visitado en el último mes`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p><strong>${patientName}</strong> no te ha visitado en el último mes. Recuerda que puedes descargar su historial clínico desde su ficha para conservarlo en tus expedientes personales y cumplir con la NOM-004-SSA3-2012.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=pacientes" style="color: #2F5233;">Ir a mis pacientes →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=pacientes" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mis pacientes →</a></p>
     `),
   };
 }
@@ -351,7 +377,7 @@ function planComparisonTable() {
   for (const f of extrasPlus) rows.push({ label: f.label, base: false, plus: true });
 
   const check = (yes: boolean) =>
-    `<td style="padding: 6px 8px; text-align: center; color: ${yes ? "#2F5233" : "#D8DED9"};">${yes ? "✓" : "—"}</td>`;
+    `<td style="padding: 6px 8px; text-align: center; color: ${yes ? "#21382b" : "#D8DED9"};">${yes ? "✓" : "—"}</td>`;
 
   return `
     <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;">
@@ -386,12 +412,12 @@ export function therapistWelcome(params: { name: string }) {
   return {
     subject: `¡Bienvenido a Lemy, ${name.split(" ")[0]}!`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tu cuenta de terapeuta en Lemy ya está lista. Tienes 15 días de prueba gratis para armar tu
       perfil y ver cómo funciona todo, sin compromiso.</p>
       <p>Cuando quieras dar el siguiente paso, así se comparan los dos planes:</p>
       ${planComparisonTable()}
-      <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Elegir mi plan →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Elegir mi plan →</a></p>
     `),
   };
 }
@@ -408,7 +434,7 @@ export function subscriptionWelcome(params: { name: string; plan: "base" | "plus
   return {
     subject: `¡Bienvenido al plan ${planLabel} de Lemy!`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tu suscripción al plan <strong>${planLabel}</strong> ya está activa. Esto es lo que tienes disponible:</p>
       <ul style="padding-left: 18px; color: #3E4B44;">
         ${features.map((f) => `<li style="margin-bottom: 6px;">${f.label}</li>`).join("")}
@@ -417,7 +443,7 @@ export function subscriptionWelcome(params: { name: string; plan: "base" | "plus
         plan === "base"
           ? `<p>Cuando quieras más control — expediente clínico completo, cobros en línea y recordatorios por
              WhatsApp — puedes hacer upgrade a Gestiona cuando gustes, sin perder nada de lo que ya tienes.</p>
-             <p><a href="https://lemy.mx/dashboard/suscripcion" style="color: #2F5233;">Ver el plan Gestiona →</a></p>`
+             <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver el plan Gestiona →</a></p>`
           : `<p>Gracias por confiar en Lemy para hacer crecer tu práctica.</p>`
       }
     `),
@@ -436,16 +462,16 @@ export function therapistOnboardingChecklist(params: { name: string; profileUrl:
   return {
     subject: "Comienza a recibir pacientes hoy mismo",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Unos últimos pasos para dejar tu cuenta lista y empezar a recibir pacientes:</p>
       <ol style="padding-left: 18px; color: #3E4B44;">
         <li style="margin-bottom: 8px;">Date una vuelta por tu panel para ubicarte.</li>
-        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Configura tu perfil profesional →</a></li>
-        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Conecta tu Google Calendar →</a></li>
-        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/pagos" style="color: #2F5233;">Activa tus cobros con tarjeta →</a></li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #21382b;">Configura tu perfil profesional →</a></li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/perfil" style="color: #21382b;">Conecta tu Google Calendar →</a></li>
+        <li style="margin-bottom: 8px;"><a href="https://lemy.mx/dashboard/pagos" style="color: #21382b;">Activa tus cobros con tarjeta →</a></li>
       </ol>
       <p>Y ya que tu perfil esté listo, compártelo con quien quieras:</p>
-      <p><a href="https://wa.me/?text=${waText}" style="color: #2F5233;">Compartir mi perfil por WhatsApp →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://wa.me/?text=${waText}" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Compartir mi perfil por WhatsApp →</a></p>
     `),
   };
 }
@@ -459,7 +485,7 @@ export function referralInvite(params: { name: string; referralLink: string }) {
   return {
     subject: "Invita a otros terapeutas y ahorra en tu mensualidad",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>¿Sabías que puedes ahorrar en tu suscripción a Lemy solo por invitar a otros terapeutas?</p>
       <p>Comparte tu link personal. En cuanto la persona que invitaste active su suscripción:</p>
       <ul style="padding-left: 18px; color: #3E4B44;">
@@ -467,8 +493,8 @@ export function referralInvite(params: { name: string; referralLink: string }) {
         <li style="margin-bottom: 6px;">Ella o él obtiene <strong>30% de descuento durante sus primeros 2 meses</strong>.</li>
       </ul>
       <p style="font-size: 13px; color: #8B978F;">Para poder aprovechar tu descuento, tu propia suscripción debe estar activa (no solo en periodo de prueba) en el momento en que tu invitado se suscriba.</p>
-      <p style="word-break: break-all; background: #F5F1E8; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #2F5233;">${referralLink}</p>
-      <p><a href="https://lemy.mx/dashboard" style="color: #2F5233;">Ir a mi panel →</a></p>
+      <p style="word-break: break-all; background: #F5F1E8; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #21382b;">${referralLink}</p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mi panel →</a></p>
     `),
   };
 }
@@ -480,9 +506,9 @@ export function reviewRequest(params: { name: string; therapistName: string; rev
   return {
     subject: `¿Cómo te fue con ${therapistName}?`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Hace un rato tuviste tu sesión con ${therapistName}. ¿Nos regalas un minuto para contarnos cómo te fue? Tu opinión ayuda a que otras personas que están buscando a alguien como ${therapistName} se animen a dar el paso.</p>
-      <p><a href="${reviewUrl}" style="color: #2F5233;">Dejar mi reseña →</a></p>
+      <p style="margin: 24px 0 0;"><a href="${reviewUrl}" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Dejar mi reseña →</a></p>
       <p style="font-size: 13px; color: #8B978F;">Es rápido y toma menos de un minuto.</p>
     `),
   };
@@ -502,11 +528,11 @@ export function reviewReceived(params: {
   return {
     subject: "Recibiste una nueva reseña en Lemy",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${therapistName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${therapistName}</h1>
       <p>Un paciente acaba de dejarte una reseña:</p>
-      <p style="font-size: 20px; letter-spacing: 2px; color: #B5654F;">${stars}</p>
+      <p style="font-size: 20px; letter-spacing: 2px; color: #c1786a;">${stars}</p>
       ${comment ? `<p style="font-style: italic; color: #3E4B44;">&quot;${comment}&quot;</p>` : ""}
-      <p><a href="${profileUrl}" style="color: #2F5233;">Ver mi perfil público →</a></p>
+      <p style="margin: 24px 0 0;"><a href="${profileUrl}" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mi perfil público →</a></p>
     `),
   };
 }
@@ -521,14 +547,14 @@ export function appointmentReminder(params: {
   return {
     subject: `Recordatorio: tu sesión es ${whenLabel}`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Te recordamos que tu sesión con ${otherPartyName} es ${whenLabel}.</p>
       ${
         meetingLink
-          ? `<p><a href="${meetingLink}" style="color: #2F5233;">Entrar a la videollamada →</a></p>`
+          ? `<p style="margin: 24px 0 0;"><a href="${meetingLink}" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Entrar a la videollamada →</a></p>`
           : ""
       }
-      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/mis-citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis citas →</a></p>
     `),
   };
 }
@@ -548,9 +574,9 @@ export function verificationApproved(params: { name: string }) {
   return {
     subject: "¡Tu cédula ya está verificada en Lemy!",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Revisamos tus documentos y tu perfil ya tiene el distintivo de <strong>Cédula verificada</strong> — genera más confianza con quien te encuentra en el directorio.</p>
-      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Ver mi perfil →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/perfil" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mi perfil →</a></p>
     `),
   };
 }
@@ -564,14 +590,14 @@ export function subscriptionPaymentFailed(params: { name: string; nextAttemptLab
   return {
     subject: "No pudimos cobrar tu suscripción a Lemy",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Intentamos cobrar tu suscripción a Lemy y el pago no pasó — puede ser una tarjeta vencida, fondos insuficientes o que el banco la rechazó.</p>
       <p>${
         nextAttemptLabel
           ? `Vamos a volver a intentarlo automáticamente el ${nextAttemptLabel}. Si quieres, puedes actualizar tu método de pago antes de esa fecha para no arriesgar que tu perfil deje de ser visible.`
           : "Actualiza tu método de pago cuanto antes para que tu perfil no deje de ser visible en el directorio."
       }</p>
-      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Actualizar mi método de pago →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Actualizar mi método de pago →</a></p>
     `),
   };
 }
@@ -585,9 +611,9 @@ export function trialEnded(params: { name: string }) {
   return {
     subject: "Tu prueba gratis en Lemy ya terminó",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tus 15 días de prueba gratis en Lemy ya terminaron. Para que tu perfil se mantenga visible en el directorio y sigas recibiendo pacientes, elige un plan cuando quieras — no perdiste nada de lo que ya configuraste.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Elegir mi plan →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Elegir mi plan →</a></p>
     `),
   };
 }
@@ -601,9 +627,9 @@ export function appointmentNoShow(params: { patientName: string; therapistName: 
   return {
     subject: `Tu sesión del ${whenLabel} con ${therapistName} se registró como no asistida`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${patientName}</h1>
       <p>${therapistName} registró que no se llevó a cabo tu sesión del ${whenLabel}. Si fue un malentendido de horario o tienes alguna duda, lo mejor es que lo contactes directamente para aclararlo.</p>
-      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/mis-citas" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mis citas →</a></p>
     `),
   };
 }
@@ -617,9 +643,9 @@ export function referralBonusGranted(params: { name: string; referredName: strin
   return {
     subject: "Tu descuento por referido ya se aplicó",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>${referredName}, a quien invitaste a Lemy, ya activó su suscripción — como agradecimiento, te aplicamos un <strong>30% de descuento en tu siguiente mensualidad</strong>. Se refleja solo, no tienes que hacer nada.</p>
-      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Ver mi suscripción →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver mi suscripción →</a></p>
     `),
   };
 }
@@ -632,10 +658,10 @@ export function patientWelcome(params: { name: string }) {
   return {
     subject: `¡Bienvenido a Lemy, ${name.split(" ")[0]}!`,
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Gracias por registrarte en Lemy. Aquí puedes buscar terapeutas verificados y filtrar por lo que necesitas trabajar — o, si todavía no sabes con quién empezar, nuestro test de afinidad te puede orientar.</p>
-      <p><a href="https://lemy.mx/test" style="color: #2F5233;">Hacer el test de afinidad →</a></p>
-      <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar terapeuta →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/test" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Hacer el test de afinidad →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/buscar" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Buscar terapeuta →</a></p>
     `),
   };
 }
@@ -651,10 +677,10 @@ export function googleCalendarReconnectNeeded(params: { name: string }) {
   return {
     subject: "Reconecta tu Google Calendar en Lemy",
     html: wrap(`
-      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tu conexión con Google Calendar dejó de funcionar — puede ser porque revocaste el acceso o porque expiró. Mientras tanto, tus citas nuevas van a usar nuestra sala de videollamada de respaldo en vez de crear el evento en tu calendario.</p>
       <p>Reconéctalo cuando puedas para que tus citas vuelvan a aparecer solas en tu Google Calendar.</p>
-      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Reconectar Google Calendar →</a></p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/perfil" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Reconectar Google Calendar →</a></p>
     `),
   };
 }
@@ -670,9 +696,9 @@ export function internalVerificationSubmitted(params: { therapistName: string; t
   const { therapistName, therapistId } = params;
   return {
     subject: `Documentos de verificación nuevos — ${therapistName}`,
-    html: `<div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #1F2A22;">
+    html: wrap(`
       <p>${therapistName} (id ${therapistId}) subió documentos de verificación y están pendientes de revisión.</p>
-      <p><a href="https://lemy.mx/dashboard/admin?tab=verificaciones" style="color: #2F5233;">Ir a revisar →</a></p>
-    </div>`,
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/admin?tab=verificaciones" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a revisar →</a></p>
+    `),
   };
 }
