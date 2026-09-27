@@ -7,6 +7,7 @@ import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError 
 import { sendPushToUser } from "@/lib/webpush";
 import {
   trialEnding,
+  trialEnded,
   renewalReminder,
   appointmentReminder,
   therapistOnboardingChecklist,
@@ -55,6 +56,9 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_payment_abandoned_patient",
   "account_closed_therapist",
   "account_closed_patient",
+  // No-show: igual que una cancelación, el paciente necesita enterarse de
+  // que su cita quedó marcada así sí o sí (2026-09-27).
+  "appointment_no_show",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -223,7 +227,33 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
 
   for (const t of trialTherapists ?? []) {
     const trialEndsAt = new Date(t.trial_ends_at as string).getTime();
-    if (now >= trialEndsAt) continue;
+    if (now >= trialEndsAt) {
+      // Antes este caso simplemente se saltaba (nada que recordar de un
+      // trial que ya terminó) — a petición de Gustavo (2026-09-27), ahora
+      // sí se avisa una vez que la prueba se venció sin conversión.
+      // relatedId = t.id: solo se manda una vez en la vida de esa cuenta
+      // (trial_ends_at no cambia), notification_log evita repetirlo en
+      // cada corrida del cron.
+      try {
+        const email = await emailOf(supabase, t.id as string);
+        const { subject, html } = trialEnded({ name: t.display_name as string });
+        await dispatch({
+          supabase,
+          type: "trial_ended",
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email,
+          phone: null,
+          subject,
+          html,
+          emailOnly: true,
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(`Error en barrido (trial_ended → therapist ${t.id}):`, err);
+      }
+      continue;
+    }
 
     for (const [type, days] of [
       ["trial_5d", 5],

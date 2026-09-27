@@ -2,6 +2,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, createCalendarEvent } from "@/lib/google-calendar";
 import { fallbackMeetingLink } from "@/lib/video-link";
 import { notifyAppointmentConfirmed } from "@/lib/notifications/instant";
+import { dispatch, emailOf } from "@/lib/notifications/engine";
+import { googleCalendarReconnectNeeded } from "@/lib/notifications/emailTemplates";
 
 // Lógica de "confirmar la cita y crear el evento real" — antes vivía solo
 // dentro de confirmAppointment (dashboard/citas/actions.ts), disparada a
@@ -34,7 +36,7 @@ export async function confirmAppointmentAndCreateEvent(appointmentId: string): P
 
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("display_name, address")
+    .select("display_name, address, google_calendar_connected")
     .eq("id", appointment.therapist_id)
     .maybeSingle();
 
@@ -92,6 +94,31 @@ export async function confirmAppointmentAndCreateEvent(appointmentId: string): P
     } catch (err) {
       console.error("Error creando evento en Google Calendar, se usa la sala de respaldo:", err);
       await supabase.from("therapists").update({ google_calendar_connected: false }).eq("id", appointment.therapist_id);
+
+      // Solo se avisa en la transición true → false (cuando de verdad se
+      // acaba de romper), no en cada cita nueva mientras siga rota — si ya
+      // estaba desconectada (false) o nunca se conectó (null), no hay nada
+      // nuevo que avisar. A petición de Gustavo (2026-09-27): antes esto
+      // solo se reflejaba en silencio en la base de datos.
+      if (therapist?.google_calendar_connected === true) {
+        try {
+          const therapistEmailForNotice = await emailOf(supabase, appointment.therapist_id);
+          const { subject, html } = googleCalendarReconnectNeeded({ name: therapistName });
+          await dispatch({
+            supabase,
+            type: "google_calendar_reconnect_needed",
+            relatedId: `${appointment.therapist_id}-${new Date().toISOString().slice(0, 7)}`,
+            recipientId: appointment.therapist_id,
+            email: therapistEmailForNotice,
+            phone: null,
+            subject,
+            html,
+            emailOnly: true,
+          });
+        } catch (notifyErr) {
+          console.error("Error mandando aviso de reconexión de Google Calendar:", notifyErr);
+        }
+      }
     }
   }
 

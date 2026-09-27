@@ -3,7 +3,11 @@ import type Stripe from "stripe";
 import { getStripe, STRIPE_COUPON_REFERRAL } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
-import { subscriptionWelcome } from "@/lib/notifications/emailTemplates";
+import {
+  subscriptionWelcome,
+  subscriptionPaymentFailed,
+  referralBonusGranted,
+} from "@/lib/notifications/emailTemplates";
 
 // Fuente de verdad para el estado real de la suscripción: nunca confiamos
 // solo en lo que devuelve el Checkout — Stripe puede fallar un cobro, un
@@ -100,6 +104,56 @@ export async function POST(req: Request) {
         break;
       }
 
+      // Antes un cobro fallido solo se reflejaba como subscription_status
+      // pasando a "past_due" en la fila de therapists (via
+      // customer.subscription.updated, abajo) — nadie se enteraba hasta
+      // que su perfil dejaba de ser visible. A petición de Gustavo
+      // (2026-09-27): avisar en el momento. relatedId = invoice.id: Stripe
+      // reutiliza el mismo id en reintentos de la misma factura, así que
+      // esto manda un solo correo por factura fallida, no uno por cada
+      // reintento.
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        // Desde la API "Basil" (2025-03-31, ver nota en currentPeriodEndIso
+        // más abajo) invoice.subscription ya no existe — se movió a
+        // parent.subscription_details.subscription.
+        const invoiceSubscription = invoice.parent?.subscription_details?.subscription;
+        const subscriptionId = invoiceSubscription ? String(invoiceSubscription) : null;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const userId = subscription.metadata?.lemy_user_id;
+          if (userId) {
+            const { data: therapist } = await supabase
+              .from("therapists")
+              .select("display_name")
+              .eq("id", userId)
+              .maybeSingle();
+            const email = await emailOf(supabase, userId);
+            const { subject, html } = subscriptionPaymentFailed({
+              name: therapist?.display_name || "ahí",
+              nextAttemptLabel: invoice.next_payment_attempt
+                ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString("es-MX", {
+                    day: "numeric",
+                    month: "long",
+                  })
+                : null,
+            });
+            await dispatch({
+              supabase,
+              type: "subscription_payment_failed",
+              relatedId: invoice.id,
+              recipientId: userId,
+              email,
+              phone: null,
+              subject,
+              html,
+              emailOnly: true,
+            });
+          }
+        }
+        break;
+      }
+
       default:
         break;
     }
@@ -156,6 +210,33 @@ async function grantReferralBonusIfNeeded(
     .from("therapists")
     .update({ referral_bonus_granted: true })
     .eq("id", referredUserId);
+
+  // Antes el cupón se aplicaba en silencio — quien refirió solo lo notaba
+  // (o no) al ver su siguiente factura. A petición de Gustavo (2026-09-27).
+  try {
+    const [{ data: referrerRow }, { data: referredRow }, referrerEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", referred.referred_by).maybeSingle(),
+      supabase.from("therapists").select("display_name").eq("id", referredUserId).maybeSingle(),
+      emailOf(supabase, referred.referred_by),
+    ]);
+    const { subject, html } = referralBonusGranted({
+      name: referrerRow?.display_name || "ahí",
+      referredName: referredRow?.display_name || "Alguien que invitaste",
+    });
+    await dispatch({
+      supabase,
+      type: "referral_bonus_granted",
+      relatedId: referredUserId,
+      recipientId: referred.referred_by,
+      email: referrerEmail,
+      phone: null,
+      subject,
+      html,
+      emailOnly: true,
+    });
+  } catch (err) {
+    console.error("Error mandando correo de bono de referido:", err);
+  }
 }
 
 function mapStripeStatus(status: Stripe.Subscription.Status): string {

@@ -11,6 +11,7 @@ import {
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
   notifyAppointmentProposed,
+  notifyAppointmentNoShow,
 } from "@/lib/notifications/instant";
 
 async function requireTherapist() {
@@ -104,12 +105,25 @@ export async function markNoShowTherapist(formData: FormData) {
   const patientId = String(formData.get("patient_id") || "");
   if (!appointmentId) return;
 
-  await supabase
+  const { data: updated } = await supabase
     .from("appointments")
     .update({ status: "no_show" })
     .eq("id", appointmentId)
     .eq("therapist_id", user.id)
-    .eq("status", "confirmed");
+    .eq("status", "confirmed")
+    .select("id, patient_id, scheduled_at")
+    .maybeSingle();
+
+  // Solo se avisa si el update de verdad aplicó (el .eq("status",
+  // "confirmed") pudo no matchear nada — doble clic, ya cancelada, etc.).
+  if (updated) {
+    await notifyAppointmentNoShow({
+      appointmentId: updated.id,
+      therapistId: user.id,
+      patientId: updated.patient_id,
+      scheduledAtIso: updated.scheduled_at,
+    });
+  }
 
   revalidatePath("/dashboard");
   if (patientId) revalidatePath(`/dashboard/pacientes/${patientId}`);

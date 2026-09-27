@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
-import { verificationRejected } from "@/lib/notifications/emailTemplates";
+import { verificationRejected, verificationApproved } from "@/lib/notifications/emailTemplates";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -86,6 +86,40 @@ export async function setVerificationStatus(formData: FormData) {
       verified_by: status === "verified" ? user.id : null,
     })
     .eq("id", targetId);
+
+  // A petición de Gustavo (2026-09-27): antes solo existía el correo de
+  // rechazo, así que un terapeuta aprobado no se enteraba salvo que
+  // entrara a checar su perfil. relatedId = uuid nuevo por la misma razón
+  // que rejectVerification (puede volver a verificarse más adelante si se
+  // le retira y se le vuelve a dar el badge).
+  if (status === "verified") {
+    try {
+      const { data: therapistRow } = await serviceClient
+        .from("therapists")
+        .select("display_name")
+        .eq("id", targetId)
+        .maybeSingle();
+      const email = await emailOf(serviceClient, targetId);
+      if (email) {
+        const { subject, html } = verificationApproved({
+          name: therapistRow?.display_name || "ahí",
+        });
+        await dispatch({
+          supabase: serviceClient,
+          type: "verification_approved",
+          relatedId: randomUUID(),
+          recipientId: targetId,
+          email,
+          phone: null,
+          subject,
+          html,
+          emailOnly: true,
+        });
+      }
+    } catch (err) {
+      console.error("Error mandando correo de verificación aprobada:", err);
+    }
+  }
 
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard");

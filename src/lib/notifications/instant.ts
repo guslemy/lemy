@@ -19,6 +19,7 @@ import {
   appointmentProposedByTherapist,
   appointmentAcceptedByPatient,
   appointmentProposalExpired,
+  appointmentNoShow,
 } from "./emailTemplates";
 
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -425,6 +426,52 @@ export async function notifyAppointmentProposalExpired({
     });
   } catch (err) {
     console.error("Error notificando vencimiento de propuesta de cita:", err);
+  }
+}
+
+// Al instante, cuando el terapeuta marca una cita ya pasada como "no se
+// presentó" (markNoShowTherapist, dashboard/citas/actions.ts, 2026-09-27) —
+// se avisa al paciente. Por ahora solo existe este sentido (terapeuta marca
+// al paciente); no hay un equivalente de "el terapeuta no llegó".
+export async function notifyAppointmentNoShow({
+  appointmentId,
+  therapistId,
+  patientId,
+  scheduledAtIso,
+}: {
+  appointmentId: string;
+  therapistId: string;
+  patientId: string;
+  scheduledAtIso: string;
+}) {
+  try {
+    const supabase = createServiceClient();
+    const whenLabel = whenLabelFor(scheduledAtIso);
+
+    const [{ data: therapistRow }, { data: patientProfile }, phones, patientEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", therapistId).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", patientId).maybeSingle(),
+      phonesById(supabase, [patientId]),
+      emailOf(supabase, patientId),
+    ]);
+
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "ahí";
+
+    const { subject, html } = appointmentNoShow({ patientName, therapistName, whenLabel });
+    await dispatch({
+      supabase,
+      type: "appointment_no_show",
+      relatedId: appointmentId,
+      recipientId: patientId,
+      email: patientEmail,
+      phone: normalizePhone(phones.get(patientId)),
+      subject,
+      html,
+      emailOnly: true,
+    });
+  } catch (err) {
+    console.error("Error notificando no-show de cita:", err);
   }
 }
 

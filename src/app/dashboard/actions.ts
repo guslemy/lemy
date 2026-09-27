@@ -8,7 +8,15 @@ import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { FOUNDING_MEMBER_LIMIT, TRIAL_DAYS } from "@/lib/stripe";
 import { dispatch } from "@/lib/notifications/engine";
-import { therapistWelcome } from "@/lib/notifications/emailTemplates";
+import { therapistWelcome, internalVerificationSubmitted } from "@/lib/notifications/emailTemplates";
+import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
+
+// Bandeja del equipo a la que llegan los avisos internos (documentos de
+// verificación nuevos, etc.) — a petición de Gustavo (2026-09-27). No pasa
+// por dispatch() porque el destinatario no es un perfil de usuario de Lemy,
+// es la bandeja del equipo, así que no tiene sentido chequear preferencias
+// de notificación de nadie ni registrar esto en notification_log.
+const TEAM_INBOX = "notificaciones@lemy.mx";
 
 // Deja pasar "instagram.com/tu_usuario" sin obligar a que escriban
 // "https://" a mano — si ya trae protocolo, no lo toca.
@@ -378,7 +386,7 @@ export async function uploadVerificationDocuments(formData: FormData) {
 
   const { data: therapist } = await supabase
     .from("therapists")
-    .select("verification_status")
+    .select("verification_status, display_name")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -434,6 +442,23 @@ export async function uploadVerificationDocuments(formData: FormData) {
     ...(tituloPath ? [{ therapist_id: user.id, tipo: "titulo", documento_url: tituloPath }] : []),
   ];
   await supabase.from("therapist_credentials").insert(rows);
+
+  try {
+    if (isResendConfigured()) {
+      const { subject, html } = internalVerificationSubmitted({
+        therapistName: therapist?.display_name || "Un terapeuta",
+        therapistId: user.id,
+      });
+      await getResendClient().emails.send({
+        from: NOTIFICATIONS_FROM_EMAIL,
+        to: TEAM_INBOX,
+        subject,
+        html,
+      });
+    }
+  } catch (err) {
+    console.error("Error mandando alerta interna de documentos de verificación:", err);
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard?tab=perfil&perfil_documentos_guardados=1");

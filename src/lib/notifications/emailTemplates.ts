@@ -532,3 +532,147 @@ export function appointmentReminder(params: {
     `),
   };
 }
+
+// ─────────────────────────────────────────────
+// Tandas agregadas a petición de Gustavo (2026-09-27) tras revisar el
+// inventario completo de notificaciones — 7 huecos reales que encontramos
+// (el octavo, resumen mensual, queda pendiente aparte).
+// ─────────────────────────────────────────────
+
+// Cuando un admin aprueba la verificación (setVerificationStatus,
+// dashboard/admin/actions.ts) — antes solo existía el correo de rechazo, el
+// terapeuta no se enteraba de que ya quedó verificado salvo que entrara a
+// checar su perfil por su cuenta.
+export function verificationApproved(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "¡Tu cédula ya está verificada en Lemy!",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Revisamos tus documentos y tu perfil ya tiene el distintivo de <strong>Cédula verificada</strong> — genera más confianza con quien te encuentra en el directorio.</p>
+      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Ver mi perfil →</a></p>
+    `),
+  };
+}
+
+// Cuando un cobro de la suscripción falla (invoice.payment_failed, webhook
+// de Stripe) — antes solo se actualizaba subscription_status en la base de
+// datos, sin avisarle a nadie. nextAttemptLabel es opcional porque Stripe no
+// siempre trae una fecha de reintento (puede ser el último intento).
+export function subscriptionPaymentFailed(params: { name: string; nextAttemptLabel: string | null }) {
+  const { name, nextAttemptLabel } = params;
+  return {
+    subject: "No pudimos cobrar tu suscripción a Lemy",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Intentamos cobrar tu suscripción a Lemy y el pago no pasó — puede ser una tarjeta vencida, fondos insuficientes o que el banco la rechazó.</p>
+      <p>${
+        nextAttemptLabel
+          ? `Vamos a volver a intentarlo automáticamente el ${nextAttemptLabel}. Si quieres, puedes actualizar tu método de pago antes de esa fecha para no arriesgar que tu perfil deje de ser visible.`
+          : "Actualiza tu método de pago cuanto antes para que tu perfil no deje de ser visible en el directorio."
+      }</p>
+      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Actualizar mi método de pago →</a></p>
+    `),
+  };
+}
+
+// Cuando la prueba gratis de 15 días termina sin que el terapeuta se haya
+// suscrito — antes el cron solo mandaba los avisos de 5 y 1 día antes, y
+// una vez que el plazo pasaba, ese terapeuta simplemente se dejaba de
+// procesar (sin avisarle que ya se acabó).
+export function trialEnded(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "Tu prueba gratis en Lemy ya terminó",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Tus 15 días de prueba gratis en Lemy ya terminaron. Para que tu perfil se mantenga visible en el directorio y sigas recibiendo pacientes, elige un plan cuando quieras — no perdiste nada de lo que ya configuraste.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Elegir mi plan →</a></p>
+    `),
+  };
+}
+
+// Cuando el terapeuta marca una cita ya pasada como "no se presentó"
+// (markNoShowTherapist, dashboard/citas/actions.ts) — se avisa al paciente,
+// con tono neutral (no acusatorio: puede haber sido un malentendido de
+// horario, no siempre es "falta" del paciente).
+export function appointmentNoShow(params: { patientName: string; therapistName: string; whenLabel: string }) {
+  const { patientName, therapistName, whenLabel } = params;
+  return {
+    subject: `Tu sesión del ${whenLabel} con ${therapistName} se registró como no asistida`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${patientName}</h1>
+      <p>${therapistName} registró que no se llevó a cabo tu sesión del ${whenLabel}. Si fue un malentendido de horario o tienes alguna duda, lo mejor es que lo contactes directamente para aclararlo.</p>
+      <p><a href="https://lemy.mx/dashboard/mis-citas" style="color: #2F5233;">Ver mis citas →</a></p>
+    `),
+  };
+}
+
+// Cuando a alguien que refirió a otro terapeuta se le aplica el descuento
+// automáticamente (grantReferralBonusIfNeeded, stripe/webhook/route.ts) —
+// antes el cupón se aplicaba en silencio; la persona solo lo notaba (o no)
+// al ver su siguiente factura.
+export function referralBonusGranted(params: { name: string; referredName: string }) {
+  const { name, referredName } = params;
+  return {
+    subject: "Tu descuento por referido ya se aplicó",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>${referredName}, a quien invitaste a Lemy, ya activó su suscripción — como agradecimiento, te aplicamos un <strong>30% de descuento en tu siguiente mensualidad</strong>. Se refleja solo, no tienes que hacer nada.</p>
+      <p><a href="https://lemy.mx/dashboard?tab=suscripcion" style="color: #2F5233;">Ver mi suscripción →</a></p>
+    `),
+  };
+}
+
+// Bienvenida a un PACIENTE que se acaba de registrar (ensure-profile.ts) —
+// antes solo existía este correo para terapeutas (therapistWelcome); un
+// paciente que se registraba sin agendar de inmediato no recibía nada.
+export function patientWelcome(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: `¡Bienvenido a Lemy, ${name.split(" ")[0]}!`,
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Gracias por registrarte en Lemy. Aquí puedes buscar terapeutas verificados y filtrar por lo que necesitas trabajar — o, si todavía no sabes con quién empezar, nuestro test de afinidad te puede orientar.</p>
+      <p><a href="https://lemy.mx/test" style="color: #2F5233;">Hacer el test de afinidad →</a></p>
+      <p><a href="https://lemy.mx/buscar" style="color: #2F5233;">Buscar terapeuta →</a></p>
+    `),
+  };
+}
+
+// Cuando falla el refresh token de Google Calendar de un terapeuta al
+// intentar confirmar una cita (confirmAppointmentAndCreateEvent,
+// lib/appointment-confirm.ts) — antes solo se marcaba
+// google_calendar_connected=false en la base de datos y se usaba la sala de
+// respaldo (Jitsi) para esa cita puntual, sin que el terapeuta se enterara
+// de que su calendario dejó de sincronizar.
+export function googleCalendarReconnectNeeded(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "Reconecta tu Google Calendar en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 20px;">Hola, ${name}</h1>
+      <p>Tu conexión con Google Calendar dejó de funcionar — puede ser porque revocaste el acceso o porque expiró. Mientras tanto, tus citas nuevas van a usar nuestra sala de videollamada de respaldo en vez de crear el evento en tu calendario.</p>
+      <p>Reconéctalo cuando puedas para que tus citas vuelvan a aparecer solas en tu Google Calendar.</p>
+      <p><a href="https://lemy.mx/dashboard/perfil" style="color: #2F5233;">Reconectar Google Calendar →</a></p>
+    `),
+  };
+}
+
+// Alerta interna al equipo de Lemy (no pasa por dispatch(): el destinatario
+// es la bandeja del equipo, notificaciones@lemy.mx — a petición de Gustavo,
+// no un perfil de usuario dentro de la plataforma — así que no tiene
+// sentido pasar por el chequeo de preferencias/canal de un usuario). Se
+// manda cada vez que un terapeuta sube o vuelve a subir sus documentos de
+// verificación, para que el equipo sepa que hay algo pendiente de revisar
+// sin tener que entrar a checar el panel de admin a cada rato.
+export function internalVerificationSubmitted(params: { therapistName: string; therapistId: string }) {
+  const { therapistName, therapistId } = params;
+  return {
+    subject: `Documentos de verificación nuevos — ${therapistName}`,
+    html: `<div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #1F2A22;">
+      <p>${therapistName} (id ${therapistId}) subió documentos de verificación y están pendientes de revisión.</p>
+      <p><a href="https://lemy.mx/dashboard/admin?tab=verificaciones" style="color: #2F5233;">Ir a revisar →</a></p>
+    </div>`,
+  };
+}
