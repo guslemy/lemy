@@ -8,7 +8,7 @@ import type { MetadataRoute } from "next";
 // haya descargado una vez no tiene ninguna razón para volver a pedirlos.
 // ICON_VERSION fuerza una URL nueva cada vez que se reemplaza el ícono —
 // súbele el número cada vez que vuelvas a cambiar los PNG de /public/icons.
-const ICON_VERSION = "3";
+const ICON_VERSION = "4";
 
 // Next sirve esto automáticamente en /manifest.webmanifest y agrega el
 // <link rel="manifest"> en <head> — no hace falta declararlo a mano en
