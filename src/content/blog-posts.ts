@@ -603,6 +603,110 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "facturacion-resico-psicologos-independientes-mexico",
+    title: "Facturación y RESICO para psicólogos independientes en México: guía práctica 2026",
+    metaDescription:
+      "Guía 2026 para psicólogos en México: qué es RESICO, cómo facturar tus sesiones con CFDI, si tu servicio paga IVA y cómo evitar errores con el SAT.",
+    excerpt:
+      "RESICO, IVA, CFDI 4.0 y qué pueden deducir tus pacientes — la guía sin rodeos para poner en orden la parte fiscal de tu consulta.",
+    publishedAt: "2026-09-28",
+    authorName: "Equipo Lemy",
+    readingMinutes: 7,
+    tags: [
+      "facturación",
+      "resico",
+      "impuestos",
+      "sat",
+      "psicólogo independiente",
+      "terapeutas",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "p",
+        text: "Si das terapia por tu cuenta, probablemente la parte administrativa —facturar, declarar, entender qué régimen te conviene— te quita más tranquilidad que cualquier caso clínico. No estás solo: es de los temas que más dudas genera entre psicólogos independientes en México, y la información suele estar dispersa o pensada para otras profesiones. Aquí va lo esencial, explicado en términos simples.",
+      },
+      {
+        type: "h2",
+        text: "¿Qué es RESICO y por qué le conviene a la mayoría de los terapeutas?",
+      },
+      {
+        type: "p",
+        text: "El Régimen Simplificado de Confianza (RESICO) es, hoy por hoy, la opción más común para psicólogos que facturan por honorarios de forma independiente. Sus ventajas prácticas:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Pagas ISR sobre una tasa reducida (entre 1% y 2.5% según tu nivel de ingresos), no sobre utilidad.",
+          "No necesitas llevar contabilidad electrónica compleja.",
+          "Aplica si tus ingresos anuales no superan los $3,500,000 MXN en el ejercicio anterior.",
+          "Debes ser persona física dedicada a servicios profesionales (como honorarios de psicología) y no ser socio o accionista de una persona moral, salvo algunas excepciones.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Si facturas por debajo de ese tope y no tienes otras complicaciones fiscales, RESICO suele ser más simple y barato que el régimen de Actividades Empresariales y Profesionales tradicional. Aun así, cada caso tiene matices —sobre todo si combinas consulta privada con un empleo formal o con ingresos de otras fuentes—, así que vale la pena revisarlo con un contador antes de darte de alta.",
+      },
+      {
+        type: "h2",
+        text: "¿Tu servicio como psicólogo paga IVA?",
+      },
+      {
+        type: "p",
+        text: "Aquí hay un mito muy extendido: muchos terapeutas asumen que, como los servicios médicos, la psicología está exenta de IVA. No es así. La exención de IVA para servicios de salud se limita a médicos, veterinarios y dentistas; los servicios de psicología sí causan IVA al 16%. Vale la pena confirmarlo con tu contador para que tus facturas salgan correctas desde el principio y no tengas sorpresas en tu declaración.",
+      },
+      {
+        type: "h2",
+        text: "Cómo facturar tus sesiones, paso a paso",
+      },
+      {
+        type: "ul",
+        items: [
+          "Dado de alta ante el SAT como persona física en RESICO (o el régimen que te corresponda), con tu cédula profesional a la mano.",
+          "Emite un CFDI 4.0 por cada cobro, usando la clave de producto/servicio del catálogo SAT para servicios de psicología (85121608).",
+          "Usa una descripción genérica y discreta, como \"sesión de psicoterapia individual\", con la fecha del servicio. Evita anotar diagnósticos o detalles clínicos en la factura: no es necesario y protege la confidencialidad de tu paciente.",
+          "Conserva un respaldo del cobro (transferencia, tarjeta o comprobante de pago) que corresponda con cada factura emitida.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "¿Tus pacientes pueden deducir la terapia?",
+      },
+      {
+        type: "p",
+        text: "Sí, y es un argumento que puedes usar a tu favor al hablar de tarifas. Conforme al Artículo 151 de la Ley del ISR, las personas físicas pueden deducir los honorarios pagados a psicólogos siempre que el profesional tenga título y cédula legalmente expedidos. Hay una condición clave: el pago debe hacerse por un medio electrónico —tarjeta, transferencia o cheque nominativo—, nunca en efectivo, o la deducción se pierde automáticamente. Cuando cobras tus sesiones por una plataforma que registra el pago electrónicamente, como Lemy, le facilitas a tu paciente ese respaldo sin que tengas que hacer nada extra.",
+      },
+      {
+        type: "h2",
+        text: "Errores comunes que te pueden costar caro",
+      },
+      {
+        type: "ul",
+        items: [
+          "Dar por hecho que estás exento de IVA sin haberlo confirmado.",
+          "Aceptar solo efectivo y luego no poder justificar tus ingresos ante el SAT.",
+          "Anotar información clínica sensible en la descripción de la factura.",
+          "Mezclar cobros personales y de consulta en la misma cuenta bancaria, lo que complica tu contabilidad.",
+          "Postergar el alta fiscal \"hasta tener más pacientes\": entre más tarde empieces a facturar en forma, más difícil es ordenar el historial después.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Ninguno de estos puntos sustituye el consejo de un contador —cada situación fiscal tiene sus particularidades—, pero conocerlos te ayuda a llegar a esa conversación con las preguntas correctas.",
+      },
+      {
+        type: "h2",
+        text: "Lo administrativo no debería quitarte tiempo de consulta",
+      },
+      {
+        type: "cta",
+        text: "Entre agendar, dar seguimiento y ahora también facturar, es fácil que la parte operativa de tu práctica termine comiéndose las horas que quisieras dedicar a tus pacientes. En Lemy conectamos a terapeutas verificados con pacientes en Oaxaca y cada cobro se procesa con Stripe, de forma electrónica y trazable —justo el tipo de comprobante que tus pacientes necesitan para deducir su terapia. Si quieres ver cómo funciona, tienes 15 días de prueba gratis para explorar la plataforma sin compromiso.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
