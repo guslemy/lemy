@@ -707,6 +707,108 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "automatizar-agenda-citas-terapeutas-mexico-reducir-inasistencias",
+    title: "Cómo automatizar tu agenda de citas y reducir las inasistencias (guía para terapeutas en México)",
+    metaDescription:
+      "Guía para psicólogos en México: cómo automatizar recordatorios de citas, reducir inasistencias y recuperar horas de consulta sin perseguir pacientes.",
+    excerpt:
+      "Cada cita que se cae sin aviso es una hora que no se recupera. Así se automatiza una agenda de consultorio sin perder el trato humano.",
+    publishedAt: "2026-09-28",
+    authorName: "Equipo Lemy",
+    readingMinutes: 6,
+    tags: [
+      "agenda",
+      "inasistencias",
+      "recordatorios",
+      "automatización",
+      "terapeutas",
+      "psicólogo independiente",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "h2",
+        text: "El costo silencioso de una agenda manual",
+      },
+      {
+        type: "p",
+        text: "Si llevas tu consultorio por tu cuenta, probablemente conoces esta escena: agendas una cita por WhatsApp el lunes, el paciente no confirma, y el jueves llega el hueco vacío en tu horario. No es falta de compromiso del paciente casi siempre — es simple olvido. Y cada sesión que se cae sin aviso es una hora de tu tiempo que no se recupera.",
+      },
+      {
+        type: "p",
+        text: "Según reportan clínicas y consultorios que ya automatizaron sus recordatorios, un aviso por WhatsApp o correo uno o dos días antes de la sesión reduce las inasistencias de forma notable, sin que el terapeuta tenga que escribir un solo mensaje manual. El problema es que armar ese sistema por tu cuenta —con Calendly, un bot de WhatsApp, una hoja de cálculo y recordatorios manuales— toma tiempo que probablemente prefieres invertir en tus pacientes, no en herramientas.",
+      },
+      {
+        type: "h2",
+        text: "Qué significa \"automatizar la agenda\" en la práctica",
+      },
+      {
+        type: "p",
+        text: "No se trata de reemplazar el vínculo humano con tus pacientes. Automatizar tu agenda significa quitarte de encima las tareas repetitivas que no requieren tu criterio clínico:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Confirmación automática de cada cita al momento de agendarla.",
+          "Recordatorios programados 24–48 horas antes, por correo o WhatsApp.",
+          "Reprogramación y cancelación sin que tengas que intervenir cada vez.",
+          "Liberación automática del horario cuando alguien cancela, para que otro paciente pueda tomarlo.",
+          "Un solo lugar donde ver tu semana completa, sin cruzar tres apps distintas.",
+        ],
+      },
+      {
+        type: "p",
+        text: "El efecto acumulado es más ocupación real de tu agenda, menos tiempo administrativo y menos fricción para que un paciente nuevo llegue a su primera sesión.",
+      },
+      {
+        type: "h2",
+        text: "Por qué esto le importa a tu práctica, no solo a tu calendario",
+      },
+      {
+        type: "p",
+        text: "Un consultorio que pierde el 15-20% de sus citas por inasistencias no solo pierde ingresos ese día: pierde continuidad terapéutica con ese paciente, y pierde el tiempo que pudo haber dado a alguien en lista de espera. La automatización no es un lujo tecnológico — es lo que separa a un terapeuta que trabaja \"lleno\" de uno que trabaja con la agenda a medias sin darse cuenta del porqué.",
+      },
+      {
+        type: "p",
+        text: "También hay un tema legal a tener en cuenta: si vas a enviar recordatorios por WhatsApp, conviene pedir el consentimiento del paciente desde la primera cita, en línea con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares. Un sistema que ya contempla esto de inicio te ahorra un dolor de cabeza después.",
+      },
+      {
+        type: "h2",
+        text: "Cómo elegir entre armarlo tú mismo o usar una plataforma que ya lo resuelve",
+      },
+      {
+        type: "p",
+        text: "Si tienes pocos pacientes, un calendario compartido y recordatorios manuales pueden bastarte por un tiempo. Pero conforme crece tu práctica, coordinar agenda, pagos y recordatorios en herramientas separadas empieza a consumir horas que no facturas. Las opciones reales son:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Armar tu propio stack: un Calendly o Google Calendar + un servicio de WhatsApp Business + recordatorios manuales. Funciona, pero tú administras cada pieza y cada actualización.",
+          "Un software especializado para consultorios de psicología: automatiza recordatorios y confirmaciones, pero normalmente no incluye el cobro de la sesión ni la videollamada en el mismo flujo.",
+          "Una plataforma como Lemy, donde agenda, pago y sesión (por Google Meet o presencial) viven en un solo lugar: el paciente agenda, confirma, paga y recibe su recordatorio automáticamente, y tú solo te preocupas por dar la sesión.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Ninguna opción es \"la correcta\" para todos — depende de cuánto tiempo administrativo estás dispuesto a seguir absorbiendo tú mismo.",
+      },
+      {
+        type: "h2",
+        text: "Empieza por lo simple",
+      },
+      {
+        type: "p",
+        text: "Si hoy agendas por WhatsApp y llevas tu calendario en la cabeza, no necesitas resolver todo de golpe. Empieza por automatizar una sola cosa: los recordatorios. Es el cambio con menor esfuerzo y mayor impacto inmediato en tus inasistencias.",
+      },
+      {
+        type: "cta",
+        text: "En Lemy, la agenda, los recordatorios y el cobro de tus sesiones —por Stripe— ya vienen integrados desde el primer día, sin que tengas que armar nada por tu cuenta. Prueba gratis durante 15 días y da de alta tu perfil de terapeuta hoy mismo.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
