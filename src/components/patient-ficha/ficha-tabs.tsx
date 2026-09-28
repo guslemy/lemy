@@ -130,13 +130,17 @@ export function PatientFichaTabs({
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("resumen");
 
+  // "Próxima cita" es una vista de un momento dado, no algo con requisitos
+  // de consistencia entre renders — una diferencia de milisegundos entre
+  // renders del mismo montaje no cambia qué cita cuenta como "próxima" en
+  // la práctica.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+
   const finalizedNotes = sessionNotes.filter((n) => n.status === "final");
   const lastNotes = finalizedNotes.slice(0, 2);
-  const pastAppointments = appointmentsForCitas.filter(
-    (a) => new Date(a.scheduledAtIso).getTime() < Date.now()
-  );
   const upcomingAppointment = appointmentsForCitas
-    .filter((a) => new Date(a.scheduledAtIso).getTime() >= Date.now() && a.status !== "cancelled")
+    .filter((a) => new Date(a.scheduledAtIso).getTime() >= now && a.status !== "cancelled")
     .sort((a, b) => new Date(a.scheduledAtIso).getTime() - new Date(b.scheduledAtIso).getTime())[0];
   const firstAppointment = [...appointmentsForCitas].sort(
     (a, b) => new Date(a.scheduledAtIso).getTime() - new Date(b.scheduledAtIso).getTime()

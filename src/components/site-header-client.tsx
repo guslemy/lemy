@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PwaNavButtons } from "@/components/pwa-nav-buttons";
@@ -214,17 +215,27 @@ export function SiteHeaderClient({
             // Igual que el logo del footer (isologo + "Lemy"), solo que más
             // grande — así pidió Gustavo que se viera en la home.
             <Link href="/" className="flex items-center gap-3 font-display text-[2.1rem] font-semibold text-sage-white">
-              <img
+              <Image
                 src="/brand/isologo-crema-acento.png"
                 alt=""
                 aria-hidden="true"
+                width={40}
+                height={40}
+                priority
                 className="h-10 w-10 flex-none"
               />
               Lemy
             </Link>
           ) : (
             <Link href="/" className="flex items-center">
-              <img src="/brand/logo-horizontal-verde.png" alt="Lemy" className="h-9 w-auto flex-none" />
+              <Image
+                src="/brand/logo-horizontal-verde.png"
+                alt="Lemy"
+                width={216}
+                height={108}
+                priority
+                className="h-9 w-auto flex-none"
+              />
             </Link>
           )}
         </div>

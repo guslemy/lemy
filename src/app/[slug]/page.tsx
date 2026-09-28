@@ -280,7 +280,11 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   const visibleReviews = reviewsWithComments.slice(0, 5);
   const moreReviews = reviewsWithComments.slice(5);
 
+  // Componente de servidor: se ejecuta una sola vez por request, no hay
+  // re-render en el que Date.now() pueda dar un resultado inconsistente
+  // (la regla react-hooks/purity está pensada para componentes de cliente).
   const yearsOnLemy = Math.floor(
+    // eslint-disable-next-line react-hooks/purity
     (Date.now() - new Date(therapist.created_at).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
   );
 
@@ -308,7 +312,6 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
     <>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
       />
       <SiteHeader />

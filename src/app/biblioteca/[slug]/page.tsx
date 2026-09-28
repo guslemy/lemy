@@ -97,7 +97,6 @@ export default async function BlogPostPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <SiteHeader />
@@ -121,7 +120,6 @@ export default async function BlogPostPage({ params }: Props) {
 
           <div className="mt-2">
             {post.blocks.map((block, i) => (
-              // eslint-disable-next-line react/no-array-index-key
               <Block key={i} block={block} />
             ))}
           </div>

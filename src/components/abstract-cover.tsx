@@ -47,7 +47,6 @@ export function AbstractCover({
 
         {photoUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <image href={photoUrl} x="0" y="0" width="400" height="240" preserveAspectRatio="xMidYMid slice" />
             <rect width="400" height="240" fill={background} opacity="0.55" />
           </>

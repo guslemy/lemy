@@ -29,11 +29,22 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
+  // Apagar la opacidad apenas cambia la ruta se ajusta durante el render
+  // (patrón recomendado por React, ver
+  // https://react.dev/learn/you-might-not-need-an-effect) en vez de un
+  // useEffect con setState síncrono; el temporizador que la vuelve a
+  // encender sigue siendo un efecto real, porque sí necesita limpieza.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setVisible(false);
+  }
+
+  useEffect(() => {
+    if (visible) return;
     const t = setTimeout(() => setVisible(true), 20);
     return () => clearTimeout(t);
-  }, [pathname]);
+  }, [visible]);
 
   return (
     <div

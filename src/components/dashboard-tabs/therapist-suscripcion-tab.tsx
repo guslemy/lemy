@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -39,10 +40,14 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
     .eq("id", user.id)
     .maybeSingle();
 
+  // Componente de servidor: se ejecuta una sola vez por request, no hay
+  // re-render en el que Date.now() pueda dar un resultado inconsistente.
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
   const trialEndsAt = therapist?.trial_ends_at ? new Date(therapist.trial_ends_at) : null;
-  const trialActive = trialEndsAt ? trialEndsAt.getTime() > Date.now() : false;
+  const trialActive = trialEndsAt ? trialEndsAt.getTime() > nowMs : false;
   const trialDaysLeft = trialActive
-    ? Math.ceil((trialEndsAt!.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    ? Math.ceil((trialEndsAt!.getTime() - nowMs) / (24 * 60 * 60 * 1000))
     : 0;
   const subscriptionActive = therapist?.subscription_status === "active";
 
@@ -144,9 +149,9 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
       </div>
 
       <div className="mt-10 border-t border-line pt-6">
-        <a href="/dashboard/cerrar-cuenta" className="text-[0.82rem] text-[#8B978F] hover:text-rose-deep">
+        <Link href="/dashboard/cerrar-cuenta" className="text-[0.82rem] text-[#8B978F] hover:text-rose-deep">
           Cerrar mi cuenta
-        </a>
+        </Link>
       </div>
     </div>
   );

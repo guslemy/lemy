@@ -60,6 +60,11 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font -- la regla
+            está pensada para pages/_document.js (Pages Router); en el App
+            Router este <link> en el <head> de layout.tsx SÍ carga en todas
+            las páginas, que es justo lo que queremos. Migrar a next/font
+            es un cambio aparte, no una corrección de un bug real. */}
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
           rel="stylesheet"
@@ -68,7 +73,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-sage-white font-sans text-ink antialiased">
         <script
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         <HashScrollFix />

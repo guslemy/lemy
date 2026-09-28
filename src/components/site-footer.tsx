@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 function FacebookIcon() {
   return (
@@ -33,10 +34,12 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 gap-10 border-b border-white/15 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-sage-white">
-              <img
+              <Image
                 src="/brand/isologo-crema-acento.png"
                 alt=""
                 aria-hidden="true"
+                width={24}
+                height={24}
                 className="h-6 w-6 flex-none"
               />
               Lemy
@@ -48,16 +51,16 @@ export function SiteFooter() {
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Pacientes</h4>
-            <a href="/#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</a>
-            <a href="/#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</a>
-            <a href="/#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</a>
-            <a href="/biblioteca" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Biblioteca</a>
+            <Link href="/#directorio" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Terapeutas verificados</Link>
+            <Link href="/#que-es-lemy" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">¿Qué es Lemy?</Link>
+            <Link href="/#confianza" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Confianza y privacidad</Link>
+            <Link href="/biblioteca" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Biblioteca</Link>
           </div>
 
           <div>
             <h4 className="mb-4 font-mono text-[0.72rem] tracking-[0.1em] text-rose uppercase">Terapeutas</h4>
-            <a href="/#terapeutas" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Crear perfil</a>
-            <a href="/#perfil" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Ejemplo de perfil</a>
+            <Link href="/#terapeutas" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Crear perfil</Link>
+            <Link href="/#perfil" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Ejemplo de perfil</Link>
             <a href="#" className="mb-2.5 block text-sm text-sage-white/70 hover:text-white">Preguntas frecuentes</a>
           </div>
 
@@ -90,13 +93,13 @@ export function SiteFooter() {
         <div className="flex flex-wrap justify-between gap-2.5 pt-6 text-[0.82rem] text-sage-white/50">
           <span>© 2026 Lemy. Todos los derechos reservados.</span>
           <span>
-            <a href="/privacidad" className="hover:text-white">
+            <Link href="/privacidad" className="hover:text-white">
               Aviso de privacidad
-            </a>{" "}
+            </Link>{" "}
             ·{" "}
-            <a href="/terminos" className="hover:text-white">
+            <Link href="/terminos" className="hover:text-white">
               Términos de uso
-            </a>
+            </Link>
           </span>
         </div>
       </div>

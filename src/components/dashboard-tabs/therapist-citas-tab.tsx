@@ -152,6 +152,9 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   // de confirmar asistencia (ver AttendanceGate), no por esta lista — una
   // vez resuelta, sale de "confirmed" (a "completed" o "cancelled") y de
   // cualquier forma ya no aplicaría aquí por la fecha.
+  // Componente de servidor: se ejecuta una sola vez por request, no hay
+  // re-render en el que Date.now() pueda dar un resultado inconsistente.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const confirmedList = appointments.filter(
     (a) => a.status === "confirmed" && new Date(a.scheduled_at).getTime() > now

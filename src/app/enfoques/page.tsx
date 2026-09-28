@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ApproachIcon } from "@/components/approach-icon";
@@ -59,7 +60,6 @@ export default async function EnfoquesPage() {
     <>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSetJsonLd) }}
       />
       <SiteHeader />
@@ -133,9 +133,9 @@ export default async function EnfoquesPage() {
 
           <p className="mt-10 text-[0.9rem] text-[#5A665F]">
             ¿No sabes cuál te conviene? No necesitas decidirlo tú sol@ —{" "}
-            <a href="/test" className="text-forest underline">
+            <Link href="/test" className="text-forest underline">
               responde el test de afinidad
-            </a>{" "}
+            </Link>{" "}
             y te acercamos a terapeutas que trabajan justo lo que necesitas, sin que tengas que
             elegir un enfoque de antemano.
           </p>

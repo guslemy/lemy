@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // Versión simplificada de BookingCalendar (ver src/app/[slug]/booking-calendar.tsx)
 // para cuando es el TERAPEUTA quien agenda directo con un paciente suyo desde
@@ -66,10 +66,14 @@ export function TherapistBookForPatient({
   const [pendingSlot, setPendingSlot] = useState<{ startTime: string; scheduledAtUtc: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  // Ajustado durante el render (patrón recomendado por React, ver
+  // https://react.dev/learn/you-might-not-need-an-effect) en vez de un
+  // useEffect con setState síncrono.
+  const [prevServiceId, setPrevServiceId] = useState(selectedServiceId);
+  if (selectedServiceId !== prevServiceId) {
+    setPrevServiceId(selectedServiceId);
     setSelectedDate(days[0]?.date ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedServiceId]);
+  }
 
   const selectedDay = days.find((d) => d.date === selectedDate) ?? null;
 

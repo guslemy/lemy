@@ -330,9 +330,9 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
       )}
 
       <div className="mt-10 border-t border-line pt-6">
-        <a href="/dashboard/cerrar-cuenta" className="text-[0.8rem] text-[#8B978F] hover:text-rose-deep">
+        <Link href="/dashboard/cerrar-cuenta" className="text-[0.8rem] text-[#8B978F] hover:text-rose-deep">
           Cerrar mi cuenta
-        </a>
+        </Link>
       </div>
     </div>
   );

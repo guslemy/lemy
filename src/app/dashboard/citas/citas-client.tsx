@@ -46,15 +46,23 @@ export function SaveNotesForm({
   });
   const [showSaved, setShowSaved] = useState(false);
 
+  // Cada submit exitoso regresa un objeto { ok: true } nuevo — la referencia
+  // cambia aunque el valor sea "igual", así que esto sí vuelve a activarse
+  // en guardados repetidos seguidos. Ajustado durante el render (patrón
+  // recomendado por React, ver https://react.dev/learn/you-might-not-need-an-effect)
+  // en vez de un useEffect con setState síncrono; el temporizador que oculta
+  // el aviso sigue siendo un efecto real, porque sí necesita limpieza.
+  const [prevState, setPrevState] = useState(state);
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.ok) setShowSaved(true);
+  }
+
   useEffect(() => {
-    if (!state.ok) return;
-    setShowSaved(true);
+    if (!showSaved) return;
     const t = setTimeout(() => setShowSaved(false), 2500);
     return () => clearTimeout(t);
-    // Cada submit exitoso regresa un objeto { ok: true } nuevo — la
-    // referencia cambia aunque el valor sea "igual", así que el efecto sí
-    // vuelve a dispararse en guardados repetidos seguidos.
-  }, [state]);
+  }, [showSaved]);
 
   return (
     <form action={formAction} className={compact ? "mt-4" : "mt-6"}>

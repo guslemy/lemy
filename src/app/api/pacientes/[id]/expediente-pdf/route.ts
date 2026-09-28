@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import PDFDocument from "pdfkit";
 import { createClient } from "@/lib/supabase/server";
-import { hasGestionaPlan } from "@/lib/plan-features";
 import {
   getClinicalProfile,
   getClinicalHistory,

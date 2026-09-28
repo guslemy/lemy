@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { GoogleLoginButton } from "@/components/google-login-button";
@@ -66,13 +67,13 @@ export default async function LoginPage({
 
           <p className="mx-auto mt-6 max-w-sm text-center text-[0.78rem] text-[#7C877F]">
             Al continuar aceptas nuestro{" "}
-            <a href="/privacidad" className="underline">
+            <Link href="/privacidad" className="underline">
               Aviso de Privacidad
-            </a>{" "}
+            </Link>{" "}
             y{" "}
-            <a href="/terminos" className="underline">
+            <Link href="/terminos" className="underline">
               Términos de Uso
-            </a>
+            </Link>
             .
           </p>
         </div>

@@ -93,9 +93,17 @@ export function BookingCalendar({
   // Cambiar de servicio resetea la fecha elegida — los horarios disponibles
   // dependen de la duración, así que la selección anterior puede ya no
   // aplicar (o el día ni siquiera tener horarios de esa duración).
-  useEffect(() => {
+  // Ajustado durante el render (patrón recomendado por React para "resetear
+  // estado cuando cambia una prop", ver
+  // https://react.dev/learn/you-might-not-need-an-effect) en vez de un
+  // useEffect — evita el parpadeo de un frame con la fecha vieja antes de
+  // que el efecto alcance a correr, y ya no dispara
+  // react-hooks/set-state-in-effect.
+  const [prevServiceId, setPrevServiceId] = useState(selectedServiceId);
+  if (selectedServiceId !== prevServiceId) {
+    setPrevServiceId(selectedServiceId);
     setSelectedDate(days[0]?.date ?? null);
-  }, [selectedServiceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   // Si la reserva falla (horario ocupado, error, etc.), requestAppointment
   // redirige de vuelta a esta misma ruta (/[slug], solo cambian los query
@@ -106,10 +114,13 @@ export function BookingCalendar({
   // sirve como señal de "ya se resolvió la navegación, lo que sea que haya
   // pasado" para resetear el estado. En el caso de éxito no importa: la
   // página se va a otra ruta y este componente se desmonta por completo.
-  useEffect(() => {
+  // Mismo patrón que arriba: ajuste durante el render, no en un efecto.
+  const [prevDaysByDuration, setPrevDaysByDuration] = useState(daysByDuration);
+  if (daysByDuration !== prevDaysByDuration) {
+    setPrevDaysByDuration(daysByDuration);
     setSubmitting(false);
     setPendingSlot(null);
-  }, [daysByDuration]);
+  }
 
   // El caso que el useEffect de arriba NO cubre: pago con tarjeta. Ahí
   // requestAppointment no redirige dentro de Lemy — manda al paciente a
