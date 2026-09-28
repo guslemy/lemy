@@ -919,6 +919,113 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "terapia-en-linea-mexico-requisitos-legales-psicologos",
+    title: "¿Tus sesiones de terapia en línea son legales? Esto exige la ley en México (2026)",
+    metaDescription:
+      "Guía 2026 para psicólogos en México: cédula profesional, consentimiento informado y protección de datos para dar terapia en línea sin riesgos legales.",
+    excerpt:
+      "Cédula vigente, consentimiento informado y protección de datos — los tres pilares que separan una práctica en línea protegida de una con riesgo legal.",
+    publishedAt: "2026-09-28",
+    authorName: "Equipo Lemy",
+    readingMinutes: 7,
+    tags: [
+      "requisitos legales",
+      "cédula profesional",
+      "consentimiento informado",
+      "protección de datos",
+      "terapeutas",
+      "psicólogo independiente",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "h2",
+        text: "¿Necesitas cédula profesional para dar terapia en línea?",
+      },
+      {
+        type: "p",
+        text: "Sí. En México, para ejercer la psicología —ya sea en consultorio o por videollamada— necesitas título universitario y cédula profesional expedida por la Secretaría de Educación Pública (SEP). La ley no distingue entre terapia presencial y terapia en línea: si brindas atención psicológica, necesitas estar registrado ante la Dirección General de Profesiones, sin importar el medio.",
+      },
+      {
+        type: "p",
+        text: "Esto es una buena noticia disfrazada de trámite: significa que cuando un paciente busca terapia en línea y encuentra tu perfil verificado, sabe que está hablando con alguien acreditado, no con cualquier persona que decidió llamarse \"coach\" o \"terapeuta\" sin formación clínica. Tu cédula es, en el fondo, tu carta de confianza.",
+      },
+      {
+        type: "p",
+        text: "A partir de marzo de 2026, la SEP permite tramitar la cédula profesional completamente en línea, lo que ha simplificado bastante el proceso para quienes apenas están certificándose. Si ya tienes la tuya, puedes verificar que esté correctamente registrada en cedulaprofesional.sep.gob.mx — vale la pena revisarlo una vez al año, sobre todo si vas a mostrar tu cédula en un perfil público.",
+      },
+      {
+        type: "h2",
+        text: "¿Qué pasa si das terapia sin cédula?",
+      },
+      {
+        type: "p",
+        text: "No es un detalle menor. Ejercer sin cédula profesional puede derivar en multas (que en algunos estados superan los $50,000 pesos), el cierre del espacio donde ofreces el servicio, y en casos graves —cuando se considera que el servicio pone en riesgo la salud de alguien— hasta consecuencias penales bajo la Ley Reglamentaria del Artículo 5º Constitucional. Más allá de lo legal, también está lo profesional: pacientes y plataformas serias piden ver tu cédula antes de trabajar contigo, y no tenerla cierra puertas.",
+      },
+      {
+        type: "p",
+        text: "Si estás en proceso de titulación o trámite de cédula, es momento de avanzarlo. La mayoría de las plataformas de terapia —Lemy incluida— piden verificar este documento antes de activar tu perfil.",
+      },
+      {
+        type: "h2",
+        text: "Consentimiento informado: el documento que no puedes saltarte",
+      },
+      {
+        type: "p",
+        text: "Dar terapia a distancia trae una responsabilidad adicional: el paciente debe aceptar explícitamente la modalidad en línea, no solo el tratamiento en general. Un buen consentimiento informado para terapia virtual debe explicar, en lenguaje claro:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Que la atención se brinda a distancia y qué implica eso.",
+          "Los riesgos técnicos de la modalidad (fallas de conexión, interrupciones, problemas de privacidad en el hogar del paciente).",
+          "Qué plataforma usan para las sesiones y cómo se protege esa información.",
+          "El procedimiento a seguir en caso de una emergencia durante una sesión virtual.",
+          "La política de reprogramación cuando hay fallas técnicas.",
+        ],
+      },
+      {
+        type: "p",
+        text: "No hace falta que sea un documento de diez páginas. Sí hace falta que exista, que el paciente lo firme antes de la primera sesión, y que lo guardes. Es tanto una protección legal para ti como una forma de generar confianza desde el primer contacto.",
+      },
+      {
+        type: "h2",
+        text: "Protección de datos: tu responsabilidad con la información del paciente",
+      },
+      {
+        type: "p",
+        text: "La Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) aplica directamente a quienes ejercen terapia de forma independiente. En la práctica, esto significa:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Tener un aviso de privacidad que explique qué datos recolectas del paciente y para qué los usas.",
+          "Usar plataformas de videollamada con cifrado y buenas prácticas de seguridad (evita links genéricos sin control de acceso).",
+          "No grabar sesiones salvo que exista consentimiento explícito por escrito y una razón clínica que lo justifique.",
+          "Trabajar desde dispositivos protegidos con contraseña, software actualizado, y evitar redes wifi públicas al dar consulta.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Ninguno de estos puntos requiere presupuesto de clínica grande. Son hábitos, y una vez que los adoptas se vuelven automáticos.",
+      },
+      {
+        type: "h2",
+        text: "Lo legal no tiene que sentirse abrumador",
+      },
+      {
+        type: "p",
+        text: "Si todo esto se siente como mucho trámite, tiene sentido — nadie estudió psicología para volverse experto en regulación de datos. Pero ordenar estos tres pilares (cédula vigente, consentimiento informado claro, buenas prácticas de privacidad) es lo que separa una práctica en línea sólida y protegida de una que vive con el riesgo de un problema legal esperando a suceder.",
+      },
+      {
+        type: "cta",
+        text: "En Lemy verificamos la cédula profesional de cada terapeuta antes de activar su perfil, así que tus pacientes saben desde el primer momento que están en buenas manos — y tú puedes enfocarte en dar terapia, no en resolver trámites solo. Prueba Lemy gratis durante 15 días y descubre cómo la plataforma te ayuda con agenda, pagos vía Stripe y visibilidad ante nuevos pacientes en Oaxaca y el resto de México.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
