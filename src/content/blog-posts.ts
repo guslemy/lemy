@@ -1026,6 +1026,134 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "consultorio-virtual-o-presencial-psicologos-mexico",
+    title: "Consultorio virtual o presencial: cómo elegir el modelo que más te conviene como psicólogo en México",
+    metaDescription:
+      "Guía para psicólogos en México: ventajas, límites y costos reales del consultorio presencial, virtual e híbrido, y cómo decidir cuál conviene a tu práctica.",
+    excerpt:
+      "Presencial, virtual o híbrido — no es una decisión menor. Aquí las preguntas y costos reales que te ayudan a elegir el modelo que más te conviene.",
+    publishedAt: "2026-09-28",
+    authorName: "Equipo Lemy",
+    readingMinutes: 7,
+    tags: [
+      "consultorio virtual",
+      "consultorio presencial",
+      "modelo híbrido",
+      "terapeutas",
+      "psicólogo independiente",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "p",
+        text: "Si llevas un tiempo dando terapia por tu cuenta, seguramente ya te ha pasado: un paciente potencial pregunta si das sesiones en línea, otro insiste en verte en persona, y tú sigues sin decidir si vale la pena rentar un consultorio, quedarte 100% virtual, o hacer un poco de ambos. No es una decisión menor — afecta tus costos, cuántos pacientes puedes atender, de dónde pueden venir (solo tu ciudad o todo México) y hasta cómo te sientes trabajando día a día. No hay una respuesta única. Pero sí hay preguntas concretas que te ayudan a decidir, y eso es lo que vemos aquí.",
+      },
+      {
+        type: "h2",
+        text: "Las ventajas reales del consultorio presencial",
+      },
+      {
+        type: "p",
+        text: "Dar terapia cara a cara sigue teniendo un lugar importante, especialmente en ciertos enfoques y con ciertos pacientes:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Algunas personas —y algunos procesos, como trabajo con niños, terapia de pareja o casos que requieren mayor contención— fluyen mejor en persona.",
+          "Un espacio físico propio transmite seriedad y permanencia: para algunos pacientes, saber que existe \"un lugar\" al que pueden ir importa.",
+          "Te evita depender por completo de que la conexión a internet del paciente (o la tuya) funcione bien ese día.",
+          "Es más fácil generar referidos boca a boca dentro de una colonia o zona si tienes presencia física ahí.",
+        ],
+      },
+      {
+        type: "p",
+        text: "La contraparte es el costo: renta, mobiliario, mantenimiento y el tiempo de traslado limitan cuántas horas puedes ofrecer y a quién. En ciudades como Oaxaca, donde el mercado de pacientes presenciales en una sola colonia puede ser reducido, esto también limita tu crecimiento.",
+      },
+      {
+        type: "h2",
+        text: "Las ventajas reales del consultorio virtual",
+      },
+      {
+        type: "p",
+        text: "La terapia en línea dejó de ser una alternativa de emergencia y hoy es, para muchos terapeutas, el modelo principal:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Puedes atender pacientes de cualquier parte de México (y del extranjero, si tu cédula y las regulaciones aplicables lo permiten), no solo de tu ciudad.",
+          "Reduces a cero los costos de renta, servicios y traslado — lo que se traduce directamente en más margen por sesión.",
+          "Tienes más flexibilidad de horario, lo cual facilita compaginar tu práctica con otro trabajo, con hijos o con estudios.",
+          "Los pacientes con movilidad reducida, agendas complicadas o que viven en zonas alejadas encuentran más fácil sostener el tratamiento.",
+        ],
+      },
+      {
+        type: "p",
+        text: "El reto está en la disciplina técnica (una buena conexión, un espacio silencioso y privado) y en que ciertos pacientes prefieren, al menos al inicio, el contacto presencial.",
+      },
+      {
+        type: "h2",
+        text: "El modelo híbrido: la opción que eligen cada vez más terapeutas",
+      },
+      {
+        type: "p",
+        text: "No tienes que elegir un bando para siempre. Muchos psicólogos en México operan hoy un modelo híbrido: consulta presencial unos días de la semana (a veces incluso rentando un consultorio compartido por horas, no de tiempo completo) y sesiones en línea el resto. Esto te permite:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Atender a pacientes locales que prefieren verte en persona sin perder el alcance nacional que da lo virtual.",
+          "Reducir el costo fijo de renta, pagando solo por las horas que realmente usas el espacio físico.",
+          "Probar qué modalidad prefiere tu tipo de paciente antes de comprometerte a un solo formato.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Preguntas para ayudarte a decidir",
+      },
+      {
+        type: "ul",
+        items: [
+          "¿Qué tan grande es el mercado de pacientes presenciales en tu zona, realista y no en el mejor de los casos?",
+          "¿Cuánto de tu ingreso mensual actual se iría en renta y servicios si abrieras un consultorio de tiempo completo?",
+          "¿Tu enfoque terapéutico y tus pacientes actuales funcionan igual de bien por videollamada?",
+          "¿Prefieres la estructura de un horario fijo en un lugar físico, o te conviene más la flexibilidad de dar terapia desde donde estés?",
+          "¿Te sentirías cómodo dando consulta a pacientes de otros estados de México, ampliando tu alcance más allá de tu ciudad?",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Costos que a veces se nos olvida comparar",
+      },
+      {
+        type: "p",
+        text: "Al hacer cuentas, no compares solo \"renta vs. nada\". Considera también:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Mobiliario, acondicionamiento acústico y mantenimiento del consultorio físico.",
+          "El tiempo de traslado, que también tiene un costo (horas que no facturas).",
+          "Una buena cámara, micrófono e internet estable para las sesiones virtuales.",
+          "Cualquier plataforma o herramienta que uses para agendar, cobrar y dar seguimiento a tus pacientes, sea presencial o en línea.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "No tienes que resolverlo solo",
+      },
+      {
+        type: "p",
+        text: "Sea cual sea el modelo que elijas, lo que más tiempo te quita no suele ser la terapia en sí, sino la logística: agendar, confirmar, cobrar y mantener organizada tu práctica.",
+      },
+      {
+        type: "cta",
+        text: "Lemy te permite ofrecer sesiones presenciales y en línea (con Google Meet integrado) desde un mismo perfil, con agenda y cobros por Stripe ya resueltos, para que tú decidas el modelo de tu práctica sin que la administración te lo complique. Prueba gratuita de 15 días para terapeutas.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
