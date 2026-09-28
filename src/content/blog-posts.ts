@@ -809,6 +809,116 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "como-cobrar-sesiones-terapia-en-linea-mexico-guia-practica",
+    title: "Cómo cobrar sesiones de terapia en línea en México: guía práctica",
+    metaDescription:
+      "Guía para psicólogos en México: cómo cobrar terapia en línea con Stripe, qué recibos dar a tus pacientes y los errores más comunes al gestionar pagos.",
+    excerpt:
+      "Agendar y dar la sesión es la parte fácil. Así se cobra terapia en línea en México sin perseguir pacientes por WhatsApp.",
+    publishedAt: "2026-09-28",
+    authorName: "Equipo Lemy",
+    readingMinutes: 6,
+    tags: [
+      "cobrar terapia en línea",
+      "stripe",
+      "pagos",
+      "facturación",
+      "terapeutas",
+      "psicólogo independiente",
+      "méxico",
+    ],
+    blocks: [
+      {
+        type: "h2",
+        text: "El dolor de cabeza silencioso de dar terapia en línea",
+      },
+      {
+        type: "p",
+        text: "Si ya diste el salto a la consulta online, seguramente descubriste algo que nadie te contó en la universidad: agendar y dar la sesión es la parte fácil. Cobrarla —de forma ordenada, profesional y sin perseguir a tus pacientes por WhatsApp— es otro tema. Entre transferencias que \"ya te las mando\", pacientes que olvidan pagar antes de la sesión y la pregunta incómoda de si necesitas facturar, muchos terapeutas terminan resolviendo los pagos a la mitad, con calculadora y buena fe.",
+      },
+      {
+        type: "p",
+        text: "Aquí va una guía clara de cómo cobrar sesiones de terapia en línea en México, qué opciones existen y cómo evitar los errores que más le quitan tiempo (y paz mental) a los psicólogos independientes.",
+      },
+      {
+        type: "h2",
+        text: "Tus opciones reales para cobrar terapia en línea",
+      },
+      {
+        type: "p",
+        text: "En México, un terapeuta que da consulta en línea suele elegir entre alguna de estas rutas:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Transferencia SPEI directa. Compartes tu CLABE y esperas el comprobante. Funciona, pero depende de la memoria del paciente y tú cargas con el seguimiento manual.",
+          "Links de pago con tarjeta (Stripe, PayPal). El paciente paga desde un link o formulario, sin que compartas tus datos bancarios cada vez.",
+          "Terminal física o cobro en el momento, útil si también atiendes presencial, pero no resuelve las sesiones por Meet o Zoom.",
+          "Plataformas que integran agenda y cobro, como Lemy, donde el pago se procesa automáticamente al agendar o confirmar la cita.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Por qué tantos terapeutas están migrando a Stripe",
+      },
+      {
+        type: "p",
+        text: "Stripe se volvió el estándar para cobrar consulta en línea en México y Latinoamérica por tres razones prácticas: no tiene cuota fija mensual, acepta tarjetas nacionales e internacionales, y genera un link de pago en minutos. Lo importante: Stripe no decide tus políticas de cobro, solo procesa el pago — cuándo cobras y qué pasa con cancelaciones lo sigues definiendo tú.",
+      },
+      {
+        type: "h2",
+        text: "¿Y la facturación?",
+      },
+      {
+        type: "p",
+        text: "Si en algún momento un paciente pide factura (CFDI), esto es independiente del método de cobro. Lo que sí conviene es mantener un registro simple por paciente y nunca incluir información clínica en el recibo — solo el concepto (\"sesión de terapia\" o \"servicios profesionales\").",
+      },
+      {
+        type: "h2",
+        text: "Por sesión, por paquete o mensual: elige un modelo y sé consistente",
+      },
+      {
+        type: "ul",
+        items: [
+          "Pago por sesión, antes o justo después de cada consulta.",
+          "Paquetes prepagados (por ejemplo, 4 sesiones).",
+          "Cobro mensual recurrente, común con pacientes de seguimiento estable.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Lo que importa no es cuál elijas, sino ser consistente y comunicarlo desde la primera sesión.",
+      },
+      {
+        type: "h2",
+        text: "Errores comunes que vale la pena evitar",
+      },
+      {
+        type: "ul",
+        items: [
+          "Cobrar \"cuando se pueda\" en vez de fijar un momento claro.",
+          "Compartir tu CLABE personal en cada conversación en vez de un link reutilizable.",
+          "No tener ningún respaldo o recibo.",
+          "Mezclar temas de dinero con contenido clínico en el mismo mensaje.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Cómo Lemy simplifica todo esto",
+      },
+      {
+        type: "p",
+        text: "En Lemy, el cobro va integrado directo en la agenda: cuando un paciente reserva una cita, el pago se procesa vía Stripe Connect sin que envíes un solo link manualmente.",
+      },
+      {
+        type: "cta",
+        text: "¿Quieres probarlo sin compromiso? Lemy tiene una prueba gratuita de 15 días para terapeutas.",
+        label: "Crear mi perfil",
+        href: "/login?flujo=terapeuta",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string) {
