@@ -37,13 +37,14 @@ export function SiteFooter() {
               {/* Logotipo nuevo (2026-09-30, subido por Gustavo a public/brand/):
                   ya trae el texto "Lemy" horneado en la imagen, con su propia
                   tipografía — ya no se arma a mano con el ícono + texto en
-                  Fraunces como antes. */}
+                  Fraunces como antes. Agrandado 2026-10-01 a petición de
+                  Gustavo ("en especial el del footer! Ese debe lucirse"). */}
               <Image
                 src="/brand/LemyLogoHoriz_White.png"
                 alt="Lemy"
                 width={2160}
                 height={1080}
-                className="h-7 w-auto flex-none"
+                className="h-14 w-auto flex-none"
               />
             </Link>
             <p className="mt-3.5 max-w-[260px] text-sm text-sage-white/60">

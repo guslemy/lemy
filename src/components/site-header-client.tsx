@@ -213,8 +213,8 @@ export function SiteHeaderClient({
           <PwaNavButtons />
           {inverted ? (
             // Logotipo nuevo (2026-09-30): el lockup horizontal ya trae el
-            // texto "Lemy" horneado en la imagen — más grande que en el
-            // footer, igual que pidió Gustavo que se viera en la home.
+            // texto "Lemy" horneado en la imagen. Agrandado 2026-10-01 a
+            // petición de Gustavo (header, footer y demás ubicaciones).
             <Link href="/" className="flex items-center">
               <Image
                 src="/brand/LemyLogoHoriz_White.png"
@@ -222,7 +222,7 @@ export function SiteHeaderClient({
                 width={2160}
                 height={1080}
                 priority
-                className="h-11 w-auto flex-none"
+                className="h-14 w-auto flex-none"
               />
             </Link>
           ) : (
@@ -238,7 +238,7 @@ export function SiteHeaderClient({
                 width={2160}
                 height={1080}
                 priority
-                className="h-9 w-auto flex-none"
+                className="h-12 w-auto flex-none"
               />
             </Link>
           )}

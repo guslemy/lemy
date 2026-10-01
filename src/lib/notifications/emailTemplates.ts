@@ -23,7 +23,7 @@ function wrap(bodyHtml: string) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #E4E9DF;">
       <tr>
         <td style="background: #21382b; padding: 24px 32px;">
-          <img src="${LOGO_URL}" alt="${BRAND}" width="132" height="66" style="display: block; height: auto; border: 0;" />
+          <img src="${LOGO_URL}" alt="${BRAND}" width="180" height="90" style="display: block; height: auto; border: 0;" />
         </td>
       </tr>
       <tr>
