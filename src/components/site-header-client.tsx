@@ -212,27 +212,31 @@ export function SiteHeaderClient({
         <div className="flex items-center gap-1">
           <PwaNavButtons />
           {inverted ? (
-            // Igual que el logo del footer (isologo + "Lemy"), solo que más
-            // grande — así pidió Gustavo que se viera en la home.
-            <Link href="/" className="flex items-center gap-3 font-display text-[2.1rem] font-semibold text-sage-white">
+            // Logotipo nuevo (2026-09-30): el lockup horizontal ya trae el
+            // texto "Lemy" horneado en la imagen — más grande que en el
+            // footer, igual que pidió Gustavo que se viera en la home.
+            <Link href="/" className="flex items-center">
               <Image
-                src="/brand/isologo-crema-acento.png"
-                alt=""
-                aria-hidden="true"
-                width={40}
-                height={40}
+                src="/brand/LemyLogoHoriz_White.png"
+                alt="Lemy"
+                width={2160}
+                height={1080}
                 priority
-                className="h-10 w-10 flex-none"
+                className="h-11 w-auto flex-none"
               />
-              Lemy
             </Link>
           ) : (
             <Link href="/" className="flex items-center">
+              {/* Actualizado 2026-09-30: el archivo viejo (logo-horizontal-verde.png)
+                  ya no existe en public/brand/ — Gustavo lo reemplazó por el
+                  lockup nuevo. Esta rama (inverted=false) no se usa hoy en
+                  ningún lado (SiteHeader siempre manda inverted=true), pero se
+                  deja funcional por si vuelve a hacer falta un header claro. */}
               <Image
-                src="/brand/logo-horizontal-verde.png"
+                src="/brand/LemyLogoHoriz_Green.png"
                 alt="Lemy"
-                width={216}
-                height={108}
+                width={2160}
+                height={1080}
                 priority
                 className="h-9 w-auto flex-none"
               />

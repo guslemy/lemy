@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -328,10 +329,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
 
                 <div className="relative mx-auto h-[130px] w-[130px]">
                   {therapist.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={therapist.photo_url}
                       alt=""
+                      width={130}
+                      height={130}
+                      priority
                       className="h-[130px] w-[130px] rounded-full object-cover"
                     />
                   ) : (

@@ -33,16 +33,18 @@ export function SiteFooter() {
       <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
         <div className="grid grid-cols-1 gap-10 border-b border-white/15 pb-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <Link href="/" className="flex items-center gap-2 font-display text-2xl font-semibold text-sage-white">
+            <Link href="/" className="flex items-center">
+              {/* Logotipo nuevo (2026-09-30, subido por Gustavo a public/brand/):
+                  ya trae el texto "Lemy" horneado en la imagen, con su propia
+                  tipografía — ya no se arma a mano con el ícono + texto en
+                  Fraunces como antes. */}
               <Image
-                src="/brand/isologo-crema-acento.png"
-                alt=""
-                aria-hidden="true"
-                width={24}
-                height={24}
-                className="h-6 w-6 flex-none"
+                src="/brand/LemyLogoHoriz_White.png"
+                alt="Lemy"
+                width={2160}
+                height={1080}
+                className="h-7 w-auto flex-none"
               />
-              Lemy
             </Link>
             <p className="mt-3.5 max-w-[260px] text-sm text-sage-white/60">
               Un directorio pensado para que encontrar terapia se sienta claro, humano y accesible.

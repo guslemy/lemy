@@ -5,11 +5,14 @@ import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
 
 const BRAND = "Lemy";
 
-// Isologo (icono verde/crema con acento) que también usa el footer del
-// sitio junto a la palabra "Lemy" — se referencia como URL absoluta a
-// lemy.mx porque un correo no puede leer archivos del proyecto, solo
-// direcciones accesibles desde internet.
-const LOGO_ICON_URL = "https://lemy.mx/brand/isologo-crema-acento.png";
+// Logotipo horizontal nuevo (2026-09-30, subido por Gustavo a
+// public/brand/): ya trae el texto "Lemy" horneado en la imagen, con su
+// propia tipografía — a diferencia del ícono+texto en Fraunces de antes, acá
+// no importa si el cliente de correo carga fuentes web o no, el texto ya
+// está "pintado" en el PNG. Se referencia como URL absoluta a lemy.mx porque
+// un correo no puede leer archivos del proyecto, solo direcciones
+// accesibles desde internet.
+const LOGO_URL = "https://lemy.mx/brand/LemyLogoHoriz_White.png";
 
 // Diseño con tablas (no <div> con flex/grid) a propósito: es lo único que
 // Outlook de escritorio renderiza de forma confiable — el resto de clientes
@@ -20,16 +23,7 @@ function wrap(bodyHtml: string) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #E4E9DF;">
       <tr>
         <td style="background: #21382b; padding: 24px 32px;">
-          <table role="presentation" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="padding-right: 8px; vertical-align: middle;">
-                <img src="${LOGO_ICON_URL}" alt="" width="26" height="26" style="display: block; border: 0;" />
-              </td>
-              <td style="vertical-align: middle; font-family: 'Fraunces', Georgia, serif; font-size: 22px; font-weight: 600; color: #f2f5ef;">
-                ${BRAND}
-              </td>
-            </tr>
-          </table>
+          <img src="${LOGO_URL}" alt="${BRAND}" width="132" height="66" style="display: block; height: auto; border: 0;" />
         </td>
       </tr>
       <tr>

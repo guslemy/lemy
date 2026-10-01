@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -288,13 +289,11 @@ export default async function HomePage() {
 
               <div className="signature-corner grid grid-cols-1 gap-10 rounded-[36px] border border-line bg-card p-8 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:p-13">
                 <div className="border-b border-line pb-7 md:border-b-0 md:border-r md:pb-0 md:pr-11">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- mismo criterio
-                      que el resto de fotos de terapeutas en el sitio (therapist-card.tsx,
-                      directory-preview.tsx, [slug]/page.tsx, etc.): decisión ya tomada de
-                      no pasar por next/image para estas fotos remotas de Supabase Storage. */}
-                  <img
+                  <Image
                     src="https://vyyqjdtvgkrrlshuocoe.supabase.co/storage/v1/object/public/therapist-photos/cf3962e8-6170-428a-93ca-a3c7805d5e7f/foto.jpg"
                     alt="Gema Moreno"
+                    width={100}
+                    height={100}
                     className="h-[100px] w-[100px] rounded-full object-cover"
                   />
                   <h3 className="mt-4.5 text-[1.4rem] text-forest">Gema Moreno</h3>

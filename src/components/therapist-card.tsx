@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Tag } from "@/components/ui/pill";
 import { VerificationSeal } from "@/components/verification-badge";
 import { RatingBadge } from "@/components/rating-badge";
@@ -52,8 +53,7 @@ export function TherapistCard({ t, index = 0 }: { t: TherapistCardData; index?: 
     >
       <div className="relative mb-4 h-24 w-24">
         {t.photo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={t.photo_url} alt="" className="h-24 w-24 rounded-full object-cover" />
+          <Image src={t.photo_url} alt="" width={96} height={96} className="h-24 w-24 rounded-full object-cover" />
         ) : (
           <div
             className="flex h-24 w-24 items-center justify-center rounded-full font-display text-2xl font-semibold text-white"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/pill";
 import { RatingBadge } from "@/components/rating-badge";
@@ -387,10 +388,11 @@ export function QuizClient({
                     className="signature-corner flex flex-col gap-4 rounded-[24px] border border-line bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)] sm:flex-row sm:items-center"
                   >
                     {t.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={t.photo_url}
                         alt=""
+                        width={56}
+                        height={56}
                         className="h-14 w-14 flex-none rounded-full object-cover"
                       />
                     ) : (

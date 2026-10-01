@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Pill, Tag } from "@/components/ui/pill";
 import { VerificationSeal } from "@/components/verification-badge";
 import { RatingBadge } from "@/components/rating-badge";
@@ -101,8 +102,7 @@ export function DirectoryPreview({ therapists }: { therapists: DirectoryTherapis
             >
               <div className="relative mb-4 h-14 w-14">
                 {t.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.photo_url} alt="" className="h-14 w-14 rounded-full object-cover" />
+                  <Image src={t.photo_url} alt="" width={56} height={56} className="h-14 w-14 rounded-full object-cover" />
                 ) : (
                   <div
                     className="flex h-14 w-14 items-center justify-center rounded-full font-display text-lg font-semibold text-white"

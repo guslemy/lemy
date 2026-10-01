@@ -9,6 +9,22 @@ const nextConfig: NextConfig = {
   // require() nativo de Node en tiempo de ejecución — ahí sí funciona sin
   // problema, es exactamente para lo que existe esta opción.
   serverExternalPackages: ["pdfkit", "fontkit"],
+  // Habilita next/image para las fotos de terapeutas (Supabase Storage,
+  // bucket therapist-photos) — a petición de Gustavo (2026-09-30), para
+  // mejorar LCP/Core Web Vitals en el directorio y los perfiles públicos.
+  // OJO, revisar a mediano plazo: Vercel cobra por transformación única de
+  // imagen (cada combinación tamaño/formato generada la primera vez). El
+  // volumen crece con la base de terapeutas — vale la pena confirmar que el
+  // plan de Vercel lo siga cubriendo cómodo conforme Lemy escale.
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
   // Next.js limita a 1 MB el body de cualquier Server Action por default —
   // uploadTherapistPhoto (dashboard/perfil) es una Server Action, y casi
   // cualquier foto de celular real pesa más de 1 MB. Sin este ajuste, esas

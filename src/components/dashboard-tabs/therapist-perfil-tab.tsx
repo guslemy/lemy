@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -275,10 +276,11 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
           </h2>
           <div className="flex flex-wrap items-center gap-5">
             {therapist?.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={therapist.photo_url}
                 alt=""
+                width={80}
+                height={80}
                 className="h-20 w-20 rounded-full object-cover"
               />
             ) : (
