@@ -17,3 +17,15 @@ pegar el asunto en "Subject" y el contenido en "Message body" (modo HTML) -> Sav
 
 Las variables entre llaves dobles ({{ .ConfirmationURL }}, {{ .NewEmail }}, {{ .Token }})
 son de Supabase: no se tocan.
+
+## IMPORTANTE: cómo arman el link estas plantillas
+
+El código de Lemy confirma cuentas en /auth/confirm, que espera `token_hash` y
+`type` en la URL (y es ahí donde se crea el perfil del usuario). Por eso las
+plantillas de confirmar cuenta, magic link, cambio de correo e invitación usan
+`{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=...` en vez de
+`{{ .ConfirmationURL }}` (que mandaba a una ruta que no entiende ese formato y
+mostraba "No pudimos iniciar tu sesión").
+
+La plantilla de "Reset password" se queda con {{ .ConfirmationURL }} porque la
+app todavía no tiene pantalla para cambiar contraseña.

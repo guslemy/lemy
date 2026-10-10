@@ -15,6 +15,7 @@ import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-cita
 import { NotificationsToggles } from "@/components/notifications-toggle";
 import { InstallAppButton } from "@/components/install-app-button";
 import { becomeTherapist } from "./actions";
+import { ensureProfile } from "@/lib/supabase/ensure-profile";
 
 // Bifurca por rol. Admin va a /dashboard/admin (su propio panel con
 // pestañas). Terapeuta y paciente tienen aquí mismo su panel con pestañas
@@ -36,11 +37,22 @@ export default async function DashboardPage({
 
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, full_name, push_enabled, email_whatsapp_enabled")
-    .eq("id", user.id)
-    .maybeSingle();
+  const loadProfile = () =>
+    supabase
+      .from("profiles")
+      .select("role, full_name, push_enabled, email_whatsapp_enabled")
+      .eq("id", user.id)
+      .maybeSingle();
+
+  let { data: profile } = await loadProfile();
+  // Red de seguridad (2026-10-15): si por cualquier motivo la cuenta existe en
+  // auth pero NO tiene fila en `profiles` (pasó cuando el link de confirmación
+  // de correo fallaba antes de crearla), se crea aquí. Sin esto, botones como
+  // "Activar cuenta de terapeuta" actualizaban 0 filas y parecían no hacer nada.
+  if (!profile) {
+    await ensureProfile(supabase, user);
+    ({ data: profile } = await loadProfile());
+  }
 
   const isTherapist = profile?.role === "therapist";
   const isAdmin = profile?.role === "admin";

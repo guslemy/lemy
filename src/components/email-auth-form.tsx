@@ -70,7 +70,11 @@ export function EmailAuthForm({ next }: { next?: string }) {
       }
 
       const confirmUrl = new URL("/auth/confirm", window.location.origin);
-      if (next) confirmUrl.searchParams.set("next", next);
+      // Siempre se manda `next` (aunque sea el default): la plantilla del correo
+      // de confirmación de Supabase arma su link como
+      // {{ .RedirectTo }}&token_hash=..., así que esta URL TIENE que traer ya
+      // un "?" para que el "&" siguiente sea válido.
+      confirmUrl.searchParams.set("next", next || "/dashboard");
 
       const { error } = await supabase.auth.signUp({
         email,
