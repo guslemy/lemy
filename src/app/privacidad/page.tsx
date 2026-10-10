@@ -101,11 +101,11 @@ export default function AvisoPrivacidadPage() {
               consultar a Google en cada visita a tu perfil.
             </p>
             <p>
-              <strong className="text-forest">Crear y administrar los eventos de tus citas (calendar.events).</strong>{" "}
+              <strong className="text-forest">Crear y administrar los eventos de tus citas (calendar.events.owned).</strong>{" "}
               Cuando una cita se confirma, Lemy crea el evento en tu calendario (con enlace de Google
               Meet si la sesión es en línea e invitando al paciente) y, si la cita se reagenda o se
-              cancela en Lemy, mueve o borra ese mismo evento. No leemos, modificamos ni borramos
-              otros eventos de tu calendario.
+              cancela en Lemy, mueve o borra ese mismo evento. Solo trabajamos con el calendario principal que es tuyo, y no leemos, modificamos ni
+              borramos otros eventos de tu calendario.
             </p>
             <p>
               Para poder hacerlo sin que tengas que estar conectado, guardamos el token de acceso

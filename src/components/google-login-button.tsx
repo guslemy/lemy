@@ -32,6 +32,11 @@ export function GoogleLoginButton({
       provider: "google",
       options: {
         redirectTo: callbackUrl.toString(),
+        // calendar.events.owned (en vez de calendar.events, 2026-10-13): Google
+        // exige el scope más angosto posible. Lemy solo crea/mueve/borra
+        // eventos en el calendario principal del terapeuta, que es suyo, así
+        // que no hace falta acceso a todos los calendarios a los que tenga
+        // acceso (que es lo que daría calendar.events).
         // calendar.freebusy: para poder revisar si el terapeuta ya tiene algo
         // ocupado en su Google Calendar real (fuera de Lemy) antes de
         // mostrar un horario como disponible. Quien conectó su cuenta antes
@@ -40,7 +45,7 @@ export function GoogleLoginButton({
         ...(includeCalendarScopes
           ? {
               scopes:
-                "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.freebusy",
+                "https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.freebusy",
               // access_type=offline + prompt=consent son para conseguir un
               // refresh_token de Google (necesario para crear eventos desde
               // el servidor más adelante) — sin scope de Calendar de por

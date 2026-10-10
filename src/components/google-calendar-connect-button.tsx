@@ -20,7 +20,7 @@ export function GoogleCalendarConnectButton({ label }: { label: string }) {
       options: {
         redirectTo: callbackUrl.toString(),
         scopes:
-          "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.freebusy",
+          "https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.freebusy",
         queryParams: {
           access_type: "offline",
           prompt: "consent",
