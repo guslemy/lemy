@@ -8,7 +8,7 @@ import type { MetadataRoute } from "next";
 // haya descargado una vez no tiene ninguna razón para volver a pedirlos.
 // ICON_VERSION fuerza una URL nueva cada vez que se reemplaza el ícono —
 // súbele el número cada vez que vuelvas a cambiar los PNG de /public/icons.
-const ICON_VERSION = "5";
+const ICON_VERSION = "6";
 
 // Next sirve esto automáticamente en /manifest.webmanifest y agrega el
 // <link rel="manifest"> en <head> — no hace falta declararlo a mano en
@@ -26,8 +26,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#21382b",
     lang: "es-MX",
     icons: [
-      { src: `/icons/icon-192.png?v=${ICON_VERSION}`, sizes: "192x192", type: "image/png" },
-      { src: `/icons/icon-512.png?v=${ICON_VERSION}`, sizes: "512x512", type: "image/png" },
+      { src: `/icons/lemy-icon-192.png?v=${ICON_VERSION}`, sizes: "192x192", type: "image/png" },
+      { src: `/icons/lemy-icon-512.png?v=${ICON_VERSION}`, sizes: "512x512", type: "image/png" },
     ],
   };
 }

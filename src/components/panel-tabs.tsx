@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Pill } from "@/components/ui/pill";
 
@@ -19,6 +19,11 @@ export type PanelTab = { key: string; label: string; content: ReactNode };
 // con el botón de "atrás" del navegador a la pestaña correcta — pero el
 // cambio visible es instantáneo porque no depende de esa navegación, solo
 // de useState.
+// Evento para cambiar de pestaña desde fuera de este componente (ej. el
+// banner "Elegir plan" del dashboard) sin navegar: el cambio es instantáneo
+// porque todo el contenido de las pestañas ya viene renderizado.
+export const SELECT_TAB_EVENT = "lemy:select-tab";
+
 export function PanelTabs({ tabs, initialTabKey }: { tabs: PanelTab[]; initialTabKey: string }) {
   const [activeKey, setActiveKey] = useState(
     tabs.some((t) => t.key === initialTabKey) ? initialTabKey : tabs[0]?.key
@@ -27,10 +32,34 @@ export function PanelTabs({ tabs, initialTabKey }: { tabs: PanelTab[]; initialTa
   const pathname = usePathname();
   const active = tabs.find((t) => t.key === activeKey) ?? tabs[0];
 
-  function selectTab(key: string) {
-    setActiveKey(key);
-    router.replace(`${pathname}?tab=${key}`, { scroll: false });
+  // Antes initialTabKey solo se leía en el primer render: un link a
+  // "/dashboard?tab=suscripcion" desde la misma página hacía que el servidor
+  // volviera a renderizar TODO el dashboard (lento) y al final no cambiaba
+  // nada en pantalla, porque useState ignora el nuevo valor. Ahora, si
+  // llega una pestaña distinta desde la URL, se sincroniza (patrón de React
+  // "ajustar estado durante el render", sin useEffect).
+  const [prevInitialTabKey, setPrevInitialTabKey] = useState(initialTabKey);
+  if (initialTabKey !== prevInitialTabKey) {
+    setPrevInitialTabKey(initialTabKey);
+    if (tabs.some((t) => t.key === initialTabKey)) setActiveKey(initialTabKey);
   }
+
+  const selectTab = useCallback(
+    (key: string) => {
+      setActiveKey(key);
+      router.replace(`${pathname}?tab=${key}`, { scroll: false });
+    },
+    [router, pathname]
+  );
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const key = (e as CustomEvent<string>).detail;
+      if (tabs.some((t) => t.key === key)) selectTab(key);
+    };
+    window.addEventListener(SELECT_TAB_EVENT, handler);
+    return () => window.removeEventListener(SELECT_TAB_EVENT, handler);
+  }, [tabs, selectTab]);
 
   return (
     <div>

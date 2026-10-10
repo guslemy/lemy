@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { CopyLinkBox } from "@/components/copy-link-box";
 import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
+import { SelectTabButton } from "@/components/select-tab-button";
 import { TherapistPerfilTab } from "@/components/dashboard-tabs/therapist-perfil-tab";
 import { TherapistDisponibilidadTab } from "@/components/dashboard-tabs/therapist-disponibilidad-tab";
 import { TherapistCitasTab } from "@/components/dashboard-tabs/therapist-citas-tab";
@@ -155,14 +156,12 @@ export default async function DashboardPage({
               <p className="text-[0.9rem] text-rose-deep">
                 Actualmente no cuentas con un plan. Elígelo y comienza a recibir pacientes ya.
               </p>
-              <Button href="/dashboard?tab=suscripcion" variant="primary">
-                Elegir plan
-              </Button>
+              <SelectTabButton tabKey="suscripcion">Elegir plan</SelectTabButton>
             </div>
           )}
 
           {isTherapist ? (
-            <div className="mt-8">
+            <div id="panel-tabs" className="mt-8 scroll-mt-24">
               <PanelTabs tabs={therapistTabs} initialTabKey={initialTabKey} />
             </div>
           ) : (

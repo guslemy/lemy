@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
 import { HeroSearch } from "@/components/hero-search";
 import { HeroRotatingWord } from "@/components/hero-rotating-word";
+import { CategoryFlipCards } from "@/components/category-flip-cards";
 import { createClient } from "@/lib/supabase/server";
 import { getRatingsByTherapistId } from "@/lib/reviews";
 
@@ -100,15 +101,6 @@ const STEPS = [
     title: "Agenda tu primera sesión",
     body: "Contacta directo, sin intermediarios, y agenda cuando estés list@ para dar el paso.",
   },
-];
-
-const CATEGORIES = [
-  { eyebrow: "Emocional", title: "Ansiedad y estrés", body: "Herramientas para regular el día a día y entender de dónde viene." },
-  { eyebrow: "Vínculos", title: "Terapia de pareja", body: "Comunicación, conflictos recurrentes y reconstruir la confianza." },
-  { eyebrow: "Procesos", title: "Duelo y pérdida", body: "Acompañamiento para procesar una pérdida a tu propio ritmo." },
-  { eyebrow: "Personal", title: "Autoestima", body: "Reconstruir la relación contigo mism@ desde un lugar más amable." },
-  { eyebrow: "Familia", title: "Adolescentes y familia", body: "Especialistas en dinámicas familiares y desarrollo adolescente." },
-  { eyebrow: "Especializado", title: "Trauma", body: "Abordajes específicos para experiencias difíciles del pasado." },
 ];
 
 const TRUST = [
@@ -224,21 +216,7 @@ export default async function HomePage() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {CATEGORIES.map((cat, i) => (
-                  <a
-                    key={cat.title}
-                    href="#directorio"
-                    className={`rounded-[18px] border border-line p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-signature)] ${
-                      i % 2 === 1 ? "bg-forest/[0.04]" : "bg-card"
-                    }`}
-                  >
-                    <p className="font-mono text-[0.7rem] tracking-[0.08em] text-rose-deep">{cat.eyebrow}</p>
-                    <h3 className="mt-2 text-[1.2rem] text-forest">{cat.title}</h3>
-                    <p className="mt-1.5 text-[0.88rem] text-[#4A564F]">{cat.body}</p>
-                  </a>
-                ))}
-              </div>
+              <CategoryFlipCards />
             </div>
           </section>
         </ScrollReveal>
@@ -276,6 +254,57 @@ export default async function HomePage() {
           </section>
         </ScrollReveal>
 
+        {/* PARA TERAPEUTAS */}
+        <ScrollReveal>
+          <section id="terapeutas" className="py-20 md:py-24">
+            <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
+              <div className="relative overflow-hidden rounded-[40px] bg-forest p-8 md:grid md:grid-cols-2 md:items-center md:gap-10 md:p-16">
+                <div
+                  className="pointer-events-none absolute -right-20 -top-30 h-[340px] w-[340px] rounded-full"
+                  style={{ background: "radial-gradient(circle, rgba(227,183,172,0.35), transparent 70%)" }}
+                />
+
+                <div className="relative">
+                  <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose">¿Eres terapeuta?</p>
+                  <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-sage-white sm:text-[2.5rem]">
+                    Tu consulta merece verse tan profesional como es
+                  </h2>
+                  <p className="mt-4 text-[1.02rem] text-sage-white/80">
+                    Muestra tu experiencia, tu formación y a quién atiendes, en un perfil pensado para
+                    que la persona correcta te encuentre, no cualquiera.
+                  </p>
+                  <div className="mt-7 flex flex-wrap gap-3.5">
+                    <Button href="/login?flujo=terapeuta" variant="rose">
+                      Crear mi perfil
+                    </Button>
+                    <Button href="#perfil" variant="outline-light">
+                      Ver ejemplo de perfil
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative mt-10 flex flex-col gap-4.5 md:mt-0">
+                  {[
+                    "Perfil completo: formación, enfoque, población de atención y tarifas.",
+                    "Te encuentran personas que ya buscan justo lo que tú atiendes.",
+                    "Sin comisiones ocultas por sesión agendada.",
+                    "Verificación de cédula profesional que da confianza a tus pacientes.",
+                  ].map((benefit) => (
+                    <div
+                      key={benefit}
+                      className="flex gap-3.5 rounded-2xl border border-line-dark bg-white/[0.06] p-4.5"
+                    >
+                      <span className="flex h-8.5 w-8.5 flex-none items-center justify-center rounded-full bg-rose text-sm font-bold text-forest-deep">
+                        ✓
+                      </span>
+                      <p className="text-[0.92rem] text-sage-white/90">{benefit}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </ScrollReveal>
         {/* PERFIL DESTACADO */}
         <ScrollReveal>
           <section id="perfil" className="py-20 md:py-24">
@@ -348,57 +377,6 @@ export default async function HomePage() {
           </section>
         </ScrollReveal>
 
-        {/* PARA TERAPEUTAS */}
-        <ScrollReveal>
-          <section id="terapeutas" className="py-20 md:py-24">
-            <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
-              <div className="relative overflow-hidden rounded-[40px] bg-forest p-8 md:grid md:grid-cols-2 md:items-center md:gap-10 md:p-16">
-                <div
-                  className="pointer-events-none absolute -right-20 -top-30 h-[340px] w-[340px] rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(227,183,172,0.35), transparent 70%)" }}
-                />
-
-                <div className="relative">
-                  <p className="font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose">¿Eres terapeuta?</p>
-                  <h2 className="mt-2.5 font-display text-[1.9rem] font-medium text-sage-white sm:text-[2.5rem]">
-                    Tu consulta merece verse tan profesional como es
-                  </h2>
-                  <p className="mt-4 text-[1.02rem] text-sage-white/80">
-                    Muestra tu experiencia, tu formación y a quién atiendes, en un perfil pensado para
-                    que la persona correcta te encuentre, no cualquiera.
-                  </p>
-                  <div className="mt-7 flex flex-wrap gap-3.5">
-                    <Button href="/login?flujo=terapeuta" variant="rose">
-                      Crear mi perfil
-                    </Button>
-                    <Button href="#perfil" variant="outline-light">
-                      Ver ejemplo de perfil
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="relative mt-10 flex flex-col gap-4.5 md:mt-0">
-                  {[
-                    "Perfil completo: formación, enfoque, población de atención y tarifas.",
-                    "Te encuentran personas que ya buscan justo lo que tú atiendes.",
-                    "Sin comisiones ocultas por sesión agendada.",
-                    "Verificación de cédula profesional que da confianza a tus pacientes.",
-                  ].map((benefit) => (
-                    <div
-                      key={benefit}
-                      className="flex gap-3.5 rounded-2xl border border-line-dark bg-white/[0.06] p-4.5"
-                    >
-                      <span className="flex h-8.5 w-8.5 flex-none items-center justify-center rounded-full bg-rose text-sm font-bold text-forest-deep">
-                        ✓
-                      </span>
-                      <p className="text-[0.92rem] text-sage-white/90">{benefit}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        </ScrollReveal>
       </main>
 
       <SiteFooter />

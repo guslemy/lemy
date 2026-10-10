@@ -44,7 +44,7 @@ export function SiteFooter() {
                 alt="Lemy"
                 width={2160}
                 height={1080}
-                className="h-14 w-auto flex-none"
+                className="h-28 w-auto flex-none"
               />
             </Link>
             <p className="mt-3.5 max-w-[260px] text-sm text-sage-white/60">

@@ -38,16 +38,16 @@ type EducationalVideo = { id: string; title: string; platform: string; url: stri
 // (un video puede hablar de varios temas), así que la búsqueda va en dos
 // pasos: primero los content_id que tocan esta especialidad, luego los
 // videos en sí, ordenados por más recientes.
-async function getVideosForSpecialty(
+async function getVideosForSpecialties(
   supabase: SupabaseClient,
-  specialtyId: string
+  specialtyIds: string[]
 ): Promise<EducationalVideo[]> {
   const { data: links } = await supabase
     .from("educational_content_specialties")
     .select("content_id")
-    .eq("specialty_id", specialtyId);
+    .in("specialty_id", specialtyIds);
 
-  const contentIds = (links ?? []).map((l) => l.content_id as string);
+  const contentIds = [...new Set((links ?? []).map((l) => l.content_id as string))];
   if (!contentIds.length) return [];
 
   const { data: rawVideos } = await supabase
@@ -60,17 +60,23 @@ async function getVideosForSpecialty(
   return (rawVideos ?? []) as unknown as EducationalVideo[];
 }
 
-// Antes esto conservaba el texto de la barra de búsqueda (`q`) al hacer
-// clic en una pill, y el formulario de texto conservaba la pill activa —
-// las dos se combinaban con AND y confundía a la gente ("busco ansiedad,
-// le doy clic a Duelo, y no entiendo por qué sigo viendo resultados de
-// ansiedad"). Ahora son independientes: pill y buscador de texto son
-// mutuamente excluyentes, cada uno reemplaza al otro.
-function pillHref(especialidad: string) {
-  const params = new URLSearchParams();
-  if (especialidad) params.set("especialidad", especialidad);
-  const qs = params.toString();
-  return `/buscar${qs ? `?${qs}` : ""}`;
+// Las pills ahora son acumulativas (2026-10-09): cada clic suma o quita una
+// especialidad de la lista (?especialidad=ansiedad,duelo). Entre más
+// específico es lo que la persona siente, más específica la sugerencia.
+// El texto de la barra sigue siendo independiente: al tocar una pill se
+// limpia (la barra se vuelve a montar vacía, ver `key` del input), y al
+// buscar por texto se limpian las pills — así nunca se queda en la barra
+// una palabra que ya no está filtrando nada.
+function parseSlugs(raw: string): string[] {
+  return [...new Set(raw.split(",").map((x) => x.trim()).filter(Boolean))];
+}
+
+function pillHref(selected: string[], toggleSlug: string) {
+  if (!toggleSlug) return "/buscar";
+  const next = selected.includes(toggleSlug)
+    ? selected.filter((x) => x !== toggleSlug)
+    : [...selected, toggleSlug];
+  return next.length ? `/buscar?especialidad=${next.map(encodeURIComponent).join(",")}` : "/buscar";
 }
 
 // Cada especialidad filtrada es una URL propia e indexable — el título y la
@@ -81,8 +87,9 @@ export async function generateMetadata({
 }: {
   searchParams: Promise<{ especialidad?: string }>;
 }): Promise<Metadata> {
-  const { especialidad } = await searchParams;
-  if (!especialidad) {
+  const { especialidad = "" } = await searchParams;
+  const slugs = parseSlugs(especialidad);
+  if (slugs.length === 0) {
     return {
       title: "Buscar terapeuta en Oaxaca",
       description:
@@ -91,10 +98,26 @@ export async function generateMetadata({
   }
 
   const supabase = await createClient();
+
+  // Combinaciones de varias especialidades: útiles para la persona, pero no
+  // para Google (serían miles de URLs casi idénticas) — noindex, y el título
+  // simplemente las nombra.
+  if (slugs.length > 1) {
+    const { data: specs } = await supabase
+      .from("specialties")
+      .select("nombre_coloquial")
+      .in("slug", slugs);
+    const names = (specs ?? []).map((x) => x.nombre_coloquial as string);
+    return {
+      title: `Terapeuta para ${names.join(" + ").toLowerCase()} en Oaxaca`,
+      robots: { index: false, follow: true },
+    };
+  }
+
   const { data: specialty } = await supabase
     .from("specialties")
     .select("nombre_coloquial, descripcion_coloquial")
-    .eq("slug", especialidad)
+    .eq("slug", slugs[0])
     .maybeSingle();
 
   if (!specialty) return { title: "Buscar terapeuta en Oaxaca" };
@@ -126,9 +149,13 @@ export default async function BuscarPage({
   ]);
 
   const specialties = (rawSpecialties ?? []) as unknown as SpecialtyCatalogEntry[];
-  const activeSpecialty = specialties.find((s) => s.slug === especialidad) ?? null;
+  const selectedSlugs = parseSlugs(especialidad).filter((slug) => specialties.some((s) => s.slug === slug));
+  const activeSpecialties = specialties.filter((s) => selectedSlugs.includes(s.slug));
 
-  const videos = activeSpecialty ? await getVideosForSpecialty(supabase, activeSpecialty.id) : null;
+  const videos =
+    activeSpecialties.length > 0
+      ? await getVideosForSpecialties(supabase, activeSpecialties.map((s) => s.id))
+      : null;
 
   const rawList = (rawTherapists ?? []) as unknown as RawTherapist[];
   const ratingsById = await getRatingsByTherapistId(supabase, rawList.map((t) => t.id));
@@ -159,8 +186,17 @@ export default async function BuscarPage({
   });
 
   const term = q.trim().toLowerCase();
-  const filtered = therapists.filter((t) => {
-    const matchesEspecialidad = !especialidad || t.specialtySlugs.includes(especialidad);
+  // Con varias pills: se muestra quien coincide con AL MENOS una, ordenado de
+  // mayor a menor número de coincidencias — así más pills = sugerencia más
+  // precisa arriba, sin quedarse en cero resultados mientras el directorio
+  // es chico. (Para exigir TODAS las pills, cambiar `>= 1` por
+  // `=== selectedSlugs.length`.)
+  const matchCount = (t: { specialtySlugs: string[] }) =>
+    selectedSlugs.filter((slug) => t.specialtySlugs.includes(slug)).length;
+
+  const filtered = therapists
+    .filter((t) => {
+    const matchesEspecialidad = selectedSlugs.length === 0 || matchCount(t) >= 1;
     const matchesQ =
       !term ||
       t.display_name.toLowerCase().includes(term) ||
@@ -168,7 +204,8 @@ export default async function BuscarPage({
       (t.city ?? "").toLowerCase().includes(term) ||
       t.specialties.some((s) => s.toLowerCase().includes(term));
     return matchesEspecialidad && matchesQ;
-  });
+    })
+    .sort((a, b) => matchCount(b) - matchCount(a));
 
   return (
     <>
@@ -193,6 +230,11 @@ export default async function BuscarPage({
               <input
                 type="text"
                 name="q"
+                // key: al cambiar la búsqueda o las pills, el input se vuelve a
+                // montar — sin esto, en navegación del lado del cliente
+                // conservaba lo escrito antes ("Duelo") aunque ya se hubiera
+                // elegido otra pill.
+                key={`${q}|${especialidad}`}
                 defaultValue={q}
                 placeholder="¿Qué te gustaría trabajar? Ej. ansiedad, pareja…"
                 className="flex-1 bg-transparent text-[0.98rem] text-ink outline-none placeholder:text-[#8B978F]"
@@ -203,11 +245,11 @@ export default async function BuscarPage({
             </form>
 
             <div className="mt-5 flex flex-wrap gap-2.5">
-              <Pill href={pillHref("")} active={!especialidad}>
+              <Pill href={pillHref([], "")} active={selectedSlugs.length === 0}>
                 Todos
               </Pill>
               {(specialties ?? []).map((s) => (
-                <Pill key={s.slug} href={pillHref(s.slug)} active={especialidad === s.slug}>
+                <Pill key={s.slug} href={pillHref(selectedSlugs, s.slug)} active={selectedSlugs.includes(s.slug)}>
                   {s.nombre_coloquial}
                 </Pill>
               ))}
@@ -217,7 +259,7 @@ export default async function BuscarPage({
 
         <section className="py-12 md:py-16">
           <div className="mx-auto max-w-[1180px] px-6 sm:px-8">
-            {activeSpecialty && videos && videos.length > 0 && (
+            {activeSpecialties.length > 0 && videos && videos.length > 0 && (
               <div className="mb-11">
                 <p className="mb-3 font-mono text-[0.72rem] uppercase tracking-[0.14em] text-rose-deep">
                   Antes de agendar
@@ -262,7 +304,14 @@ export default async function BuscarPage({
             ) : (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((t, i) => (
-                  <TherapistCard key={t.slug} t={t} index={i} />
+                  <div key={t.slug}>
+                    {selectedSlugs.length > 1 && (
+                      <p className="mb-2 pl-1 font-mono text-[0.7rem] text-rose-deep">
+                        Coincide con {matchCount(t)} de {selectedSlugs.length}
+                      </p>
+                    )}
+                    <TherapistCard t={t} index={i} />
+                  </div>
                 ))}
               </div>
             )}
