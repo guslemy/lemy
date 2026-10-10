@@ -248,6 +248,12 @@ export default async function BuscarPage({
               <Pill href={pillHref([], "")} active={selectedSlugs.length === 0}>
                 Todos
               </Pill>
+              {/* Aparece solo cuando hay pills elegidas: quita todas de un clic. */}
+              {selectedSlugs.length > 0 && (
+                <Pill href={pillHref([], "")} tone="accent">
+                  Limpiar ({selectedSlugs.length}) ✕
+                </Pill>
+              )}
               {(specialties ?? []).map((s) => (
                 <Pill key={s.slug} href={pillHref(selectedSlugs, s.slug)} active={selectedSlugs.includes(s.slug)}>
                   {s.nombre_coloquial}

@@ -9,6 +9,7 @@ import { ProfileForm } from "@/components/therapist-profile-form";
 import { ModalityFields } from "@/components/therapist-modality-fields";
 import { PhotoUploadField } from "@/components/photo-upload-field";
 import { GoogleCalendarConnectButton } from "@/components/google-calendar-connect-button";
+import { GoogleCalendarDisclosure } from "@/components/google-calendar-disclosure";
 import { PostgraduateEducationFields } from "@/components/postgraduate-education-fields";
 import { ContinuingEducationFields } from "@/components/continuing-education-fields";
 import { TherapistServicesFields } from "@/components/therapist-services-fields";
@@ -186,6 +187,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
               toma menos de un minuto.
             </p>
             <GoogleCalendarConnectButton label="Reconectar Google Calendar" />
+            <GoogleCalendarDisclosure className="mt-3" />
           </>
         ) : therapist?.google_calendar_connected ? (
           <p className="text-[0.88rem] text-forest">✓ Conectado — tus citas confirmadas crean el evento y el Meet automáticamente.</p>
@@ -197,6 +199,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
               calendario y el Meet automáticamente.
             </p>
             <GoogleCalendarConnectButton label="Conectar Google Calendar" />
+            <GoogleCalendarDisclosure className="mt-3" />
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { GoogleLoginButton } from "@/components/google-login-button";
+import { GoogleCalendarDisclosure } from "@/components/google-calendar-disclosure";
 import { EmailAuthForm } from "@/components/email-auth-form";
 
 // Antes esta página tenía su propio estilo hardcodeado (verde azulado y
@@ -50,10 +51,13 @@ export default async function LoginPage({
           <div className="signature-corner mt-8 flex flex-col items-center gap-5 rounded-[28px] border border-line bg-card p-7">
             <GoogleLoginButton next={next} includeCalendarScopes={wantsTherapist} />
             {wantsTherapist && (
-              <p className="max-w-sm text-[0.78rem] text-[#7C877F]">
-                Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no
-                vamos a poder crear tus citas automáticamente ahí.
-              </p>
+              <div className="max-w-sm space-y-2 text-center">
+                <p className="text-[0.78rem] text-[#7C877F]">
+                  Google te va a pedir marcar una casilla para dar acceso a tu Calendar — sin eso no
+                  vamos a poder crear tus citas automáticamente ahí.
+                </p>
+                <GoogleCalendarDisclosure />
+              </div>
             )}
 
             <div className="flex w-full items-center gap-3 text-[0.78rem] text-[#9AA59D]">

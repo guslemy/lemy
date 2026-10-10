@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   description: "Cómo Lemy recaba, usa y protege tus datos personales.",
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10">
+    <section id={id} className="mt-10 scroll-mt-24">
       <h2 className="font-display text-[1.25rem] text-forest">{title}</h2>
       <div className="mt-3 space-y-3 text-[0.95rem] leading-relaxed text-[#3E4B44]">{children}</div>
     </section>
@@ -26,7 +26,7 @@ export default function AvisoPrivacidadPage() {
           <h1 className="mt-2.5 font-display text-[2rem] font-medium text-forest sm:text-[2.4rem]">
             Aviso de Privacidad
           </h1>
-          <p className="mt-3 text-[0.9rem] text-[#5A665F]">Última actualización: julio de 2026.</p>
+          <p className="mt-3 text-[0.9rem] text-[#5A665F]">Última actualización: octubre de 2026.</p>
 
           <Section title="1. Responsable del tratamiento de tus datos">
             <p>
@@ -87,7 +87,69 @@ export default function AvisoPrivacidadPage() {
             </p>
           </Section>
 
-          <Section title="5. Datos sensibles">
+          <Section id="google" title="5. Información de Google (Google Calendar)">
+            <p>
+              Si eres terapeuta y decides conectar tu cuenta de Google, Lemy te pide dos permisos de
+              Google Calendar, y solo para esto:
+            </p>
+            <p>
+              <strong className="text-forest">Consultar tu disponibilidad (calendar.freebusy).</strong>{" "}
+              Google nos dice únicamente en qué intervalos de tiempo estás ocupado, sin títulos,
+              descripciones, invitados ni ningún otro detalle de tus eventos. Lo usamos para no
+              ofrecer a tus pacientes horarios que ya tienes ocupados. Estos intervalos no se
+              guardan en nuestra base de datos; solo se conservan en memoria unos segundos para no
+              consultar a Google en cada visita a tu perfil.
+            </p>
+            <p>
+              <strong className="text-forest">Crear y administrar los eventos de tus citas (calendar.events).</strong>{" "}
+              Cuando una cita se confirma, Lemy crea el evento en tu calendario (con enlace de Google
+              Meet si la sesión es en línea e invitando al paciente) y, si la cita se reagenda o se
+              cancela en Lemy, mueve o borra ese mismo evento. No leemos, modificamos ni borramos
+              otros eventos de tu calendario.
+            </p>
+            <p>
+              Para poder hacerlo sin que tengas que estar conectado, guardamos el token de acceso
+              que Google emite para tu cuenta, cifrado, en un almacén de secretos al que solo puede
+              acceder el servidor de Lemy. No usamos esta información para publicidad, no la
+              vendemos, no la transferimos a terceros salvo lo necesario para operar el servicio,
+              por seguridad o por obligación legal, no la usamos para entrenar modelos de
+              inteligencia artificial, y las personas que trabajan en Lemy no la leen salvo con tu
+              consentimiento, por seguridad o por obligación legal.
+            </p>
+            <p>
+              Puedes revocar el acceso en cualquier momento desde{" "}
+              <a
+                href="https://myaccount.google.com/permissions"
+                target="_blank"
+                rel="noreferrer"
+                className="text-forest underline"
+              >
+                myaccount.google.com/permissions
+              </a>
+              , o escribiéndonos a{" "}
+              <a href="mailto:hola@lemy.mx" className="text-forest underline">
+                hola@lemy.mx
+              </a>{" "}
+              para que eliminemos el token que guardamos.
+            </p>
+            <p>
+              El uso y la transferencia a cualquier otra aplicación de la información recibida de las
+              APIs de Google se apegará a la{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noreferrer"
+                className="text-forest underline"
+              >
+                Política de Datos de Usuario de los Servicios de API de Google
+              </a>
+              , incluidos los requisitos de uso limitado. (Lemy&apos;s use and transfer to any other
+              app of information received from Google APIs will adhere to the Google API Services User
+              Data Policy, including the Limited Use requirements.)
+            </p>
+          </Section>
+
+          <Section title="6. Datos sensibles">
             <p>
               Consideramos que el motivo por el que buscas terapia, y cualquier información
               relacionada con tu salud mental, son datos sensibles. Por eso el cuestionario de match
@@ -100,7 +162,7 @@ export default function AvisoPrivacidadPage() {
             </p>
           </Section>
 
-          <Section title="6. Derechos ARCO">
+          <Section title="7. Derechos ARCO">
             <p>
               Tienes derecho a Acceder, Rectificar, Cancelar u Oponerte al tratamiento de tus datos
               personales (derechos ARCO), así como a revocar tu consentimiento en cualquier momento.
@@ -113,7 +175,7 @@ export default function AvisoPrivacidadPage() {
             </p>
           </Section>
 
-          <Section title="7. Cambios a este aviso">
+          <Section title="8. Cambios a este aviso">
             <p>
               Podemos actualizar este aviso conforme evolucione Lemy. Los cambios importantes se
               publicarán en esta misma página con su fecha de actualización.

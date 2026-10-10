@@ -66,12 +66,14 @@ const CATEGORIES = [
 
 export function CategoryFlipCards() {
   const [flipped, setFlipped] = useState<boolean[]>(() => CATEGORIES.map(() => false));
-  const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [step, setStep] = useState(0);
+  // Cada clic reinicia el temporizador: así la siguiente volteada automática
+  // llega 2 s después del clic, no a media animación del gesto.
+  const [timerResets, setTimerResets] = useState(0);
 
-  // Quien pidió "reducir movimiento" en su sistema no ve nada voltearse sin
-  // que lo pida: las tarjetas se quedan estáticas, con el frente visible.
+  // Quien pidió "reducir movimiento" en su sistema no ve nada voltearse solo:
+  // las tarjetas se quedan con el frente visible y solo giran al hacer clic.
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(mq.matches);
@@ -81,10 +83,10 @@ export function CategoryFlipCards() {
   }, []);
 
   useEffect(() => {
-    if (paused || reducedMotion) return;
+    if (reducedMotion) return;
     const id = window.setInterval(() => setStep((s) => s + 1), FLIP_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [paused, reducedMotion]);
+  }, [reducedMotion, timerResets]);
 
   // Cada vez que `step` avanza, se voltea la tarjeta que toca en el orden.
   const [lastStep, setLastStep] = useState(0);
@@ -94,24 +96,32 @@ export function CategoryFlipCards() {
     setFlipped((prev) => prev.map((v, i) => (i === target ? !v : v)));
   }
 
+  function toggleCard(index: number) {
+    setFlipped((prev) => prev.map((v, i) => (i === index ? !v : v)));
+    setTimerResets((n) => n + 1);
+  }
+
   return (
-    <div
-      className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-      // Pausa mientras el cursor o el dedo están encima — para poder leer
-      // y hacer clic sin que la tarjeta se voltee en medio del gesto.
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-    >
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {CATEGORIES.map((cat, i) => {
         const isFlipped = flipped[i];
         return (
-          <Link
+          // Clic (o Enter/Espacio) voltea la tarjeta. La navegación a
+          // /buscar vive solo en el enlace "Ver terapeutas" del reverso.
+          <div
             key={cat.title}
-            href={isFlipped ? `/buscar?q=${encodeURIComponent(cat.query)}` : "#directorio"}
-            className="group block [perspective:1200px]"
+            role="button"
+            tabIndex={0}
+            aria-pressed={isFlipped}
+            aria-label={`${cat.title}: voltear tarjeta`}
+            onClick={() => toggleCard(i)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleCard(i);
+              }
+            }}
+            className="group cursor-pointer select-none rounded-[18px] outline-none [perspective:1200px] focus-visible:ring-2 focus-visible:ring-rose-deep"
           >
             <div
               className="relative grid transition-transform duration-[900ms] ease-[cubic-bezier(0.4,0.2,0.2,1)] [transform-style:preserve-3d]"
@@ -136,10 +146,17 @@ export function CategoryFlipCards() {
               >
                 <p className="font-mono text-[0.7rem] tracking-[0.08em] text-rose">{cat.backEyebrow}</p>
                 <p className="mt-2 text-[0.95rem] leading-snug text-sage-white/90">{cat.back}</p>
-                <p className="mt-auto pt-3 text-[0.82rem] font-semibold text-rose">Ver terapeutas →</p>
+                <Link
+                  href={`/buscar?q=${encodeURIComponent(cat.query)}`}
+                  tabIndex={isFlipped ? 0 : -1}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-auto pt-3 text-[0.82rem] font-semibold text-rose underline-offset-4 hover:underline"
+                >
+                  Ver terapeutas →
+                </Link>
               </div>
             </div>
-          </Link>
+          </div>
         );
       })}
     </div>
