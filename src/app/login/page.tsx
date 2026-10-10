@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { GoogleLoginButton } from "@/components/google-login-button";
@@ -19,6 +21,20 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; flujo?: string }>;
 }) {
   const { next, flujo } = await searchParams;
+
+  // Si ya hay sesión iniciada, no tiene sentido mostrar el login: se manda a
+  // donde iba (`next`) o al dashboard. Pasa, por ejemplo, con alguien que ya
+  // creó su cuenta y vuelve a tocar "Crear mi perfil" en la home — desde el
+  // dashboard puede activar su cuenta de terapeuta. `next` solo se respeta si
+  // es una ruta interna (empieza con "/" y no con "//"), para que nadie pueda
+  // usar este redirect para mandar a otro sitio.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
+  }
   // El perfil del terapeuta ahora vive en la raíz (/[slug]), así que su URL
   // ya no se distingue de cualquier otra ruta del sitio con un startsWith —
   // por eso requestAppointment manda flujo=reserva explícito al redirigir

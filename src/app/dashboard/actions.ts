@@ -38,7 +38,23 @@ export async function becomeTherapist() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  await supabase.from("profiles").update({ role: "therapist" }).eq("id", user.id);
+  // .select("id") para saber cuántas filas cambió el update: si la persona no
+  // tiene fila en `profiles` (o RLS la bloquea), Supabase NO lanza error — solo
+  // actualiza 0 filas, y antes el botón parecía "no hacer nada". Ahora se
+  // registra el motivo y se avisa en pantalla.
+  const { data: roleRows, error: roleError } = await supabase
+    .from("profiles")
+    .update({ role: "therapist" })
+    .eq("id", user.id)
+    .select("id");
+  if (roleError || !roleRows || roleRows.length === 0) {
+    console.error("becomeTherapist: no se pudo cambiar el rol", {
+      userId: user.id,
+      error: roleError?.message ?? "0 filas actualizadas (¿falta la fila en profiles o RLS?)",
+    });
+    redirect("/dashboard?activar_error=1");
+  }
+
   await ensureTherapistShell(supabase, user);
 
   const { data: existing } = await supabase

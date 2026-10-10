@@ -192,6 +192,13 @@ export default async function DashboardPage({
             </div>
           )}
 
+          {!isTherapist && sp.activar_error === "1" && (
+            <p className="mt-6 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+              No pudimos activar tu cuenta de terapeuta. Cierra sesión, vuelve a entrar e inténtalo de
+              nuevo; si sigue igual, escríbenos a hola@lemy.mx.
+            </p>
+          )}
+
           {!isTherapist && (
             <div className="signature-corner mt-8 rounded-[28px] border border-line bg-card p-7">
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">
