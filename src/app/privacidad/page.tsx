@@ -93,7 +93,7 @@ export default function AvisoPrivacidadPage() {
               Google Calendar, y solo para esto:
             </p>
             <p>
-              <strong className="text-forest">Consultar tu disponibilidad (calendar.freebusy).</strong>{" "}
+              <strong className="text-forest">Consultar tu disponibilidad (calendar.events.freebusy).</strong>{" "}
               Google nos dice únicamente en qué intervalos de tiempo estás ocupado, sin títulos,
               descripciones, invitados ni ningún otro detalle de tus eventos. Lo usamos para no
               ofrecer a tus pacientes horarios que ya tienes ocupados. Estos intervalos no se

@@ -169,7 +169,7 @@ export type BusyRange = { start: string; end: string };
 
 // Consulta qué rangos aparecen como "ocupado" en el calendario principal
 // del terapeuta — sin ver títulos ni detalles de esos eventos, solo los
-// intervalos. Requiere el scope calendar.freebusy (ver google-login-button.tsx).
+// intervalos. Requiere el scope calendar.events.freebusy (o el anterior calendar.freebusy, ver google-login-button.tsx).
 export async function queryFreeBusy(
   accessToken: string,
   timeMinIso: string,
