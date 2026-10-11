@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // Traduce notification_log (pensado originalmente solo para deduplicar
 // envíos del cron) en una bandeja de entrada legible dentro del dashboard.
@@ -71,8 +72,13 @@ export async function getNotificationFeed(
   const patientIds = Array.from(new Set(Array.from(appointmentById.values()).map((a) => a.patient_id)));
   const therapistIds = Array.from(new Set(Array.from(appointmentById.values()).map((a) => a.therapist_id)));
 
+  // `profiles` tiene RLS "solo tu propia fila": con el cliente normal, el
+  // terapeuta nunca veía el nombre de sus pacientes ("un paciente"). Los ids
+  // ya vienen acotados a citas que el propio usuario puede ver (RLS de
+  // `appointments`), así que leer solo el nombre con service client no filtra
+  // nada de más.
   const { data: rawPatients } = patientIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", patientIds)
+    ? await createServiceClient().from("profiles").select("id, full_name").in("id", patientIds)
     : { data: [] };
   const { data: rawTherapists } = therapistIds.length
     ? await supabase.from("therapists").select("id, display_name").in("id", therapistIds)

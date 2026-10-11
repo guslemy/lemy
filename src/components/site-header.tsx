@@ -10,7 +10,15 @@ import { SiteHeaderClient, type SiteRole } from "./site-header-client";
 // "Cambios al Home") y pidió usarlo en todo el sitio — inverted ahora es
 // el default. Se deja el prop (en vez de borrar la rama "clara") por si
 // algún día se necesita una página con el header claro otra vez.
-export async function SiteHeader({ inverted = true }: { inverted?: boolean } = {}) {
+// `hideUnread`: lo usa el esqueleto de carga (loading.tsx). Ese esqueleto lo
+// guarda el navegador al precargar la página, así que el contador que traía
+// era el de ese momento (p. ej. "2") y se veía como notificaciones pendientes
+// hasta que llegaba la página real con el número correcto. En el esqueleto
+// mejor no mostrar contador que mostrar uno viejo.
+export async function SiteHeader({
+  inverted = true,
+  hideUnread = false,
+}: { inverted?: boolean; hideUnread?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,7 +29,7 @@ export async function SiteHeader({ inverted = true }: { inverted?: boolean } = {
   if (user) {
     const [{ data: profile }, unread] = await Promise.all([
       supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
-      countUnread(supabase, user.id),
+      hideUnread ? Promise.resolve(0) : countUnread(supabase, user.id),
     ]);
     role = (profile?.role as SiteRole) ?? "patient";
     unreadCount = unread;

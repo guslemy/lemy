@@ -12,7 +12,7 @@ import { SiteFooter } from "@/components/site-footer";
 export function DashboardLoading() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader hideUnread />
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[720px] animate-pulse">
           <div className="h-3 w-32 rounded-full bg-forest/10" />

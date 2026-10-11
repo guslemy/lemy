@@ -60,8 +60,17 @@ async function fetchBusyRangesUncached(
     // que el terapeuta vea un aviso claro en su perfil de que tiene que
     // reconectar Google, en vez de que Lemy siga mostrando "conectado"
     // mientras en realidad nunca está leyendo su calendario real.
+    // Ojo: al renovar el access token, Google responde 400 (invalid_grant)
+    // cuando el terapeuta revocó el permiso — no 401/403. Eso antes no se
+    // detectaba y el perfil seguía diciendo "✓ Conectado" para siempre. Ahora
+    // se apaga la bandera de conexión para que el terapeuta vea el botón de
+    // reconectar.
+    if (err instanceof GoogleCalendarError && err.invalidGrant) {
+      await serviceClient.from("therapists").update({ google_calendar_connected: false }).eq("id", therapistId);
+    }
+
     const isPermissionError =
-      err instanceof GoogleCalendarError && (err.status === 401 || err.status === 403);
+      err instanceof GoogleCalendarError && (err.status === 401 || err.status === 403) && !err.invalidGrant;
 
     if (isPermissionError) {
       await serviceClient

@@ -104,12 +104,14 @@ export async function TherapistCitasTab({ params }: { params: CitasTabParams }) 
   const appointments = (rawAppointments ?? []) as unknown as AppointmentRow[];
   const patientIds = Array.from(new Set(appointments.map((a) => a.patient_id)));
 
-  const { data: rawProfiles } = patientIds.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", patientIds)
-    : { data: [] };
-
-  const nameById = new Map((rawProfiles ?? []).map((p) => [p.id, p.full_name as string | null]));
+  // El nombre sale de getPatientInfoMap (service client). Antes se leía
+  // `profiles` aquí con el cliente normal del terapeuta, pero la RLS de
+  // `profiles` solo deja ver la propia fila: siempre regresaba 0 filas y
+  // todas las tarjetas decían "Paciente" aunque el nombre existiera.
   const patientInfoById = await getPatientInfoMap(supabase, user.id, patientIds);
+  const nameById = new Map(
+    Array.from(patientInfoById.entries()).map(([id, info]) => [id, info.fullName])
+  );
 
   // Cuántas veces faltó cada paciente en los últimos 45 días — a propósito
   // cruzando TODOS los terapeutas, no solo el que está viendo esta pantalla:

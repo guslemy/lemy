@@ -9,9 +9,14 @@ const FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
 
 export class GoogleCalendarError extends Error {
   status?: number;
-  constructor(message: string, status?: number) {
+  // true cuando Google respondió "invalid_grant": el refresh token ya no
+  // sirve (el terapeuta revocó el acceso o Google lo invalidó). A diferencia
+  // de una falla pasajera, esto no se arregla solo — hay que reconectar.
+  invalidGrant: boolean;
+  constructor(message: string, status?: number, invalidGrant = false) {
     super(message);
     this.status = status;
+    this.invalidGrant = invalidGrant;
   }
 }
 
@@ -32,7 +37,17 @@ export async function getAccessToken(refreshToken: string): Promise<string> {
 
   if (!res.ok) {
     const body = await res.text();
-    throw new GoogleCalendarError(`No se pudo renovar el access token de Google: ${body}`);
+    let invalidGrant = false;
+    try {
+      invalidGrant = (JSON.parse(body) as { error?: string }).error === "invalid_grant";
+    } catch {
+      // el cuerpo no era JSON — se trata como falla genérica
+    }
+    throw new GoogleCalendarError(
+      `No se pudo renovar el access token de Google: ${body}`,
+      res.status,
+      invalidGrant
+    );
   }
 
   const data = (await res.json()) as { access_token: string };
