@@ -340,8 +340,8 @@ export function therapistAccountClosed(params: { name: string }) {
     html: wrap(`
       <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Confirmamos que cerraste tu cuenta de terapeuta en Lemy. Tu perfil ya no es visible y tu suscripción quedó cancelada.</p>
-      <p><strong>Importante:</strong> por la NOM-004-SSA3-2012 debes conservar el expediente de tus pacientes por un mínimo de 5 años. Tu expediente en Lemy no se conservará por motivos de seguridad, así que si aún no lo descargaste, hazlo antes de que se elimine por completo.</p>
-      <p>Si cambias de opinión, contáctanos a hola@lemy.mx.</p>
+      <p>Ya no podrás iniciar sesión con esta cuenta. Recuerda que por la NOM-004-SSA3-2012 debes conservar el expediente de tus pacientes por un mínimo de 5 años, y que Lemy no lo conservará por motivos de seguridad.</p>
+      <p><strong>¿No alcanzaste a descargar tus expedientes?</strong> Escríbenos cuanto antes a hola@lemy.mx y vemos cómo ayudarte. También puedes escribirnos si cambias de opinión.</p>
     `),
   };
 }
