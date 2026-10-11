@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CopyLinkBox } from "@/components/copy-link-box";
 import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
 import { SelectTabButton } from "@/components/select-tab-button";
+import { ScrollToFlash } from "@/components/scroll-to-flash";
 import { TherapistPerfilTab } from "@/components/dashboard-tabs/therapist-perfil-tab";
 import { TherapistDisponibilidadTab } from "@/components/dashboard-tabs/therapist-disponibilidad-tab";
 import { TherapistCitasTab } from "@/components/dashboard-tabs/therapist-citas-tab";
@@ -121,6 +122,7 @@ export default async function DashboardPage({
   ];
 
   const initialTabKey = sp.tab || "citas";
+  const hasFlash = Object.keys(sp).some((k) => k !== "tab" && Boolean(sp[k]));
 
   return (
     <>
@@ -172,12 +174,17 @@ export default async function DashboardPage({
             </div>
           )}
 
+          {/* Si la URL trae algún parámetro de aviso (todo menos ?tab=), lleva la
+              vista al inicio del panel para que se vea el letrero. */}
+          {/* eslint-disable-next-line react-hooks/purity -- se renderiza una vez por petición; solo sirve para distinguir un render de otro */}
+          <ScrollToFlash active={hasFlash} renderId={Date.now()} />
+
           {isTherapist ? (
             <div id="panel-tabs" className="mt-8 scroll-mt-24">
               <PanelTabs tabs={therapistTabs} initialTabKey={initialTabKey} />
             </div>
           ) : (
-            <div className="mt-8">
+            <div id="panel-tabs" className="mt-8 scroll-mt-24">
               <PanelTabs tabs={patientTabs} initialTabKey={initialTabKey} />
             </div>
           )}
@@ -204,7 +211,7 @@ export default async function DashboardPage({
             </div>
           )}
 
-          {!isTherapist && sp.activar_error === "1" && (
+          {sp.activar_error === "1" && (
             <p className="mt-6 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
               No pudimos activar tu cuenta de terapeuta. Cierra sesión, vuelve a entrar e inténtalo de
               nuevo; si sigue igual, escríbenos a hola@lemy.mx.

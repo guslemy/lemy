@@ -25,6 +25,22 @@ const OAXACA_UTC_OFFSET_MIN = 6 * 60;
 
 type RawWeeklySlot = { day_of_week: number; start_time: string; end_time: string };
 
+// Une bloques que se encimen (los que solo se tocan en el borde se dejan como
+// están). Los bloques se comparan por minutos desde medianoche.
+function mergeOverlapping(slots: RawWeeklySlot[]): RawWeeklySlot[] {
+  const sorted = [...slots].sort((a, b) => toMinutes(a.start_time) - toMinutes(b.start_time));
+  const merged: RawWeeklySlot[] = [];
+  for (const s of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && toMinutes(s.start_time) < toMinutes(last.end_time)) {
+      if (toMinutes(s.end_time) > toMinutes(last.end_time)) last.end_time = s.end_time;
+    } else {
+      merged.push({ ...s });
+    }
+  }
+  return merged;
+}
+
 function toMinutes(t: string) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -176,7 +192,10 @@ export async function getAvailableSlots(
     const mo = localDay.getUTCMonth();
     const d = localDay.getUTCDate();
 
-    const daySlots = weekly.filter((w) => w.day_of_week === dow);
+    // Si por datos viejos hay bloques que se encimen el mismo día (ej. 9–14 y
+    // 9–17), se unen en uno solo: antes cada uno generaba sus propios horarios
+    // y el paciente veía los mismos horarios repetidos.
+    const daySlots = mergeOverlapping(weekly.filter((w) => w.day_of_week === dow));
     for (const w of daySlots) {
       const startMin = toMinutes(w.start_time);
       const endMin = toMinutes(w.end_time);

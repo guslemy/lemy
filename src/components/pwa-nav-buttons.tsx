@@ -28,17 +28,19 @@ function useIsStandalone(): boolean {
 // que las flechas de un navegador real en los extremos de su historial,
 // simplemente no hacen nada si no hay a dónde ir. Mejor eso que esconder el
 // botón por completo.
-export function PwaNavButtons() {
+export function PwaNavButtons({ inverted = false }: { inverted?: boolean }) {
   const isStandalone = useIsStandalone();
   if (!isStandalone) return null;
 
   return (
-    <div className="flex items-center gap-1 pr-1">
+    <div className="flex items-center gap-1 pl-1">
       <button
         type="button"
         aria-label="Atrás"
         onClick={() => window.history.back()}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-forest transition-colors hover:bg-forest/[0.08]"
+        className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+          inverted ? "text-sage-white hover:bg-white/10" : "text-forest hover:bg-forest/[0.08]"
+        }`}
       >
         <ChevronIcon direction="left" />
       </button>
@@ -46,7 +48,9 @@ export function PwaNavButtons() {
         type="button"
         aria-label="Adelante"
         onClick={() => window.history.forward()}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-forest transition-colors hover:bg-forest/[0.08]"
+        className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+          inverted ? "text-sage-white hover:bg-white/10" : "text-forest hover:bg-forest/[0.08]"
+        }`}
       >
         <ChevronIcon direction="right" />
       </button>

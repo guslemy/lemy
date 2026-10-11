@@ -19,6 +19,17 @@ import {
 // — ambos se aplican en src/lib/availability.ts al calcular horarios reales.
 
 const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+// Orden de los botones del formulario: semana empezando en lunes. El valor es
+// el mismo day_of_week de siempre (0 = domingo).
+const DAY_CHIPS = [
+  { value: 1, label: "Lun" },
+  { value: 2, label: "Mar" },
+  { value: 3, label: "Mié" },
+  { value: 4, label: "Jue" },
+  { value: 5, label: "Vie" },
+  { value: 6, label: "Sáb" },
+  { value: 0, label: "Dom" },
+];
 // "horas" solo aplica a la anticipación MÍNIMA (tiene sentido decir "avísame
 // con 2 horas"); para el máximo a futuro no se ofrece, por eso son dos listas.
 const LEAD_UNITS = [
@@ -181,6 +192,12 @@ export async function TherapistDisponibilidadTab({ params }: { params: Disponibi
           Revisa el día y que la hora de inicio sea antes que la de fin.
         </p>
       )}
+      {error === "guardar" && (
+        <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+          No pudimos guardar ese horario. Recarga la página e inténtalo de nuevo; si sigue igual,
+          escríbenos a hola@lemy.mx.
+        </p>
+      )}
       {guardado_anticipacion === "1" && (
         <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
           Listo, actualizamos tu anticipación mínima.
@@ -229,18 +246,32 @@ export async function TherapistDisponibilidadTab({ params }: { params: Disponibi
 
       <form
         action={addAvailabilitySlot}
-        className="signature-corner mt-8 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-end"
+        className="signature-corner mt-8 grid grid-cols-1 gap-4 rounded-[28px] border border-line bg-card p-7 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
       >
-        <label className="block">
-          <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Día</span>
-          <select name="day_of_week" defaultValue="1" className="input-lemy">
-            {DAYS.map((label, index) => (
-              <option key={label} value={index}>
-                {label}
-              </option>
+        <fieldset className="sm:col-span-3">
+          <legend className="mb-1.5 text-[0.85rem] font-medium text-forest">
+            Días (puedes elegir varios)
+          </legend>
+          <div className="flex flex-wrap gap-2">
+            {DAY_CHIPS.map((d) => (
+              <label key={d.value} className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="day_of_week"
+                  value={d.value}
+                  defaultChecked={d.value === 1}
+                  className="peer sr-only"
+                />
+                <span className="inline-block rounded-full border border-line bg-card px-4 py-2 font-mono text-[0.76rem] text-[#3E4B44] transition-all duration-200 peer-checked:border-forest peer-checked:bg-forest peer-checked:text-sage-white peer-focus-visible:ring-2 peer-focus-visible:ring-rose-deep">
+                  {d.label}
+                </span>
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+          <p className="mt-2 text-[0.78rem] text-[#7C877F]">
+            Si el nuevo horario se cruza con uno que ya tienes ese día, lo reemplaza.
+          </p>
+        </fieldset>
         <label className="block">
           <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">Desde</span>
           <input type="time" name="start_time" defaultValue="09:00" required className="input-lemy" />

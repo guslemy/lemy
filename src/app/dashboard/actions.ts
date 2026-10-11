@@ -55,7 +55,10 @@ export async function becomeTherapist() {
     redirect("/dashboard?activar_error=1");
   }
 
-  await ensureTherapistShell(supabase, user);
+  const shellOk = await ensureTherapistShell(supabase, user);
+  if (!shellOk) {
+    redirect("/dashboard?activar_error=1");
+  }
 
   const { data: existing } = await supabase
     .from("therapists")

@@ -34,14 +34,19 @@ export async function uniqueTherapistSlug(
 // Crea el registro base en `therapists` la primera vez que alguien activa su
 // cuenta como terapeuta. Sin esto, no hay fila donde guardar el resto del
 // perfil ni RLS que le permita al usuario ver/editar "lo suyo".
-export async function ensureTherapistShell(supabase: SupabaseClient, user: User) {
+//
+// Devuelve true si al terminar existe la fila en `therapists` (ya existía o
+// se creó), false si el insert falló — antes el error se ignoraba y la cuenta
+// quedaba como "terapeuta" sin fila, lo que rompía en silencio cosas como
+// guardar horarios (llave foránea a therapists).
+export async function ensureTherapistShell(supabase: SupabaseClient, user: User): Promise<boolean> {
   const { data: existing } = await supabase
     .from("therapists")
     .select("id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (existing) return;
+  if (existing) return true;
 
   const baseName = (user.user_metadata?.full_name as string | undefined) ?? "Terapeuta";
   const slug = await uniqueTherapistSlug(supabase, baseName, user.id);
@@ -67,10 +72,18 @@ export async function ensureTherapistShell(supabase: SupabaseClient, user: User)
     // tumbar la creación de la cuenta por esto.
   }
 
-  await supabase.from("therapists").insert({
+  const { error } = await supabase.from("therapists").insert({
     id: user.id,
     slug,
     display_name: baseName,
     referred_by: referredBy,
   });
+  if (error) {
+    console.error("ensureTherapistShell: no se pudo crear la fila en therapists", {
+      userId: user.id,
+      error: error.message,
+    });
+    return false;
+  }
+  return true;
 }

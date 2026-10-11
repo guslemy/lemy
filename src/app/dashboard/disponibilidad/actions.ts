@@ -25,28 +25,76 @@ async function requireTherapist() {
 export async function addAvailabilitySlot(formData: FormData) {
   const { supabase, user } = await requireTherapist();
 
-  const day_of_week = Number(formData.get("day_of_week"));
+  // Varios días a la vez (2026-10-15): el formulario manda un day_of_week por
+  // cada día marcado. El mismo bloque de horas se aplica a todos.
+  const days = [
+    ...new Set(formData.getAll("day_of_week").map((v) => Number(v))),
+  ].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
   const start_time = String(formData.get("start_time") || "");
   const end_time = String(formData.get("end_time") || "");
 
-  if (
-    Number.isNaN(day_of_week) ||
-    day_of_week < 0 ||
-    day_of_week > 6 ||
-    !start_time ||
-    !end_time ||
-    start_time >= end_time
-  ) {
+  if (days.length === 0 || !start_time || !end_time || start_time >= end_time) {
     redirect("/dashboard?tab=disponibilidad&disp_error=1");
   }
 
-  await supabase.from("availability_slots").insert({
-    therapist_id: user.id,
-    day_of_week,
-    start_time,
-    end_time,
-    is_recurring: true,
-  });
+  // Horas como "HH:MM" para poder comparar texto contra texto (la base de
+  // datos devuelve "HH:MM:SS").
+  const newStart = start_time.slice(0, 5);
+  const newEnd = end_time.slice(0, 5);
+
+  // Reemplazo de cruces (pedido de Gustavo): si el nuevo bloque se encima con
+  // alguno que ya existe ese día, el nuevo manda y los viejos que chocan se
+  // borran — así no quedan 9–14 y 9–17 a la vez (que duplicaba los horarios
+  // ofrecidos al paciente). Dos bloques que solo se tocan en el borde
+  // (12:00 termina, 12:00 empieza) NO cuentan como cruce.
+  const { data: existing } = await supabase
+    .from("availability_slots")
+    .select("id, start_time, end_time")
+    .eq("therapist_id", user.id)
+    .eq("is_recurring", true)
+    .in("day_of_week", days);
+
+  const conflictIds = (existing ?? [])
+    .filter((s) => String(s.start_time).slice(0, 5) < newEnd && String(s.end_time).slice(0, 5) > newStart)
+    .map((s) => s.id as string);
+
+  // Primero se inserta lo nuevo y solo después se borra lo que chocaba: si el
+  // insert falla, no se pierde nada de lo que ya había.
+  const { error: insertError } = await supabase.from("availability_slots").insert(
+    days.map((day_of_week) => ({
+      therapist_id: user.id,
+      day_of_week,
+      start_time,
+      end_time,
+      is_recurring: true,
+    }))
+  );
+
+  // Antes el resultado del insert se ignoraba y SIEMPRE se mostraba "Horario
+  // agregado", aunque la base de datos lo hubiera rechazado (por ejemplo, si
+  // la cuenta no tenía su fila en `therapists`). Ahora se registra el motivo
+  // real y se avisa en pantalla.
+  if (insertError) {
+    console.error("addAvailabilitySlot: no se pudo guardar el horario", {
+      userId: user.id,
+      error: insertError.message,
+    });
+    redirect("/dashboard?tab=disponibilidad&disp_error=guardar");
+  }
+
+  if (conflictIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("availability_slots")
+      .delete()
+      .in("id", conflictIds)
+      .eq("therapist_id", user.id);
+    if (deleteError) {
+      console.error("addAvailabilitySlot: no se pudieron reemplazar los horarios que se cruzaban", {
+        userId: user.id,
+        error: deleteError.message,
+      });
+    }
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard?tab=disponibilidad&disp_guardado=1");

@@ -210,7 +210,6 @@ export function SiteHeaderClient({
     >
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 sm:px-8">
         <div className="flex items-center gap-1">
-          <PwaNavButtons />
           {inverted ? (
             // Logotipo nuevo (2026-09-30): el lockup horizontal ya trae el
             // texto "Lemy" horneado en la imagen. Agrandado 2026-10-01 a
@@ -242,6 +241,11 @@ export function SiteHeaderClient({
               />
             </Link>
           )}
+          {/* Atrás/adelante (solo en la app instalada): van DESPUÉS del logo —
+              antes iban antes y, como en el header oscuro eran invisibles
+              (color forest sobre forest-deep), solo empujaban el logo hacia
+              el centro en el celular. */}
+          <PwaNavButtons inverted={inverted} />
         </div>
 
         <nav className="hidden items-center gap-6 text-sm font-medium xl:flex">
