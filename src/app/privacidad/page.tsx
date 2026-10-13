@@ -125,10 +125,14 @@ export default function AvisoPrivacidadPage() {
               calendario.
             </p>
             <p>
-              <strong className="text-forest">Con quién se comparte.</strong> No compartimos tu
-              información de Google con terceros, salvo con los proveedores de infraestructura que
-              la procesan por nosotros únicamente para operar Lemy (Supabase, que aloja la base de
-              datos, y Vercel, que aloja la aplicación), por seguridad o por obligación legal. Al
+              <strong className="text-forest">Con quién se comparte.</strong> Los datos de tu
+              calendario (disponibilidad y eventos) y el token de acceso solo los procesan Google y
+              los proveedores de infraestructura que operan Lemy por nosotros (Supabase, que aloja
+              la base de datos, y Vercel, que aloja la aplicación); no se envían a nadie más. Tu
+              nombre y tu correo, que recibimos al iniciar sesión con Google, también se usan con
+              Resend (para enviarte los correos de tu cuenta y de tus citas) y, si eres terapeuta,
+              con Stripe (para cobrar tu suscripción), únicamente para esos fines. No compartimos
+              información de Google con nadie más, salvo por seguridad o por obligación legal. Al
               paciente solo le llega la invitación al evento de Google Calendar de su cita.
             </p>
             <p>
@@ -153,9 +157,12 @@ export default function AvisoPrivacidadPage() {
               with HTTPS/TLS. Free/busy data is not stored in our database (it is cached on the
               server for about 30 seconds). Lemy personnel do not routinely access this data and
               would do so only with your consent, for security reasons, or to comply with the law.
-              Google user data is shared only with infrastructure providers that process it on our
-              behalf to operate Lemy (Supabase for the database, Vercel for hosting), for security,
-              or as required by law. We keep the token while Calendar is connected, and delete it
+              Calendar data and the access token are processed only by Google and by the
+              infrastructure providers that operate Lemy on our behalf (Supabase for the database,
+              Vercel for hosting). The name and email received at sign-in are also used with Resend
+              (account and appointment emails) and, for therapists, Stripe (subscription billing),
+              only for those purposes; Google user data is not shared with anyone else, except for
+              security reasons or as required by law. We keep the token while Calendar is connected, and delete it
               (and ask Google to revoke it) when you close your account or when you ask us at
               hola@lemy.mx; you can also revoke access at any time at
               myaccount.google.com/permissions.)
