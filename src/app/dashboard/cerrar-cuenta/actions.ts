@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getStripe } from "@/lib/stripe";
+import { purgeGoogleToken } from "@/lib/google-token";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
 import { therapistAccountClosed, patientAccountClosed } from "@/lib/notifications/emailTemplates";
 import { THERAPIST_REASONS, PATIENT_REASONS } from "./reasons";
@@ -51,6 +52,11 @@ export async function closeTherapistAccount(formData: FormData) {
       console.error("Error cancelando suscripción de Stripe al cerrar cuenta:", err);
     }
   }
+
+  // La conexión con Google Calendar termina de inmediato al cerrar la cuenta:
+  // se revoca el token en Google y se borra de nuestro Vault (ver
+  // lib/google-token.ts) — antes sobrevivía a la cuenta cerrada.
+  await purgeGoogleToken(serviceClient, user.id);
 
   await serviceClient
     .from("therapists")
@@ -120,6 +126,10 @@ export async function closePatientAccount(formData: FormData) {
   } catch (err) {
     console.error("Error mandando correo de cierre de cuenta (paciente):", err);
   }
+
+  // Si este paciente alguna vez conectó Google Calendar, el token se borra
+  // junto con la cuenta (ver lib/google-token.ts).
+  await purgeGoogleToken(serviceClient, user.id);
 
   await serviceClient
     .from("profiles")

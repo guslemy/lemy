@@ -77,6 +77,7 @@ export default function AvisoPrivacidadPage() {
             <p>Para operar Lemy, compartimos datos estrictamente necesarios con:</p>
             <p>
               <strong className="text-forest">Supabase</strong> (base de datos y autenticación),{" "}
+              <strong className="text-forest">Vercel</strong> (alojamiento de la aplicación),{" "}
               <strong className="text-forest">Google</strong> (inicio de sesión y creación de eventos
               de calendario, solo si eres terapeuta y lo autorizas),{" "}
               <strong className="text-forest">Stripe</strong> (procesamiento de pagos de suscripción),{" "}
@@ -89,16 +90,19 @@ export default function AvisoPrivacidadPage() {
 
           <Section id="google" title="5. Información de Google (Google Calendar)">
             <p>
-              Si eres terapeuta y decides conectar tu cuenta de Google, Lemy te pide dos permisos de
-              Google Calendar, y solo para esto:
+              <strong className="text-forest">Qué datos de Google recibimos.</strong> Al iniciar
+              sesión con Google recibimos tu nombre, tu correo electrónico y tu foto de perfil, que
+              usamos únicamente para crear y identificar tu cuenta en Lemy. Si además eres
+              terapeuta y decides conectar tu Google Calendar, Lemy te pide dos permisos, y solo
+              para lo siguiente:
             </p>
             <p>
               <strong className="text-forest">Consultar tu disponibilidad (calendar.events.freebusy).</strong>{" "}
               Google nos dice únicamente en qué intervalos de tiempo estás ocupado, sin títulos,
               descripciones, invitados ni ningún otro detalle de tus eventos. Lo usamos para no
               ofrecer a tus pacientes horarios que ya tienes ocupados. Estos intervalos no se
-              guardan en nuestra base de datos; solo se conservan en memoria unos segundos para no
-              consultar a Google en cada visita a tu perfil.
+              guardan en nuestra base de datos; solo se conservan en una caché temporal del servidor
+              por unos 30 segundos para no consultar a Google en cada visita a tu perfil.
             </p>
             <p>
               <strong className="text-forest">Crear y administrar los eventos de tus citas (calendar.events.owned).</strong>{" "}
@@ -108,13 +112,53 @@ export default function AvisoPrivacidadPage() {
               borramos otros eventos de tu calendario.
             </p>
             <p>
-              Para poder hacerlo sin que tengas que estar conectado, guardamos el token de acceso
-              que Google emite para tu cuenta, cifrado, en un almacén de secretos al que solo puede
-              acceder el servidor de Lemy. No usamos esta información para publicidad, no la
-              vendemos, no la transferimos a terceros salvo lo necesario para operar el servicio,
-              por seguridad o por obligación legal, no la usamos para entrenar modelos de
-              inteligencia artificial, y las personas que trabajan en Lemy no la leen salvo con tu
-              consentimiento, por seguridad o por obligación legal.
+              <strong className="text-forest">Cómo protegemos tu información de Google.</strong>{" "}
+              Para poder crear y mover eventos sin que tengas que estar conectado, guardamos el
+              token de acceso que Google emite para tu cuenta. Ese token se almacena cifrado en
+              reposo en Supabase Vault (nunca en texto plano) y solo puede leerlo el servidor de
+              Lemy: la tabla donde se registra tiene el acceso bloqueado para cualquier usuario,
+              incluido el propio dueño de la cuenta, y las funciones que lo leen o lo escriben solo
+              se pueden ejecutar con la credencial privada del servidor, que nunca se expone en el
+              navegador ni en el código público. Toda la comunicación entre tu navegador, Lemy,
+              Supabase y Google viaja cifrada con HTTPS/TLS. Aparte de ese token, del identificador
+              y del enlace de videollamada de los eventos que Lemy crea, no guardamos copia de tu
+              calendario.
+            </p>
+            <p>
+              <strong className="text-forest">Con quién se comparte.</strong> No compartimos tu
+              información de Google con terceros, salvo con los proveedores de infraestructura que
+              la procesan por nosotros únicamente para operar Lemy (Supabase, que aloja la base de
+              datos, y Vercel, que aloja la aplicación), por seguridad o por obligación legal. Al
+              paciente solo le llega la invitación al evento de Google Calendar de su cita.
+            </p>
+            <p>
+              <strong className="text-forest">Acceso, conservación y eliminación.</strong> Las
+              personas que trabajan en Lemy no tienen acceso rutinario al token ni a tu información
+              de Google, y solo la consultarían con tu consentimiento, por seguridad o por
+              obligación legal. Conservamos el token mientras tengas Google Calendar conectado con
+              Lemy y lo eliminamos en estos casos: cuando cierras tu cuenta desde Cerrar mi cuenta
+              (en ese momento también le pedimos a Google que lo revoque), o cuando nos lo pides
+              escribiendo a hola@lemy.mx. Si revocas el acceso desde tu cuenta de Google, el token
+              deja de ser válido de inmediato.
+            </p>
+            <p>
+              No usamos esta información para publicidad, no la vendemos, no la transferimos a
+              terceros salvo lo necesario para operar el servicio, por seguridad o por obligación
+              legal, y no la usamos para entrenar modelos de inteligencia artificial.
+            </p>
+            <p>
+              (In English — Google user data protection: the Google refresh token is encrypted at
+              rest in Supabase Vault and can only be read by Lemy&apos;s server using a private
+              credential that is never exposed to the browser; all traffic is encrypted in transit
+              with HTTPS/TLS. Free/busy data is not stored in our database (it is cached on the
+              server for about 30 seconds). Lemy personnel do not routinely access this data and
+              would do so only with your consent, for security reasons, or to comply with the law.
+              Google user data is shared only with infrastructure providers that process it on our
+              behalf to operate Lemy (Supabase for the database, Vercel for hosting), for security,
+              or as required by law. We keep the token while Calendar is connected, and delete it
+              (and ask Google to revoke it) when you close your account or when you ask us at
+              hola@lemy.mx; you can also revoke access at any time at
+              myaccount.google.com/permissions.)
             </p>
             <p>
               Puedes revocar el acceso en cualquier momento desde{" "}
