@@ -49,7 +49,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
         // Cuenta cerrada por el propio usuario (ver dashboard/cerrar-cuenta).
         if (profileRow?.account_closed_at) {
           await supabase.auth.signOut();
-          setErrorMsg("Esta cuenta fue cerrada.");
+          setErrorMsg("Esta cuenta fue cerrada. Si quieres volver, escríbenos a hola@lemy.mx.");
           setStatus("idle");
           return;
         }

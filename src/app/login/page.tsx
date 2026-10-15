@@ -18,9 +18,9 @@ import { EmailAuthForm } from "@/components/email-auth-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; flujo?: string }>;
+  searchParams: Promise<{ next?: string; flujo?: string; cuenta_cerrada?: string; desactivada?: string }>;
 }) {
-  const { next, flujo } = await searchParams;
+  const { next, flujo, cuenta_cerrada, desactivada } = await searchParams;
 
   // Si ya hay sesión iniciada, no tiene sentido mostrar el login: se manda a
   // donde iba (`next`) o al dashboard. Pasa, por ejemplo, con alguien que ya
@@ -63,6 +63,29 @@ export default async function LoginPage({
               ? "Solo necesitamos saber que eres tú, para poder guardar tu solicitud y avisarte cuando tu terapeuta la confirme."
               : "Con Google o con tu correo — lo que se te haga más fácil."}
           </p>
+
+          {/* /auth/callback manda aquí con estos parámetros cuando alguien entra
+              con Google a una cuenta cerrada o desactivada. Antes la página los
+              ignoraba y se veía como si el botón no hiciera nada. */}
+          {cuenta_cerrada === "1" && (
+            <p className="mt-6 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-left text-[0.9rem] text-rose-deep">
+              Esta cuenta fue cerrada, así que no se puede iniciar sesión con ella. Si fue un error o
+              quieres volver a Lemy, escríbenos a{" "}
+              <a href="mailto:hola@lemy.mx" className="underline">
+                hola@lemy.mx
+              </a>{" "}
+              y vemos cómo ayudarte.
+            </p>
+          )}
+          {desactivada === "1" && (
+            <p className="mt-6 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-left text-[0.9rem] text-rose-deep">
+              Esta cuenta está desactivada. Si crees que es un error, escríbenos a{" "}
+              <a href="mailto:hola@lemy.mx" className="underline">
+                hola@lemy.mx
+              </a>
+              .
+            </p>
+          )}
 
           <div className="signature-corner mt-8 flex flex-col items-center gap-5 rounded-[28px] border border-line bg-card p-7">
             <GoogleLoginButton next={next} includeCalendarScopes={wantsTherapist} />
