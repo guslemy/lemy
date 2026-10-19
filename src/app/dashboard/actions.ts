@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { slugify } from "@/lib/slugify";
 import { ensureTherapistShell, uniqueTherapistSlug } from "@/lib/supabase/ensure-therapist";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
@@ -386,8 +387,8 @@ export async function saveTherapistProfile(formData: FormData) {
   redirect("/dashboard?tab=perfil&perfil_guardado=1");
 }
 
-const MAX_DOC_BYTES = 8 * 1024 * 1024; // cédulas escaneadas pesan más que una foto de perfil
-const ALLOWED_DOC_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const DOC_TIPOS = ["cedula", "identificacion", "titulo"] as const;
+type DocTipo = (typeof DOC_TIPOS)[number];
 
 // Documentos de verificación (cédula, identificación oficial, título
 // opcional) — bucket privado "therapist-documents" (ver migración 0030).
@@ -396,7 +397,16 @@ const ALLOWED_DOC_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/
 // de Lemy aprueba la verificación esta sección se bloquea por completo (ver
 // dashboard/perfil/page.tsx) para que no puedan reemplazar documentos ya
 // aprobados sin pasar de nuevo por revisión.
-export async function uploadVerificationDocuments(formData: FormData) {
+//
+// (2026-10-19) Los archivos YA NO viajan por esta Server Action: Vercel
+// rechaza cualquier petición de más de ~4.5 MB (en todos los planes), y dos
+// fotos de celular lo pasan fácil. Ahora el navegador sube cada archivo
+// directo a Supabase Storage (las políticas de 0030 lo permiten solo en la
+// carpeta del propio usuario) y esta acción solo recibe las RUTAS ya
+// subidas, las valida y registra. Además ya no hace falta volver a subir un
+// documento que ya estaba guardado: solo se reemplazan los que vienen en
+// `paths`.
+export async function saveVerificationDocuments(paths: Partial<Record<DocTipo, string>>) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -415,52 +425,78 @@ export async function uploadVerificationDocuments(formData: FormData) {
     redirect("/dashboard?tab=perfil&perfil_error=verificado_bloqueado");
   }
 
-  const cedula = formData.get("doc_cedula") as File | null;
-  const identificacion = formData.get("doc_identificacion") as File | null;
-  const titulo = formData.get("doc_titulo") as File | null;
-
-  if (!cedula || cedula.size === 0) redirect("/dashboard?tab=perfil&perfil_error=documento_faltante");
-  if (!identificacion || identificacion.size === 0) {
-    redirect("/dashboard?tab=perfil&perfil_error=documento_faltante");
-  }
-
-  const filesToValidate = [cedula, identificacion, ...(titulo && titulo.size > 0 ? [titulo] : [])];
-  for (const f of filesToValidate) {
-    if (!ALLOWED_DOC_TYPES.includes(f.type)) redirect("/dashboard?tab=perfil&perfil_error=documento_invalido");
-    if (f.size > MAX_DOC_BYTES) redirect("/dashboard?tab=perfil&perfil_error=documento_grande");
-  }
-
-  async function uploadDoc(file: File, tipo: string): Promise<string> {
-    const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
-    const path = `${user!.id}/${tipo}.${ext}`;
-    const { error } = await supabase.storage
-      .from("therapist-documents")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (error) {
-      console.error(`Error subiendo documento de verificación (${tipo}):`, error);
-      redirect("/dashboard?tab=perfil&perfil_error=documento");
+  // Cada ruta tiene que ser exactamente "<mi id>/<tipo>.<extensión>" — así
+  // nadie puede registrar como suyo un archivo de otra carpeta.
+  const newPaths: Partial<Record<DocTipo, string>> = {};
+  for (const tipo of DOC_TIPOS) {
+    const p = paths[tipo];
+    if (!p) continue;
+    if (!new RegExp(`^${user.id}/${tipo}\\.[a-z0-9]{1,5}$`).test(p)) {
+      redirect("/dashboard?tab=perfil&perfil_error=documento_invalido");
     }
-    return path;
+    newPaths[tipo] = p;
   }
 
-  const cedulaPath = await uploadDoc(cedula, "cedula");
-  const idPath = await uploadDoc(identificacion, "identificacion");
-  const tituloPath = titulo && titulo.size > 0 ? await uploadDoc(titulo, "titulo") : null;
-
-  // Reemplaza los 3 tipos fijos — borra lo anterior de este terapeuta y
-  // vuelve a insertar solo lo que sí se subió en este envío.
-  await supabase
+  const { data: existing } = await supabase
     .from("therapist_credentials")
-    .delete()
+    .select("tipo, documento_url")
     .eq("therapist_id", user.id)
-    .in("tipo", ["cedula", "identificacion", "titulo"]);
+    .in("tipo", [...DOC_TIPOS]);
+  const existingByTipo = new Map((existing ?? []).map((c) => [c.tipo as string, c.documento_url as string]));
 
-  const rows = [
-    { therapist_id: user.id, tipo: "cedula", documento_url: cedulaPath },
-    { therapist_id: user.id, tipo: "identificacion", documento_url: idPath },
-    ...(tituloPath ? [{ therapist_id: user.id, tipo: "titulo", documento_url: tituloPath }] : []),
-  ];
-  await supabase.from("therapist_credentials").insert(rows);
+  if (!newPaths.cedula && !existingByTipo.has("cedula")) {
+    redirect("/dashboard?tab=perfil&perfil_error=documento_faltante_cedula");
+  }
+  if (!newPaths.identificacion && !existingByTipo.has("identificacion")) {
+    redirect("/dashboard?tab=perfil&perfil_error=documento_faltante_identificacion");
+  }
+
+  // Confirma que los archivos que dicen haber subido sí existen en Storage.
+  if (Object.keys(newPaths).length > 0) {
+    const { data: files } = await supabase.storage.from("therapist-documents").list(user.id);
+    const names = new Set((files ?? []).map((f) => `${user.id}/${f.name}`));
+    for (const p of Object.values(newPaths)) {
+      if (!names.has(p)) redirect("/dashboard?tab=perfil&perfil_error=documento");
+    }
+  }
+
+  // Solo reemplaza los tipos que vienen en este envío; los demás se conservan.
+  const replacedTipos = Object.keys(newPaths) as DocTipo[];
+  if (replacedTipos.length > 0) {
+    await supabase
+      .from("therapist_credentials")
+      .delete()
+      .eq("therapist_id", user.id)
+      .in("tipo", replacedTipos);
+
+    await supabase.from("therapist_credentials").insert(
+      replacedTipos.map((tipo) => ({
+        therapist_id: user.id,
+        tipo,
+        documento_url: newPaths[tipo]!,
+      }))
+    );
+
+    // Si el archivo nuevo tiene otra extensión (ej. antes .pdf, ahora .jpg),
+    // el viejo quedaría huérfano en Storage — se borra (mejor esfuerzo).
+    const orphans = replacedTipos
+      .map((tipo) => existingByTipo.get(tipo))
+      .filter((old, i): old is string => !!old && old !== newPaths[replacedTipos[i]]);
+    if (orphans.length > 0) {
+      await supabase.storage.from("therapist-documents").remove(orphans);
+    }
+
+    // Si ya lo habían rechazado y vuelve a mandar documentos, regresa a
+    // "pendiente" para que aparezca de nuevo en el aviso del admin. Se hace
+    // con service client a propósito: el terapeuta no debería poder cambiar
+    // su propio estado de verificación desde el cliente normal.
+    if (therapist?.verification_status === "rejected") {
+      await createServiceClient()
+        .from("therapists")
+        .update({ verification_status: "pending" })
+        .eq("id", user.id);
+    }
+  }
 
   try {
     if (isResendConfigured()) {

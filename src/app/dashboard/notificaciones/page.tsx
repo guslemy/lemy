@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPendingVerifications } from "@/lib/admin-pending";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getNotificationFeed, markAllRead } from "@/lib/notifications/feed";
@@ -28,6 +30,12 @@ export default async function NotificacionesPage() {
   // dentro del render de otras páginas de este dashboard.
   await markAllRead(supabase, user.id);
 
+  // Solo admin: terapeutas que ya subieron sus documentos y esperan
+  // verificación. Se muestra arriba de todo, en color llamativo, y se queda
+  // ahí hasta que se aprueben o rechacen (no depende de "leído").
+  const { data: myProfile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const pendingVerifications = myProfile?.role === "admin" ? await getPendingVerifications() : [];
+
   return (
     <>
       <SiteHeader />
@@ -40,6 +48,35 @@ export default async function NotificacionesPage() {
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
             Tu actividad reciente
           </h1>
+
+          {pendingVerifications.length > 0 && (
+            <div className="mt-8 rounded-2xl border-2 border-rose-deep bg-rose/15 px-5 py-4">
+              <p className="text-[0.95rem] font-semibold text-rose-deep">
+                {pendingVerifications.length === 1
+                  ? "1 terapeuta espera verificación"
+                  : `${pendingVerifications.length} terapeutas esperan verificación`}
+              </p>
+              <p className="mt-0.5 text-[0.82rem] text-[#6B3A30]">
+                Ya subieron su cédula y su identificación.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {pendingVerifications.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 text-[0.9rem]">
+                    <span className="text-forest">
+                      {p.displayName}{" "}
+                      <span className="text-[0.78rem] text-[#8B978F]">· {timeAgo(p.submittedAt)}</span>
+                    </span>
+                    <Link
+                      href="/dashboard/admin?tab=verificaciones"
+                      className="flex-none rounded-full bg-rose-deep px-3.5 py-1.5 text-[0.78rem] font-semibold text-white hover:bg-[#a86356]"
+                    >
+                      Revisar
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {items.length === 0 ? (
             <p className="mt-8 text-[0.95rem] text-[#3E4B44]">Todavía no tienes notificaciones.</p>

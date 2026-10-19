@@ -104,7 +104,7 @@ export function PhotoUploadField() {
               {previewSrc ? "Foto lista" : "Elegir foto…"}
             </span>
             <span className="block text-[0.78rem] text-[#7C877F]">
-              {previewSrc ? "Click para elegir y recortar otra" : "JPG o PNG, máximo 5 MB"}
+              {previewSrc ? "Click para elegir y recortar otra" : "JPG o PNG — la ajustamos y optimizamos sola"}
             </span>
           </span>
         </label>

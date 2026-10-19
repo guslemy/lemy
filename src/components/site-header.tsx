@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { countUnread } from "@/lib/notifications/feed";
+import { getPendingVerifications } from "@/lib/admin-pending";
 import { SiteHeaderClient, type SiteRole } from "./site-header-client";
 
 // Server component: resuelve sesión + rol una vez por render y se lo pasa
@@ -33,6 +34,12 @@ export async function SiteHeader({
     ]);
     role = (profile?.role as SiteRole) ?? "patient";
     unreadCount = unread;
+    // Admin: la campanita también suma los terapeutas con documentos
+    // esperando verificación (ver lib/admin-pending.ts) — se mantienen hasta
+    // que se aprueben o rechacen, aunque ya se hayan visto las notificaciones.
+    if (role === "admin" && !hideUnread) {
+      unreadCount += (await getPendingVerifications()).length;
+    }
   }
 
   return <SiteHeaderClient isLoggedIn={Boolean(user)} role={role} unreadCount={unreadCount} inverted={inverted} />;

@@ -174,12 +174,25 @@ export default async function AdminPage({
   // ── Pestaña: Verificaciones ──────────────────────────────────────────
   // Solo terapeutas, sin verificar primero — es la lista de "qué hay que
   // revisar hoy", no un directorio general de cuentas.
+  // (2026-10-19) Primero los que ya subieron cédula e identificación y esperan
+  // revisión (se resaltan en color), luego los pendientes que aún no suben
+  // todo, y al final los ya verificados.
+  const awaitingReviewIds = new Set(
+    (therapistRows ?? [])
+      .filter((t) => {
+        const docs = documentsByTherapist.get(t.id);
+        return t.verification_status === "pending" && Boolean(docs?.cedula && docs?.identificacion);
+      })
+      .map((t) => t.id)
+  );
+  const reviewRank = (t: { id: string; verification_status: string }) =>
+    awaitingReviewIds.has(t.id) ? 0 : t.verification_status === "verified" ? 2 : 1;
   const therapistsForReview = (therapistRows ?? [])
     .slice()
     .sort((a, b) => {
-      const ta = a.verification_status === "verified" ? 1 : 0;
-      const tb = b.verification_status === "verified" ? 1 : 0;
-      if (ta !== tb) return ta - tb;
+      const ra = reviewRank(a);
+      const rb = reviewRank(b);
+      if (ra !== rb) return ra - rb;
       return (a.display_name || "").localeCompare(b.display_name || "", "es");
     });
 
@@ -239,6 +252,7 @@ export default async function AdminPage({
           therapists={therapistsForReview}
           emailById={emailById}
           documentsByTherapist={documentsByTherapist}
+          awaitingReviewIds={awaitingReviewIds}
           verificacionActualizada={verificacion_actualizada}
         />
       ),
@@ -422,6 +436,7 @@ function VerificacionesTab({
   therapists,
   emailById,
   documentsByTherapist,
+  awaitingReviewIds,
   verificacionActualizada,
 }: {
   therapists: {
@@ -433,9 +448,11 @@ function VerificacionesTab({
   }[];
   emailById: Map<string, string>;
   documentsByTherapist: Map<string, DocLinks>;
+  awaitingReviewIds: Set<string>;
   verificacionActualizada?: string;
 }) {
   const pendingCount = therapists.filter((t) => t.verification_status !== "verified").length;
+  const awaitingCount = awaitingReviewIds.size;
 
   return (
     <div>
@@ -444,6 +461,13 @@ function VerificacionesTab({
           ? "No hay terapeutas pendientes de revisar."
           : `${pendingCount} terapeuta${pendingCount === 1 ? "" : "s"} pendiente${pendingCount === 1 ? "" : "s"} de revisar.`}
       </p>
+      {awaitingCount > 0 && (
+        <p className="mt-2 inline-block rounded-full bg-rose-deep px-3.5 py-1 text-[0.82rem] font-semibold text-white">
+          {awaitingCount === 1
+            ? "1 ya subió sus documentos y espera revisión"
+            : `${awaitingCount} ya subieron sus documentos y esperan revisión`}
+        </p>
+      )}
 
       {verificacionActualizada === "1" && <Banner>Verificación actualizada.</Banner>}
 
@@ -457,10 +481,21 @@ function VerificacionesTab({
           </thead>
           <tbody>
             {therapists.map((t) => (
-              <tr key={t.id} className="border-t border-line">
-                <td className="px-4 py-3 text-forest">{t.display_name || "—"}</td>
+              <tr
+                key={t.id}
+                className={`border-t border-line ${awaitingReviewIds.has(t.id) ? "bg-rose/15" : ""}`}
+              >
+                <td className="px-4 py-3 text-forest">
+                  {t.display_name || "—"}
+                  {awaitingReviewIds.has(t.id) && (
+                    <span className="ml-2 rounded-full bg-rose-deep px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.04em] text-white">
+                      Docs enviados
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <VerificationReviewButton
+                    highlight={awaitingReviewIds.has(t.id)}
                     therapistId={t.id}
                     name={t.display_name || "—"}
                     status={t.verification_status}

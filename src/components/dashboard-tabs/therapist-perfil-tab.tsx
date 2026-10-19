@@ -21,7 +21,8 @@ import {
   TIPOS_DE_TERAPIA,
   IDIOMAS_FIJOS,
 } from "@/lib/perfil-catalogos";
-import { saveTherapistProfile, uploadVerificationDocuments } from "@/app/dashboard/actions";
+import { VerificationDocsForm } from "@/components/verification-docs-form";
+import { saveTherapistProfile } from "@/app/dashboard/actions";
 
 function initialsFrom(name: string) {
   return name
@@ -134,7 +135,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
       )}
       {error === "foto_grande" && (
         <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
-          Esa imagen pesa demasiado (máximo 5 MB).
+          No pudimos procesar esa imagen. Prueba con otra foto (JPG o PNG).
         </p>
       )}
       {error === "slug_reservado" && (
@@ -152,9 +153,14 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
           Uno de tus documentos pesa demasiado (máximo 8 MB).
         </p>
       )}
-      {error === "documento_faltante" && (
+      {error === "documento_faltante_cedula" && (
         <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
-          Nos falta tu cédula profesional o tu identificación oficial — ambas son obligatorias.
+          Falta tu cédula profesional. Es obligatoria para enviar tus documentos a revisión.
+        </p>
+      )}
+      {error === "documento_faltante_identificacion" && (
+        <p className="mt-4 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.9rem] text-rose-deep">
+          Falta tu identificación oficial. Es obligatoria para enviar tus documentos a revisión.
         </p>
       )}
       {error === "verificado_bloqueado" && (
@@ -228,46 +234,12 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
               perfil verificado. La cédula y tu identificación son obligatorias; el título es
               opcional. Aceptamos PDF o imagen, máximo 8 MB cada uno.
             </p>
-            <form
-              action={uploadVerificationDocuments}
-              className="space-y-4"
-              encType="multipart/form-data"
-            >
-              <Field
-                label="Cédula profesional"
-                hint={uploadedDocTypes.has("cedula") ? "Ya tienes una cargada — sube otra para reemplazarla" : undefined}
-              >
-                <input type="file" name="doc_cedula" accept="application/pdf,image/*" className="input-lemy" />
-              </Field>
-              <Field
-                label="Identificación oficial"
-                hint={
-                  uploadedDocTypes.has("identificacion")
-                    ? "Ya tienes una cargada — sube otra para reemplazarla"
-                    : undefined
-                }
-              >
-                <input
-                  type="file"
-                  name="doc_identificacion"
-                  accept="application/pdf,image/*"
-                  className="input-lemy"
-                />
-              </Field>
-              <Field
-                label="Título profesional (opcional)"
-                hint={
-                  uploadedDocTypes.has("titulo")
-                    ? "Ya tienes uno cargado — sube otro para reemplazarlo"
-                    : undefined
-                }
-              >
-                <input type="file" name="doc_titulo" accept="application/pdf,image/*" className="input-lemy" />
-              </Field>
-              <SubmitButton pendingText="Enviando…" variant="ghost">
-                Enviar documentos para revisión
-              </SubmitButton>
-            </form>
+            <VerificationDocsForm
+              userId={user.id}
+              hasCedula={uploadedDocTypes.has("cedula")}
+              hasIdentificacion={uploadedDocTypes.has("identificacion")}
+              hasTitulo={uploadedDocTypes.has("titulo")}
+            />
           </>
         )}
       </div>

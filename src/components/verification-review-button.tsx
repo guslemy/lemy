@@ -41,7 +41,9 @@ export function VerificationReviewButton({
   verifiedByEmail,
   verifiedAt,
   documents,
+  highlight = false,
 }: {
+  highlight?: boolean;
   therapistId: string;
   name: string;
   status: string;
@@ -63,7 +65,9 @@ export function VerificationReviewButton({
         className={
           verified
             ? "text-[0.8rem] font-medium text-forest underline underline-offset-2"
-            : "rounded-full border border-forest/30 px-3 py-1 text-[0.78rem] font-medium text-forest hover:bg-forest/[0.06]"
+            : highlight
+              ? "rounded-full bg-rose-deep px-3.5 py-1 text-[0.78rem] font-semibold text-white hover:bg-[#a86356]"
+              : "rounded-full border border-forest/30 px-3 py-1 text-[0.78rem] font-medium text-forest hover:bg-forest/[0.06]"
         }
       >
         {verified ? "✓ Verificado" : `Revisar (${docCount}/3 docs)`}
