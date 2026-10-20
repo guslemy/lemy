@@ -228,11 +228,29 @@ export async function phonesById(supabase: SupabaseClient, ids: string[]): Promi
 // Punto de entrada que llama el cron. Revisa los 6 disparadores y manda lo
 // que corresponda — cada envío queda registrado en notification_log para no
 // repetirse en la siguiente corrida.
-export async function runNotificationSweep(): Promise<{ checked: number; sent: number }> {
+export async function runNotificationSweep(): Promise<{
+  checked: number;
+  sent: number;
+  timings: Record<string, number>;
+}> {
   const supabase = createServiceClient();
   const now = Date.now();
   let sent = 0;
   let checked = 0;
+
+  // (2026-10-20) Cronómetro por sección: cron-job.org empezó a reportar
+  // timeouts (>30 s) en las corridas de cada hora en punto, y no sabíamos qué
+  // parte del barrido era la lenta. `lap("nombre")` se llama al TERMINAR cada
+  // sección y guarda cuántos milisegundos tardó desde la anterior. El
+  // resultado sale en la respuesta JSON del endpoint (campo `timings`) y en
+  // los logs de Vercel, y no cambia nada de lo que hace el barrido.
+  const timings: Record<string, number> = {};
+  let lapStart = Date.now();
+  const lap = (label: string) => {
+    const t = Date.now();
+    timings[label] = t - lapStart;
+    lapStart = t;
+  };
 
   // 1 y 2. Terapeutas en periodo de prueba: aviso a 5 días y a 1 día.
   const { data: trialTherapists } = await supabase
@@ -308,6 +326,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  lap("01-02_prueba_gratis");
+
   // Correo 3 de onboarding de terapeuta: 10 minutos después de activar la
   // cuenta (checklist + compartir perfil).
   //
@@ -356,6 +376,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  lap("03_onboarding_checklist");
+
   // Correo de "invita y ahorra": 3 días después de crear la cuenta, solo a
   // quienes ya tienen suscripción activa (pagada) — recordatorio de su
   // código de referidos. Tolerancia de 1 día porque es un disparador a
@@ -398,6 +420,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       console.error(`Error en barrido (referral_invite → therapist ${t.id}):`, err);
     }
   }
+
+  lap("04_invita_y_ahorra");
 
   // 3 y 4. Renovación de suscripción: 3 días antes (solo correo) y 1 día
   // antes (correo + WhatsApp).
@@ -464,6 +488,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       console.error(`Error en barrido (renewal → therapist ${t.id}):`, err);
     }
   }
+
+  lap("05_renovacion");
 
   // 5 y 6. Recordatorio de sesión para el paciente: 1 día y 1 hora antes.
   const { data: appointments } = await supabase
@@ -560,6 +586,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  lap("06_recordatorios_de_sesion");
+
   // 7. Solicitud de reseña al paciente: 2 horas después de que empezó la
   // sesión. Filtramos status="confirmed" (mismo criterio que el
   // recordatorio de arriba) — de paso ya excluye canceladas, pendientes de
@@ -638,6 +666,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  lap("07_solicitud_de_resena");
+
   // 8. Vencimiento de propuestas de cita hechas por el terapeuta (botón
   // "Agendar consulta con este paciente", a petición de Gustavo
   // 2026-09-21): si pasaron 24 horas sin que el paciente acepte o rechace,
@@ -702,6 +732,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       console.error(`Error en barrido (appointment_proposal_expired → appointment ${a.id}):`, err);
     }
   }
+
+  lap("08_propuestas_vencidas");
 
   // 9. Vencimiento de confirmación del terapeuta — 24 horas, EXCLUSIVO de
   // citas en EFECTIVO (a petición de Gustavo 2026-09-21). Una cita con
@@ -799,6 +831,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       console.error(`Error en barrido (appointment_confirmation_expired → appointment ${a.id}):`, err);
     }
   }
+
+  lap("09_confirmaciones_vencidas");
 
   // 10. Recordatorio de "¿qué pasó con tu pago?" a los 5 minutos, si una
   // cita con tarjeta todavía no se completa (checkout abandonado, tarjeta
@@ -913,6 +947,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
+  lap("10-11_pagos_pendientes");
+
   // 12. Purga real de cuentas de terapeuta cerradas hace 90+ días (ver
   // dashboard/cerrar-cuenta/actions.ts y 0041) — borra SOLO la credencial de
   // auth.users; profiles/patients/citas/expediente sobreviven a propósito
@@ -940,6 +976,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       // corrida sin costo real.
     }
   }
+
+  lap("12_purga_de_cuentas");
 
   // 13. Aviso de inactividad al terapeuta: un paciente sin visitarlo hace
   // ~1 mes, con recordatorio de descargar su expediente por la NOM (a
@@ -1012,6 +1050,8 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
       console.error(`Error en barrido (patient_dormancy_notice → ${therapistId}/${patientId}):`, err);
     }
   }
+
+  lap("13_inactividad_de_pacientes");
 
   // 14. Resumen mensual: el día 1 de cada mes (hora de Oaxaca), a todo
   // terapeuta con suscripción activa, con lo del mes que acaba de cerrar —
@@ -1145,7 +1185,10 @@ export async function runNotificationSweep(): Promise<{ checked: number; sent: n
     }
   }
 
-  return { checked, sent };
+  lap("14_resumen_mensual");
+  console.log("Barrido de notificaciones — milisegundos por sección:", JSON.stringify(timings));
+
+  return { checked, sent, timings };
 }
 
 // Mismo cálculo que whenLabelFor en instant.ts (duplicado a propósito, igual
