@@ -96,6 +96,30 @@ async function alreadySent(
   return Boolean(data);
 }
 
+// Versión "en bloque" de alreadySent: devuelve de una vez el conjunto de
+// related_id que ya tienen registrado ese envío, en vez de una consulta por
+// cada uno. Va en tandas de 100 para no pasarse del largo permitido de la URL
+// de la consulta (cada id es un uuid de 36 caracteres).
+async function alreadySentMany(
+  supabase: SupabaseClient,
+  type: string,
+  channel: "email" | "whatsapp" | "in_app" | "push",
+  relatedIds: string[]
+): Promise<Set<string>> {
+  const done = new Set<string>();
+  for (let i = 0; i < relatedIds.length; i += 100) {
+    const chunk = relatedIds.slice(i, i + 100);
+    const { data } = await supabase
+      .from("notification_log")
+      .select("related_id")
+      .eq("notification_type", type)
+      .eq("channel", channel)
+      .in("related_id", chunk);
+    for (const r of data ?? []) done.add(r.related_id as string);
+  }
+  return done;
+}
+
 async function logSent(
   supabase: SupabaseClient,
   type: string,
@@ -262,9 +286,23 @@ export async function runNotificationSweep(): Promise<{
   checked += trialTherapists?.length ?? 0;
   const trialPhones = await phonesById(supabase, (trialTherapists ?? []).map((t) => t.id as string));
 
+  // (2026-10-21) El aviso de "tu prueba terminó" se manda una sola vez en la
+  // vida de la cuenta, pero antes el ciclo de abajo repetía en CADA corrida
+  // 4 consultas por cada terapeuta ya vencido (correo, 2 chequeos de envío
+  // previo, preferencias) solo para descubrir que ya se le había avisado — era
+  // ~70% del tiempo del barrido y crecía con cada cuenta que vence. Ahora se
+  // consulta de una sola vez a quiénes ya se les mandó el correo y se saltan.
+  // (Si el correo de alguien falló antes, no quedó registrado y se le sigue
+  // reintentando igual que antes.)
+  const expiredTrialIds = (trialTherapists ?? [])
+    .filter((t) => now >= new Date(t.trial_ends_at as string).getTime())
+    .map((t) => t.id as string);
+  const trialEndedAlreadyEmailed = await alreadySentMany(supabase, "trial_ended", "email", expiredTrialIds);
+
   for (const t of trialTherapists ?? []) {
     const trialEndsAt = new Date(t.trial_ends_at as string).getTime();
     if (now >= trialEndsAt) {
+      if (trialEndedAlreadyEmailed.has(t.id as string)) continue;
       // Antes este caso simplemente se saltaba (nada que recordar de un
       // trial que ya terminó) — a petición de Gustavo (2026-09-27), ahora
       // sí se avisa una vez que la prueba se venció sin conversión.
