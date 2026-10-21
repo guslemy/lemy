@@ -8,6 +8,8 @@ import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { VerificationReviewButton } from "@/components/verification-review-button";
 import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
+import { AdminInsightsTab } from "@/components/admin-insights-tab";
+import { getInsights } from "@/lib/admin-insights";
 import { deactivateUser, reactivateUser } from "./actions";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
 
@@ -68,10 +70,24 @@ export default async function AdminPage({
     guardado?: string;
     eliminado?: string;
     error?: string;
+    dias?: string;
+    pruebas?: string;
   }>;
 }) {
-  const { tab, q, qc, uid, desactivado, reactivado, verificacion_actualizada, guardado, eliminado, error } =
-    await searchParams;
+  const {
+    tab,
+    q,
+    qc,
+    uid,
+    desactivado,
+    reactivado,
+    verificacion_actualizada,
+    guardado,
+    eliminado,
+    error,
+    dias,
+    pruebas,
+  } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -230,7 +246,33 @@ export default async function AdminPage({
       }
     : null;
 
+  // Pestaña Insights (KPIs para dirección): solo se calcula cuando se está
+  // viendo (?tab=insights), para no cargar todas las tablas en cada visita al
+  // panel. Cambiar de pestaña vuelve a pedir la página con ese parámetro.
+  const insightsPeriodKey = ["7", "30", "90", "todo"].includes(dias ?? "") ? (dias as string) : "30";
+  const insightsData =
+    tab === "insights"
+      ? await getInsights({
+          days: insightsPeriodKey === "todo" ? null : Number(insightsPeriodKey),
+          includeTests: pruebas === "1",
+          authUsers: (authUsers?.users ?? []).map((u) => ({
+            id: u.id,
+            email: u.email,
+            last_sign_in_at: u.last_sign_in_at,
+          })),
+        })
+      : null;
+
   const tabs: PanelTab[] = [
+    {
+      key: "insights",
+      label: "Insights",
+      content: insightsData ? (
+        <AdminInsightsTab data={insightsData} periodKey={insightsPeriodKey} />
+      ) : (
+        <p className="text-[0.9rem] text-[#7C877F]">Cargando insights…</p>
+      ),
+    },
     {
       key: "contenido",
       label: "Panel de contenido",
