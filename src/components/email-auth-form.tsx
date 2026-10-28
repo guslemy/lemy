@@ -29,7 +29,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
       // sesión) y de ahí aterriza en /restablecer-contrasena para elegir la
       // nueva contraseña. Supabase responde igual exista o no el correo, así
       // que no revelamos qué correos tienen cuenta.
-      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      const callbackUrl = new URL("/auth/confirm", window.location.origin);
       callbackUrl.searchParams.set("next", "/restablecer-contrasena");
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: callbackUrl.toString(),
