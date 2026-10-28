@@ -7,13 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 // Login alterno para quien no tiene (o no quiere usar) cuenta de Google —
 // funciona con cualquier proveedor de correo (Hotmail, Outlook, Yahoo, etc.).
 export function EmailAuthForm({ next }: { next?: string }) {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [howHeard, setHowHeard] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "check-email">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "check-email" | "reset-sent">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const supabase = createClient();
@@ -23,6 +23,25 @@ export function EmailAuthForm({ next }: { next?: string }) {
     e.preventDefault();
     setErrorMsg(null);
     setStatus("loading");
+
+    if (mode === "forgot") {
+      // El link del correo pasa por /auth/callback (que ya sabe crear la
+      // sesión) y de ahí aterriza en /restablecer-contrasena para elegir la
+      // nueva contraseña. Supabase responde igual exista o no el correo, así
+      // que no revelamos qué correos tienen cuenta.
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", "/restablecer-contrasena");
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: callbackUrl.toString(),
+      });
+      if (error) {
+        setErrorMsg(traducirError(error.message));
+        setStatus("idle");
+        return;
+      }
+      setStatus("reset-sent");
+      return;
+    }
 
     if (mode === "login") {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -102,8 +121,22 @@ export function EmailAuthForm({ next }: { next?: string }) {
     );
   }
 
+  if (status === "reset-sent") {
+    return (
+      <p className="max-w-sm text-center text-[0.9rem] text-[#3E4B44]">
+        Si <strong className="text-forest">{email}</strong> tiene una cuenta en Lemy, te mandamos un
+        correo con el link para elegir una contraseña nueva. Revisa también tu carpeta de spam.
+      </p>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-3">
+      {mode === "forgot" && (
+        <p className="text-[0.88rem] text-[#3E4B44]">
+          Escribe el correo de tu cuenta y te mandamos un link para elegir una contraseña nueva.
+        </p>
+      )}
       {mode === "signup" && (
         <>
           <input
@@ -150,15 +183,30 @@ export function EmailAuthForm({ next }: { next?: string }) {
         onChange={(e) => setEmail(e.target.value)}
         className="input-lemy"
       />
-      <input
-        type="password"
-        required
-        minLength={6}
-        placeholder="Contraseña (mínimo 6 caracteres)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="input-lemy"
-      />
+      {mode !== "forgot" && (
+        <input
+          type="password"
+          required
+          minLength={6}
+          placeholder="Contraseña (mínimo 6 caracteres)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="input-lemy"
+        />
+      )}
+
+      {mode === "login" && (
+        <button
+          type="button"
+          onClick={() => {
+            setErrorMsg(null);
+            setMode("forgot");
+          }}
+          className="self-end text-[0.82rem] text-[#7C877F] underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
+      )}
 
       {errorMsg && <p className="text-[0.85rem] text-rose-deep">{errorMsg}</p>}
 
@@ -171,15 +219,24 @@ export function EmailAuthForm({ next }: { next?: string }) {
           ? "Un momento..."
           : mode === "login"
             ? "Entrar"
-            : "Crear cuenta"}
+            : mode === "forgot"
+              ? "Mandarme el link"
+              : "Crear cuenta"}
       </button>
 
       <button
         type="button"
-        onClick={() => setMode(mode === "login" ? "signup" : "login")}
+        onClick={() => {
+          setErrorMsg(null);
+          setMode(mode === "login" ? "signup" : "login");
+        }}
         className="text-[0.85rem] text-[#7C877F] underline"
       >
-        {mode === "login" ? "¿Primera vez? Crea tu cuenta" : "¿Ya tienes cuenta? Entra"}
+        {mode === "login"
+          ? "¿Primera vez? Crea tu cuenta"
+          : mode === "forgot"
+            ? "Volver a entrar"
+            : "¿Ya tienes cuenta? Entra"}
       </button>
     </form>
   );

@@ -55,6 +55,26 @@
   }
 }
 
+/* Tailwind v4 quita el puntero de mano de los botones. Se lo devolvemos a todo
+   lo clickeable (menos si está deshabilitado) para que se note que se puede
+   hacer clic. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+summary,
+select,
+label[for],
+input[type="submit"]:not(:disabled),
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"] {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 :focus-visible {
   outline: 2.5px solid var(--rose-deep);
   outline-offset: 3px;
