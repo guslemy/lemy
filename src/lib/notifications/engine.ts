@@ -262,6 +262,16 @@ export async function runNotificationSweep(): Promise<{
   let sent = 0;
   let checked = 0;
 
+  // (2026-10-27) Horario de silencio: de 10 pm a 8 am hora de CDMX (UTC-6 fijo,
+  // sin horario de verano) no se manda nada que no esté ligado a una cita o a
+  // algo que la persona acaba de hacer — resumen mensual, avisos de prueba,
+  // renovación, "invita y ahorra" e inactividad. Todos esos tienen ventanas de
+  // tolerancia de 1 día o más, así que simplemente salen en la primera corrida
+  // después de las 8 am. Los avisos de cita (recordatorios, reseñas,
+  // confirmaciones, pagos) NO se frenan: dependen de la hora de la cita.
+  const mxHour = new Date(now - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000).getUTCHours();
+  const quietHours = mxHour >= 22 || mxHour < 8;
+
   // (2026-10-20) Cronómetro por sección: cron-job.org empezó a reportar
   // timeouts (>30 s) en las corridas de cada hora en punto, y no sabíamos qué
   // parte del barrido era la lenta. `lap("nombre")` se llama al TERMINAR cada
@@ -300,6 +310,7 @@ export async function runNotificationSweep(): Promise<{
   const trialEndedAlreadyEmailed = await alreadySentMany(supabase, "trial_ended", "email", expiredTrialIds);
 
   for (const t of trialTherapists ?? []) {
+    if (quietHours) break;
     const trialEndsAt = new Date(t.trial_ends_at as string).getTime();
     if (now >= trialEndsAt) {
       if (trialEndedAlreadyEmailed.has(t.id as string)) continue;
@@ -429,6 +440,7 @@ export async function runNotificationSweep(): Promise<{
   checked += referralCandidates?.length ?? 0;
 
   for (const t of referralCandidates ?? []) {
+    if (quietHours) break;
     const createdAtMs = new Date(t.created_at as string).getTime();
     const target = createdAtMs + 3 * DAY_MS;
     if (!isDue(target, DAY_MS, now)) continue;
@@ -473,6 +485,7 @@ export async function runNotificationSweep(): Promise<{
   const activePhones = await phonesById(supabase, (activeTherapists ?? []).map((t) => t.id as string));
 
   for (const t of activeTherapists ?? []) {
+    if (quietHours) break;
     const periodEnd = new Date(t.subscription_current_period_end as string).getTime();
     if (now >= periodEnd) continue;
 
@@ -1043,6 +1056,7 @@ export async function runNotificationSweep(): Promise<{
   }
 
   for (const { therapistId, patientId, lastMs } of lastSeenByPair.values()) {
+    if (quietHours) break;
     if (!isDue(lastMs + DORMANCY_DAYS * DAY_MS, DORMANCY_TOLERANCE_MS, now)) continue;
     checked += 1;
     try {
@@ -1098,7 +1112,7 @@ export async function runNotificationSweep(): Promise<{
   // mes RESUMIDO (no el de envío) para que reintentos el mismo día 1 no
   // dupliquen, y para que nunca choque entre meses distintos.
   const nowOaxacaLocal = new Date(now - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
-  if (nowOaxacaLocal.getUTCDate() === 1) {
+  if (nowOaxacaLocal.getUTCDate() === 1 && !quietHours) {
     // Límites del mes que se resume (el anterior al actual) y del mes previo
     // a ese, en hora de Oaxaca, expresados como instantes UTC para comparar
     // directo contra scheduled_at/created_at (que están en UTC).

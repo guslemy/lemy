@@ -814,6 +814,7 @@ function ComunicacionesTab({
                       {new Date(e.sent_at).toLocaleString("es-MX", {
                         dateStyle: "medium",
                         timeStyle: "short",
+                        timeZone: "America/Mexico_City",
                       })}
                       {" · "}
                       {e.notification_type}

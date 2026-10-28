@@ -161,7 +161,7 @@ export function AdminInsightsTab({ data, periodKey }: { data: InsightsData; peri
         {data.includeTests
           ? "Las cuentas de prueba están incluidas."
           : `Se excluyen ${data.excludedAccounts} cuenta${data.excludedAccounts === 1 ? "" : "s"} de prueba.`}{" "}
-        Actualizado {new Date(data.generatedAt).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}.
+        Actualizado {new Date(data.generatedAt).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short", timeZone: "America/Mexico_City" })}.
       </p>
 
       {/* Revenue */}
