@@ -136,7 +136,9 @@ export async function rejectVerification(formData: FormData) {
   await requireAdmin();
   const targetId = String(formData.get("therapist_id") || "");
   const reason = String(formData.get("reason") || "").trim();
-  if (!targetId) redirect("/dashboard/admin?tab=verificaciones&error=1");
+  // Sin motivo no se rechaza (la UI ya lo exige; esto cubre un formulario
+  // viejo en caché o una llamada directa).
+  if (!targetId || reason.length < 5) redirect("/dashboard/admin?tab=verificaciones&error=1");
 
   const serviceClient = createServiceClient();
   await serviceClient

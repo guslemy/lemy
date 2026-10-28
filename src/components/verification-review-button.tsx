@@ -130,11 +130,24 @@ export function VerificationReviewButton({
                   </button>
                 </form>
 
-                <form action={rejectVerification} className="mt-3">
+                {/* (2026-10-19) El rechazo exige un motivo y pide confirmación:
+                    antes se podía disparar por accidente con un solo clic, justo
+                    debajo de "Aprobar verificación", sin motivo ni aviso. */}
+                <form
+                  action={rejectVerification}
+                  className="mt-3"
+                  onSubmit={(e) => {
+                    if (!window.confirm(`¿Seguro que quieres rechazar a ${name}? Se le mandará un correo con el motivo.`)) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <input type="hidden" name="therapist_id" value={therapistId} />
                   <textarea
                     name="reason"
-                    placeholder="Motivo del rechazo (se le manda por correo)"
+                    required
+                    minLength={5}
+                    placeholder="Motivo del rechazo (obligatorio, se le manda por correo)"
                     rows={2}
                     className="input-lemy text-[0.82rem]"
                   />
