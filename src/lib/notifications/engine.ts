@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyCheckoutSessionPaid } from "@/lib/appointment-checkout";
@@ -80,20 +81,35 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   return digits;
 }
 
+// (2026-11-01) notification_log.related_id es de tipo UUID. El resumen mensual
+// (y otros dos avisos) mandaban textos como "<id>-2026-10", que no son UUID:
+// guardar "ya enviado" fallaba en silencio y la revisión "¿ya se envió?"
+// también, así que cada barrido volvía a mandar el correo (59 veces a cada
+// terapeuta activo el 1 de nov). Ahora cualquier id que no sea UUID se
+// convierte en uno determinista (mismo texto → mismo UUID), y así el registro
+// de duplicados funciona sin cambiar la base de datos.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function toUuid(id: string): string {
+  if (UUID_RE.test(id)) return id;
+  const h = createHash("sha1").update(id).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
 async function alreadySent(
   supabase: SupabaseClient,
   type: string,
   relatedId: string,
   channel: "email" | "whatsapp" | "in_app" | "push"
 ) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("notification_log")
     .select("id")
     .eq("notification_type", type)
-    .eq("related_id", relatedId)
+    .eq("related_id", toUuid(relatedId))
     .eq("channel", channel)
-    .maybeSingle();
-  return Boolean(data);
+    .limit(1);
+  if (error) console.error(`Error revisando notification_log (${type}/${channel}):`, error.message);
+  return (data?.length ?? 0) > 0;
 }
 
 // Versión "en bloque" de alreadySent: devuelve de una vez el conjunto de
@@ -107,15 +123,22 @@ async function alreadySentMany(
   relatedIds: string[]
 ): Promise<Set<string>> {
   const done = new Set<string>();
-  for (let i = 0; i < relatedIds.length; i += 100) {
-    const chunk = relatedIds.slice(i, i + 100);
-    const { data } = await supabase
+  // uuid usado en la tabla → id original que mandó quien llama
+  const originalByUuid = new Map(relatedIds.map((id) => [toUuid(id), id]));
+  const uuids = [...originalByUuid.keys()];
+  for (let i = 0; i < uuids.length; i += 100) {
+    const chunk = uuids.slice(i, i + 100);
+    const { data, error } = await supabase
       .from("notification_log")
       .select("related_id")
       .eq("notification_type", type)
       .eq("channel", channel)
       .in("related_id", chunk);
-    for (const r of data ?? []) done.add(r.related_id as string);
+    if (error) console.error(`Error revisando notification_log en bloque (${type}/${channel}):`, error.message);
+    for (const r of data ?? []) {
+      const original = originalByUuid.get(r.related_id as string);
+      if (original) done.add(original);
+    }
   }
   return done;
 }
@@ -127,9 +150,12 @@ async function logSent(
   channel: "email" | "whatsapp" | "in_app" | "push",
   recipientId: string
 ) {
-  await supabase
+  const { error } = await supabase
     .from("notification_log")
-    .insert({ notification_type: type, related_id: relatedId, channel, recipient_id: recipientId });
+    .insert({ notification_type: type, related_id: toUuid(relatedId), channel, recipient_id: recipientId });
+  // Antes este error se ignoraba y fue justo lo que dejó pasar el envío
+  // repetido del resumen mensual: ahora al menos queda en los logs de Vercel.
+  if (error) console.error(`Error guardando notification_log (${type}/${channel}):`, error.message);
 }
 
 type DispatchInput = {
