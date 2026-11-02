@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -10,6 +11,8 @@ import { VerificationReviewButton } from "@/components/verification-review-butto
 import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
 import { AdminInsightsTab } from "@/components/admin-insights-tab";
 import { getInsights } from "@/lib/admin-insights";
+import { AdminUserDetail } from "@/components/admin-user-detail";
+import { getUserDetail, type UserDetail } from "@/lib/admin-user-detail";
 import { deactivateUser, reactivateUser } from "./actions";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
 
@@ -72,6 +75,7 @@ export default async function AdminPage({
     error?: string;
     dias?: string;
     pruebas?: string;
+    ficha?: string;
   }>;
 }) {
   const {
@@ -87,6 +91,7 @@ export default async function AdminPage({
     error,
     dias,
     pruebas,
+    ficha,
   } = await searchParams;
 
   const supabase = await createClient();
@@ -223,9 +228,30 @@ export default async function AdminPage({
     .filter((r) => {
       if (!query) return true;
       return (
-        (r.full_name ?? "").toLowerCase().includes(query) || r.email.toLowerCase().includes(query)
+        (r.full_name ?? "").toLowerCase().includes(query) ||
+        r.email.toLowerCase().includes(query) ||
+        (r.phone ?? "").replace(/\D/g, "").includes(query.replace(/\D/g, "") || "\u0000")
       );
     });
+
+  // Ficha de un usuario (?ficha=<id>): solo se calcula cuando se pide, para no
+  // consultar todas las tablas en cada visita al panel.
+  const fichaAuth = ficha ? (authUsers?.users ?? []).find((u) => u.id === ficha) : undefined;
+  const userDetail = ficha
+    ? await getUserDetail(
+        ficha,
+        fichaAuth
+          ? {
+              id: fichaAuth.id,
+              email: fichaAuth.email,
+              created_at: fichaAuth.created_at,
+              last_sign_in_at: fichaAuth.last_sign_in_at,
+              providers: ((fichaAuth.app_metadata?.providers as string[] | undefined) ??
+                (fichaAuth.app_metadata?.provider ? [String(fichaAuth.app_metadata.provider)] : [])) as string[],
+            }
+          : null
+      )
+    : null;
 
   // Mismo patrón de búsqueda por nombre/correo que "Gestión de usuarios",
   // pero con su propio parámetro (?qc=) para no pisarse con el de esa
@@ -306,6 +332,7 @@ export default async function AdminPage({
         <UsuariosTab
           rows={userRows}
           q={q}
+          detail={userDetail}
           desactivado={desactivado}
           reactivado={reactivado}
           error={error}
@@ -567,6 +594,7 @@ function VerificacionesTab({
 function UsuariosTab({
   rows,
   q,
+  detail,
   desactivado,
   reactivado,
   error,
@@ -585,15 +613,19 @@ function UsuariosTab({
     } | null;
   }[];
   q?: string;
+  detail: UserDetail | null;
   desactivado?: string;
   reactivado?: string;
   error?: string;
 }) {
   const query = (q ?? "").trim();
+  const backHref = `/dashboard/admin?tab=usuarios${query ? `&q=${encodeURIComponent(query)}` : ""}`;
 
   return (
     <div>
-      <p className="text-[0.9rem] text-[#7C877F]">
+      {detail && <AdminUserDetail data={detail} backHref={backHref} />}
+
+      <p className="mt-6 text-[0.9rem] text-[#7C877F]">
         {rows.length} cuenta{rows.length === 1 ? "" : "s"}
         {query && ` que coinciden con "${query}"`}
       </p>
@@ -610,7 +642,7 @@ function UsuariosTab({
           type="text"
           name="q"
           defaultValue={q ?? ""}
-          placeholder="Buscar por nombre o correo…"
+          placeholder="Buscar por nombre, correo o teléfono…"
           className="input-lemy flex-1"
         />
         <button
@@ -621,7 +653,11 @@ function UsuariosTab({
         </button>
       </form>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
+      <p className="mt-3 text-[0.8rem] text-[#8B978F]">
+        Toca el nombre de alguien (o &quot;Ver ficha&quot;) para ver todo el detalle de su cuenta.
+      </p>
+
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-line">
         <table className="w-full min-w-[720px] text-left text-[0.85rem]">
           <thead className="bg-forest/[0.04] text-[0.72rem] uppercase tracking-[0.06em] text-[#7C877F]">
             <tr>
@@ -637,7 +673,14 @@ function UsuariosTab({
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-line">
-                <td className="px-4 py-3 text-forest">{r.full_name || "—"}</td>
+                <td className="px-4 py-3 text-forest">
+                  <Link
+                    href={`/dashboard/admin?tab=usuarios&ficha=${r.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+                    className="underline decoration-forest/30 underline-offset-2 hover:decoration-forest"
+                  >
+                    {r.full_name || "—"}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-[#5A665F]">{r.email}</td>
                 <td className="px-4 py-3">{ROLE_LABEL[r.role] ?? r.role}</td>
                 <td className="px-4 py-3">
@@ -670,7 +713,13 @@ function UsuariosTab({
                     <span className="text-[#B7C0BB]">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="space-y-1.5 px-4 py-3">
+                  <Link
+                    href={`/dashboard/admin?tab=usuarios&ficha=${r.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+                    className="block text-[0.8rem] font-medium text-forest underline"
+                  >
+                    Ver ficha
+                  </Link>
                   {r.role === "admin" ? (
                     <span className="text-[#B7C0BB]">—</span>
                   ) : r.deactivated_at ? (

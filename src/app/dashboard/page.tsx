@@ -136,6 +136,19 @@ export default async function DashboardPage({
               <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
                 Hola, {profile?.full_name ?? user.email}
               </h1>
+              {/* (2026-11-01) Dos personas no recordaban con qué correo crearon su
+                  cuenta y no había dónde verlo. Se muestra el correo real de
+                  la cuenta y cómo ingresa (Google o correo y contraseña). */}
+              {user.email && (
+                <p className="mt-2 text-[0.85rem] text-[#7C877F]">
+                  Tu cuenta: <span className="font-medium text-[#3E4B44]">{user.email}</span>
+                  {" · "}
+                  {(user.app_metadata?.providers as string[] | undefined)?.includes("google") ||
+                  user.app_metadata?.provider === "google"
+                    ? "Ingresas con Google"
+                    : "Ingresas con correo y contraseña"}
+                </p>
+              )}
             </div>
 
             {/* Visible siempre, sin importar la pestaña activa ni el rol (vive
