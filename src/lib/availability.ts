@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getBusyRanges } from "@/lib/google-freebusy";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // Calcula horarios reales disponibles para reservar, a partir de los
 // bloques recurrentes semanales del terapeuta (availability_slots),
@@ -117,7 +118,14 @@ export async function getAvailableSlots(
         .eq("therapist_id", therapistId)
         .eq("is_recurring", true)
         .eq("is_blocked", false),
-      supabase
+      // (2026-11-03) Con permiso de servicio A PROPÓSITO: la regla de privacidad
+      // de `appointments` solo deja que cada paciente vea SUS citas, así que con
+      // el cliente del visitante esta consulta nunca veía las citas de otros
+      // pacientes y un horario ya apartado (cita pedida pero aún sin confirmar
+      // por el terapeuta, sin evento en Google Calendar todavía) aparecía
+      // libre — causó una cita doble. Solo se leen horas y duraciones, nunca
+      // quién es el paciente ni ningún otro dato.
+      createServiceClient()
         .from("appointments")
         .select("scheduled_at, duration_min")
         .eq("therapist_id", therapistId)

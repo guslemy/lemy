@@ -86,7 +86,11 @@ export async function requestAppointmentForUser(
   const newEndMs = newStartMs + durationMin * 60 * 1000;
   const dayMs = 24 * 60 * 60 * 1000;
 
-  const { data: nearby } = await supabase
+  // Con permiso de servicio A PROPÓSITO (ver el mismo cambio en
+  // lib/availability.ts): con el cliente del paciente, la regla de privacidad
+  // de `appointments` ocultaba las citas de otros pacientes y esta revisión
+  // nunca detectaba un choque real. Solo se leen horas y duraciones.
+  const { data: nearby } = await createServiceClient()
     .from("appointments")
     .select("scheduled_at, duration_min")
     .eq("therapist_id", therapist.id)
