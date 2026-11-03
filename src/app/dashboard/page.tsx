@@ -75,6 +75,18 @@ export default async function DashboardPage({
 
   const sinPlan = isTherapist && therapist?.subscription_status !== "active";
 
+  // (2026-11-03) Un terapeuta también puede reservar con OTRO terapeuta (como
+  // paciente), y antes no tenía ninguna pantalla para ver esas citas. Si tiene
+  // al menos una, se le muestra una pestaña extra con la vista de paciente.
+  const { count: asPatientCount } = isTherapist
+    ? await supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("patient_id", user.id)
+        .neq("status", "cancelled")
+    : { count: 0 };
+  const hasPatientTab = (asPatientCount ?? 0) > 0;
+
   const therapistTabs: PanelTab[] = isTherapist
     ? [
         // "Consultas" (antes "Citas") va primero y es la pestaña default —
@@ -90,6 +102,15 @@ export default async function DashboardPage({
           label: "Consultas",
           content: <TherapistCitasTab params={sp} />,
         },
+        ...(hasPatientTab
+          ? [
+              {
+                key: "como-paciente",
+                label: "Mis citas como paciente",
+                content: <PatientMisCitasTab params={sp} variant="therapist" />,
+              },
+            ]
+          : []),
         {
           key: "perfil",
           label: "Editar perfil",
@@ -121,7 +142,15 @@ export default async function DashboardPage({
     },
   ];
 
-  const initialTabKey = sp.tab || "citas";
+  // Las acciones de paciente (cancelar, aceptar, rechazar) redirigen a
+  // ?tab=citas con su aviso; en un terapeuta esa pestaña es la de SUS
+  // consultas, así que si trae uno de esos avisos se le lleva a la pestaña
+  // de sus citas como paciente.
+  const patientFlash = Boolean(sp.cancelado || sp.aceptado || sp.rechazado || sp.telefono_guardado);
+  const initialTabKey =
+    isTherapist && hasPatientTab && patientFlash && (!sp.tab || sp.tab === "citas")
+      ? "como-paciente"
+      : sp.tab || "citas";
   const hasFlash = Object.keys(sp).some((k) => k !== "tab" && Boolean(sp[k]));
 
   return (

@@ -72,8 +72,18 @@ function formatExpiryLabel(iso: string) {
   return `vence en ${hoursLeft} horas`;
 }
 
-export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams }) {
+// variant="therapist": un terapeuta que reserva con OTRO terapeuta ve sus citas
+// como paciente en esta misma vista, pero sin el formulario de teléfono ni el
+// enlace de cerrar cuenta (ya tiene los suyos en su propio panel).
+export async function PatientMisCitasTab({
+  params,
+  variant = "patient",
+}: {
+  params: MisCitasTabParams;
+  variant?: "patient" | "therapist";
+}) {
   const { cancelado, error, telefono_guardado, aceptado, rechazado } = params;
+  const isPatientView = variant === "patient";
   const supabase = await createClient();
   const {
     data: { user },
@@ -157,6 +167,7 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
         </p>
       )}
 
+      {isPatientView && (
       <form
         action={updatePatientPhone}
         className="mt-6 flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-card p-5"
@@ -180,6 +191,7 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
           Guardar
         </button>
       </form>
+      )}
 
       {appointments.length === 0 ? (
         <p className="mt-8 text-[0.95rem] text-[#3E4B44]">
@@ -329,11 +341,13 @@ export async function PatientMisCitasTab({ params }: { params: MisCitasTabParams
         </div>
       )}
 
-      <div className="mt-10 border-t border-line pt-6">
-        <Link href="/dashboard/cerrar-cuenta" className="text-[0.8rem] text-[#8B978F] hover:text-rose-deep">
-          Cerrar mi cuenta
-        </Link>
-      </div>
+      {isPatientView && (
+        <div className="mt-10 border-t border-line pt-6">
+          <Link href="/dashboard/cerrar-cuenta" className="text-[0.8rem] text-[#8B978F] hover:text-rose-deep">
+            Cerrar mi cuenta
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
