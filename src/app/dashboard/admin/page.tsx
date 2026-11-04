@@ -12,6 +12,7 @@ import { PanelTabs, type PanelTab } from "@/components/panel-tabs";
 import { AdminInsightsTab } from "@/components/admin-insights-tab";
 import { getInsights } from "@/lib/admin-insights";
 import { AdminUserDetail } from "@/components/admin-user-detail";
+import { AdminWhatsappTool } from "@/components/admin-whatsapp-tool";
 import { getUserDetail, type UserDetail } from "@/lib/admin-user-detail";
 import { deactivateUser, reactivateUser } from "./actions";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
@@ -336,6 +337,23 @@ export default async function AdminPage({
           desactivado={desactivado}
           reactivado={reactivado}
           error={error}
+        />
+      ),
+    },
+    {
+      key: "whatsapp",
+      label: "WhatsApp manual",
+      content: (
+        <AdminWhatsappTool
+          users={(profiles ?? [])
+            .filter((p) => p.role !== "admin")
+            .map((p) => ({
+              id: p.id,
+              name: p.full_name ?? "",
+              email: emailById.get(p.id) ?? "",
+              phone: p.phone ?? null,
+              role: p.role,
+            }))}
         />
       ),
     },
