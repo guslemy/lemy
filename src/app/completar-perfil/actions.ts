@@ -40,6 +40,18 @@ export async function saveProfileAndContinue(formData: FormData) {
   }
 
   await supabase.from("profiles").update({ full_name: fullName, phone }).eq("id", user.id);
+
+  // Permiso de WhatsApp: solo se registra si la persona marcó la casilla. Si no
+  // la marca, no se toca (no se le quita un permiso que ya hubiera dado desde
+  // su panel). Aparte del update de arriba a propósito: si la migración 0045
+  // aún no está corrida, esto falla solo sin romper el guardado.
+  if (formData.get("whatsapp_opt_in") === "on") {
+    await supabase
+      .from("profiles")
+      .update({ whatsapp_opt_in: true, whatsapp_opt_in_at: new Date().toISOString() })
+      .eq("id", user.id);
+  }
+
   await ensurePatientShell(supabase, user.id);
 
   if (nextSlug && nextScheduledAt) {

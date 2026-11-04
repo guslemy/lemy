@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { setPushEnabled, setEmailWhatsappEnabled } from "@/app/push/actions";
-import { BellIcon, MailIcon } from "@/components/social-icons";
+import { setPushEnabled, setEmailWhatsappEnabled, setWhatsappOptIn } from "@/app/push/actions";
+import { BellIcon, MailIcon, WhatsAppIcon } from "@/components/social-icons";
 
 // Interruptores de notificaciones a nivel cuenta, visibles siempre en la
 // cabecera de /dashboard (fuera de PanelTabs, mismo patrón que "Ver mi
@@ -67,9 +67,11 @@ function NotificationToggle({
 export function NotificationsToggles({
   initialPushEnabled,
   initialEmailWhatsappEnabled,
+  initialWhatsappOptIn,
 }: {
   initialPushEnabled: boolean;
   initialEmailWhatsappEnabled: boolean;
+  initialWhatsappOptIn: boolean;
 }) {
   return (
     <>
@@ -79,11 +81,20 @@ export function NotificationsToggles({
         initialEnabled={initialPushEnabled}
         action={setPushEnabled}
       />
+      {/* (2026-11-04) Antes decía "Correo y WhatsApp". WhatsApp ahora tiene su
+          propio permiso explícito (profiles.whatsapp_opt_in, ver el interruptor
+          de abajo); este solo controla el correo. */}
       <NotificationToggle
-        label="Correo y WhatsApp"
+        label="Correo"
         icon={<MailIcon />}
         initialEnabled={initialEmailWhatsappEnabled}
         action={setEmailWhatsappEnabled}
+      />
+      <NotificationToggle
+        label="WhatsApp"
+        icon={<WhatsAppIcon />}
+        initialEnabled={initialWhatsappOptIn}
+        action={setWhatsappOptIn}
       />
     </>
   );

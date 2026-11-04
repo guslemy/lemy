@@ -13,6 +13,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [howHeard, setHowHeard] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "check-email" | "reset-sent">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -100,7 +101,12 @@ export function EmailAuthForm({ next }: { next?: string }) {
         password,
         options: {
           emailRedirectTo: confirmUrl.toString(),
-          data: { full_name: fullName.trim(), phone: phone.trim(), how_heard_about_lemy: howHeard || null },
+          data: {
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            how_heard_about_lemy: howHeard || null,
+            whatsapp_opt_in: whatsappOptIn,
+          },
         },
       });
       if (error) {
@@ -157,6 +163,18 @@ export function EmailAuthForm({ next }: { next?: string }) {
             onChange={(e) => setPhone(e.target.value)}
             className="input-lemy"
           />
+          <label className="flex items-start gap-2.5 text-left text-[0.82rem] text-[#3E4B44]">
+            <input
+              type="checkbox"
+              checked={whatsappOptIn}
+              onChange={(e) => setWhatsappOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-forest"
+            />
+            <span>
+              Acepto recibir avisos de mis citas por WhatsApp en ese número. Puedo darme de baja
+              cuando quiera.
+            </span>
+          </label>
           <select
             value={howHeard}
             onChange={(e) => setHowHeard(e.target.value)}

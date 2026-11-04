@@ -138,6 +138,15 @@ export default async function AdminPage({
       .order("created_at", { ascending: false }),
   ]);
 
+  // Quién ha dado permiso de WhatsApp (0045) — solo se consulta al estar en la
+  // pestaña "WhatsApp manual". Consulta aparte: si la columna aún no existe,
+  // queda vacío y el resto del panel funciona igual.
+  const { data: waOptRows } =
+    tab === "whatsapp"
+      ? await serviceClient.from("profiles").select("id, whatsapp_opt_in")
+      : { data: [] as { id: string; whatsapp_opt_in: boolean | null }[] };
+  const waOptInIds = new Set((waOptRows ?? []).filter((r) => r.whatsapp_opt_in).map((r) => r.id));
+
   const therapistById = new Map((therapistRows ?? []).map((t) => [t.id, t]));
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? ""]));
   const videos = (rawVideos ?? []) as unknown as VideoRow[];
@@ -353,6 +362,7 @@ export default async function AdminPage({
               email: emailById.get(p.id) ?? "",
               phone: p.phone ?? null,
               role: p.role,
+              optIn: waOptInIds.has(p.id),
             }))}
         />
       ),

@@ -22,6 +22,7 @@ export type WaUser = {
   email: string;
   phone: string | null;
   role: string;
+  optIn: boolean; // dio permiso de WhatsApp (profiles.whatsapp_opt_in)
 };
 
 const ROLE_LABEL: Record<string, string> = { patient: "Paciente", therapist: "Terapeuta" };
@@ -113,6 +114,11 @@ export function AdminWhatsappTool({ users }: { users: WaUser[] }) {
             >
               Cambiar
             </button>
+            <p className={`w-full text-[0.8rem] ${selected.optIn ? "text-forest" : "text-rose-deep"}`}>
+              {selected.optIn
+                ? "✓ Esta persona aceptó recibir avisos por WhatsApp."
+                : "Esta persona aún no ha dado permiso de WhatsApp. Escríbele solo si ya hablaron por ahí o si te lo pidió; si no, mejor avísale por correo."}
+            </p>
           </div>
         ) : (
           <div className="relative mt-3">

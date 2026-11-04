@@ -34,6 +34,9 @@ export type UserDetail = {
   accountClosedAt: string | null;
   pushEnabled: boolean | null;
   emailWhatsappEnabled: boolean | null;
+  whatsappOptIn: boolean | null; // null = columna aún no existe (migración 0045 sin correr)
+  whatsappOptInAt: string | null;
+  whatsappOptOutAt: string | null;
 
   appointments: {
     total: number;
@@ -101,6 +104,14 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
     .eq("id", id)
     .maybeSingle();
   if (!p) return null;
+
+  // Consulta aparte: si la migración 0045 aún no está corrida, solo esto
+  // queda vacío y el resto de la ficha funciona.
+  const { data: wa } = await s
+    .from("profiles")
+    .select("whatsapp_opt_in, whatsapp_opt_in_at, whatsapp_opt_out_at")
+    .eq("id", id)
+    .maybeSingle();
 
   const role = String(p.role);
 
@@ -263,6 +274,9 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
     accountClosedAt: (p.account_closed_at as string | null) ?? null,
     pushEnabled: (p.push_enabled as boolean | null) ?? null,
     emailWhatsappEnabled: (p.email_whatsapp_enabled as boolean | null) ?? null,
+    whatsappOptIn: wa ? Boolean(wa.whatsapp_opt_in) : null,
+    whatsappOptInAt: (wa?.whatsapp_opt_in_at as string | null) ?? null,
+    whatsappOptOutAt: (wa?.whatsapp_opt_out_at as string | null) ?? null,
 
     appointments: {
       total: mine.length,

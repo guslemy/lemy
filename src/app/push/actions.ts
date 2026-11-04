@@ -63,3 +63,26 @@ export async function setEmailWhatsappEnabled(enabled: boolean) {
 
   return { ok: !error };
 }
+
+// Permiso explícito para WhatsApp (0045_whatsapp_permiso.sql). Se guarda la
+// fecha en que se acepta y la fecha de baja, como evidencia del
+// consentimiento.
+export async function setWhatsappOptIn(enabled: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("profiles")
+    .update(
+      enabled
+        ? { whatsapp_opt_in: true, whatsapp_opt_in_at: now }
+        : { whatsapp_opt_in: false, whatsapp_opt_out_at: now }
+    )
+    .eq("id", user.id);
+
+  return { ok: !error };
+}

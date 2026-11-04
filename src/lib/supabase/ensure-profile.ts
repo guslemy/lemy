@@ -33,6 +33,16 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
       role: isLemyTeam ? "admin" : "patient", // por default paciente; therapist se activa en onboarding
     });
 
+    // Permiso de WhatsApp aceptado en la casilla del registro por correo
+    // (email-auth-form.tsx). Aparte del insert de arriba a propósito: si la
+    // migración 0045 aún no está corrida, esto falla sin tumbar el registro.
+    if (user.user_metadata?.whatsapp_opt_in === true) {
+      await supabase
+        .from("profiles")
+        .update({ whatsapp_opt_in: true, whatsapp_opt_in_at: new Date().toISOString() })
+        .eq("id", user.id);
+    }
+
     // Bienvenida — antes solo existía para terapeutas (therapistWelcome).
     // isLemyTeam se excluye para que nadie del equipo reciba un "bienvenido
     // paciente" cada vez que alguien nuevo se registra con @lemy.mx.

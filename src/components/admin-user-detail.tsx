@@ -89,8 +89,19 @@ export function AdminUserDetail({ data, backHref }: { data: UserDetail; backHref
         <Item label="Se registró">{fmtDate(data.createdAt)}</Item>
         <Item label="Último acceso">{fmtDateTime(data.lastSignInAt)}</Item>
         <Item label="Avisos">
-          Correo/WhatsApp {data.emailWhatsappEnabled === false ? "apagado" : "encendido"} · Push{" "}
+          Correo {data.emailWhatsappEnabled === false ? "apagado" : "encendido"} · Push{" "}
           {data.pushEnabled === false ? "apagado" : "encendido"}
+        </Item>
+        <Item label="Permiso de WhatsApp">
+          {data.whatsappOptIn === null ? (
+            "—"
+          ) : data.whatsappOptIn ? (
+            <span className="text-forest">Sí, aceptó ({fmtDate(data.whatsappOptInAt)})</span>
+          ) : (
+            <span className="text-rose-deep">
+              No{data.whatsappOptOutAt ? ` — se dio de baja el ${fmtDate(data.whatsappOptOutAt)}` : ""}
+            </span>
+          )}
         </Item>
       </Card>
 

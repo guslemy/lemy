@@ -58,6 +58,16 @@ export default async function DashboardPage({
   const isTherapist = profile?.role === "therapist";
   const isAdmin = profile?.role === "admin";
 
+  // Consulta aparte a propósito (no dentro de loadProfile): si por algún
+  // motivo la columna aún no existe en la base de datos (migración 0045 sin
+  // correr), esto falla solo y el panel completo sigue funcionando.
+  const { data: waRow } = await supabase
+    .from("profiles")
+    .select("whatsapp_opt_in")
+    .eq("id", user.id)
+    .maybeSingle();
+  const whatsappOptIn = Boolean(waRow?.whatsapp_opt_in);
+
   // Admin no tiene nada que hacer en esta pantalla intermedia — su panel
   // real (contenido, verificaciones, usuarios) siempre es /dashboard/admin.
   // Antes había una tarjeta con un botón para llegar ahí; Gustavo pidió
@@ -191,6 +201,7 @@ export default async function DashboardPage({
               <NotificationsToggles
                 initialPushEnabled={profile?.push_enabled ?? true}
                 initialEmailWhatsappEnabled={profile?.email_whatsapp_enabled ?? true}
+                initialWhatsappOptIn={whatsappOptIn}
               />
 
               {/* Visible siempre, sin importar la pestaña activa (vive fuera de
