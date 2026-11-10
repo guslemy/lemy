@@ -6,6 +6,8 @@ import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
 import { sendPushToUser } from "@/lib/webpush";
+import { WA_TEMPLATES, WA_MONTHLY_CAP } from "@/lib/whatsapp-templates";
+import { hasGestionaPlan } from "@/lib/plan-features";
 import {
   trialEnding,
   trialEnded,
@@ -158,6 +160,105 @@ async function logSent(
   if (error) console.error(`Error guardando notification_log (${type}/${channel}):`, error.message);
 }
 
+// ── WhatsApp: reglas de quién recibe qué ────────────────────────────────────
+// (2026-11-04, estrategia acordada con Gustavo)
+//  1. Solo recibe WhatsApp automático quien dio permiso (profiles.whatsapp_opt_in).
+//  2. Cada plantilla del catálogo (lib/whatsapp-templates.ts) es "essential" (la
+//     reciben todos los terapeutas, plan Empieza incluido) o "full" (solo si el
+//     terapeuta que la cubre tiene plan Gestiona activo — incluye los avisos a
+//     sus pacientes).
+//  3. "Uso razonable": tope mensual por terapeuta (WA_MONTHLY_CAP); al llegar,
+//     se frena WhatsApp pero el correo sigue.
+// Cada mensaje se atribuye (billed_to) al terapeuta cuyo plan lo cubre.
+type WhatsappGate = { ok: true; billedTo: string } | { ok: false; reason: string };
+
+async function whatsappGate(
+  supabase: SupabaseClient,
+  recipientId: string,
+  templateName: string,
+  relatedId: string
+): Promise<WhatsappGate> {
+  const template = WA_TEMPLATES.find((t) => t.name === templateName);
+  if (!template) return { ok: false, reason: "plantilla fuera del catálogo" };
+
+  const { data: prof, error: profErr } = await supabase
+    .from("profiles")
+    .select("whatsapp_opt_in")
+    .eq("id", recipientId)
+    .maybeSingle();
+  if (profErr || !prof?.whatsapp_opt_in) return { ok: false, reason: "sin permiso de WhatsApp" };
+
+  // ¿Qué terapeuta cubre este aviso? Si related_id es una cita, el de esa cita
+  // (aunque quien recibe sea el paciente); si no (avisos de suscripción), la
+  // propia persona.
+  let billedTo = recipientId;
+  if (UUID_RE.test(relatedId)) {
+    const { data: appt } = await supabase.from("appointments").select("therapist_id").eq("id", relatedId).maybeSingle();
+    if (appt?.therapist_id) billedTo = appt.therapist_id as string;
+  }
+
+  if (template.tier === "full") {
+    const { data: th } = await supabase
+      .from("therapists")
+      .select("subscription_plan, subscription_status")
+      .eq("id", billedTo)
+      .maybeSingle();
+    if (!hasGestionaPlan(th?.subscription_plan as string | null, th?.subscription_status as string | null)) {
+      return { ok: false, reason: "el plan del terapeuta no incluye este aviso" };
+    }
+  }
+
+  // Inicio del mes en hora de CDMX (UTC-6 fijo), expresado en UTC.
+  const local = new Date(Date.now() - OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000);
+  const monthStartIso = new Date(
+    Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) + OAXACA_UTC_OFFSET_MIN_ENGINE * 60 * 1000
+  ).toISOString();
+  const { count, error: countErr } = await supabase
+    .from("notification_log")
+    .select("id", { count: "exact", head: true })
+    .eq("billed_to", billedTo)
+    .eq("channel", "whatsapp")
+    .gte("sent_at", monthStartIso);
+  // Si la columna billed_to aún no existe (migración 0046 sin correr) no se
+  // puede contar: no se frena, pero tampoco hay forma de medir el uso.
+  if (!countErr && (count ?? 0) >= WA_MONTHLY_CAP) {
+    return { ok: false, reason: `límite mensual de WhatsApp alcanzado (${WA_MONTHLY_CAP})` };
+  }
+
+  return { ok: true, billedTo };
+}
+
+// "Apartar" el envío ANTES de mandarlo: la tabla tiene una restricción única
+// (tipo + related_id + canal), así que si dos barridos coinciden solo uno
+// logra apartarlo, y si el registro falla NO se manda (mejor un aviso menos que
+// uno repetido). Si luego el envío falla, se libera para reintentar.
+async function claimWhatsappSend(
+  supabase: SupabaseClient,
+  type: string,
+  relatedId: string,
+  recipientId: string,
+  billedTo: string
+): Promise<boolean> {
+  const row = { notification_type: type, related_id: toUuid(relatedId), channel: "whatsapp", recipient_id: recipientId };
+  let { error } = await supabase.from("notification_log").insert({ ...row, billed_to: billedTo });
+  if (error && /billed_to/.test(error.message)) {
+    ({ error } = await supabase.from("notification_log").insert(row));
+  }
+  if (error && error.code !== "23505") {
+    console.error(`Error apartando envío de WhatsApp (${type}):`, error.message);
+  }
+  return !error;
+}
+
+async function releaseWhatsappSend(supabase: SupabaseClient, type: string, relatedId: string) {
+  await supabase
+    .from("notification_log")
+    .delete()
+    .eq("notification_type", type)
+    .eq("related_id", toUuid(relatedId))
+    .eq("channel", "whatsapp");
+}
+
 type DispatchInput = {
   supabase: SupabaseClient;
   type: string;
@@ -245,21 +346,28 @@ export async function dispatch(input: DispatchInput) {
 
   if (input.emailOnly) return;
 
+  // (2026-11-04) WhatsApp ya NO depende del interruptor de correo
+  // (email_whatsapp_enabled): tiene su propio permiso (whatsapp_opt_in) y
+  // reglas por plan — ver whatsappGate. isWhatsAppConfigured() va primero a
+  // propósito: mientras no haya credenciales no se hace ninguna consulta extra.
   if (
     phone &&
-    emailWhatsappOk &&
     input.whatsappTemplate &&
+    isWhatsAppConfigured() &&
     !(await alreadySent(supabase, type, relatedId, "whatsapp"))
   ) {
-    try {
-      await sendWhatsAppTemplate(phone, input.whatsappTemplate, input.whatsappParams ?? []);
-      await logSent(supabase, type, relatedId, "whatsapp", recipientId);
-    } catch (err) {
-      if (!(err instanceof WhatsAppNotConfiguredError)) {
-        console.error(`Error mandando WhatsApp (${type} → ${phone}):`, err);
+    const gate = await whatsappGate(supabase, recipientId, input.whatsappTemplate, relatedId);
+    if (gate.ok && (await claimWhatsappSend(supabase, type, relatedId, recipientId, gate.billedTo))) {
+      try {
+        await sendWhatsAppTemplate(phone, input.whatsappTemplate, input.whatsappParams ?? []);
+      } catch (err) {
+        await releaseWhatsappSend(supabase, type, relatedId);
+        if (!(err instanceof WhatsAppNotConfiguredError)) {
+          console.error(`Error mandando WhatsApp (${type} → ${phone}):`, err);
+        }
       }
-      // Si WhatsApp no está configurado todavía, no es un error real — solo
-      // no se manda ese canal hasta que Gustavo dé de alta las credenciales.
+    } else if (!gate.ok && gate.reason.startsWith("límite")) {
+      console.warn(`WhatsApp no enviado (${type} → ${recipientId}): ${gate.reason}`);
     }
   }
 }

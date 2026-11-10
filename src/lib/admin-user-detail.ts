@@ -89,6 +89,9 @@ export type UserDetail = {
 
   communications: {
     byChannel: { channel: string; count: number }[];
+    // WhatsApp automáticos de este mes que cubre el plan de esta persona
+    // (null = columna billed_to aún no existe, migración 0046 sin correr)
+    whatsappThisMonth: number | null;
     totalEmails: number;
     recentEmails: { subject: string; type: string; sentAt: string }[];
   };
@@ -114,6 +117,18 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
     .maybeSingle();
 
   const role = String(p.role);
+
+  // Inicio del mes en hora de CDMX (UTC-6 fijo), en UTC.
+  const localNow = new Date(now - 6 * 60 * 60 * 1000);
+  const monthStartIso = new Date(
+    Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), 1) + 6 * 60 * 60 * 1000
+  ).toISOString();
+  const { count: waCount, error: waCountErr } = await s
+    .from("notification_log")
+    .select("id", { count: "exact", head: true })
+    .eq("billed_to", id)
+    .eq("channel", "whatsapp")
+    .gte("sent_at", monthStartIso);
 
   const [
     { data: th },
@@ -299,6 +314,7 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
 
     communications: {
       byChannel: [...channelMap.entries()].map(([channel, count]) => ({ channel, count })),
+      whatsappThisMonth: waCountErr ? null : (waCount ?? 0),
       totalEmails: emailCount ?? 0,
       recentEmails: (emailRows ?? []).map((e) => ({
         subject: String((e as Row).subject),

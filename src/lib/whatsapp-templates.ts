@@ -202,6 +202,13 @@ export const WA_TEMPLATES: WaTemplate[] = [
   },
 ];
 
+// "Uso razonable": tope de mensajes de WhatsApp AUTOMÁTICOS por terapeuta al
+// mes (cuenta los avisos a él y a sus pacientes). Al llegar al tope, el envío
+// automático por WhatsApp se detiene hasta el mes siguiente; el correo y la
+// campanita siguen igual. Con ~$0.15 MXN por mensaje utility, 300 mensajes
+// cuestan ~$45 MXN al mes, muy por debajo de la mensualidad. Ajustable aquí.
+export const WA_MONTHLY_CAP = 300;
+
 // Mensaje libre: solo para envío MANUAL por wa.me (no existe como plantilla de
 // Meta). Útil para atender a alguien en lo que dura la fase beta.
 export const WA_FREE_TEMPLATE_NAME = "__libre__";

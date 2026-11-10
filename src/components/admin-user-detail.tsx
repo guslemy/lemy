@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { UserDetail } from "@/lib/admin-user-detail";
+import { WA_MONTHLY_CAP } from "@/lib/whatsapp-templates";
 
 // Ficha de un usuario en el panel de admin. Solo lectura. No muestra nada
 // clínico (notas, expediente, evaluaciones): ver comentario en
@@ -209,6 +210,11 @@ export function AdminUserDetail({ data, backHref }: { data: UserDetail; backHref
                 .map((c) => `${CHANNEL_LABEL[c.channel] ?? c.channel}: ${c.count}`)
                 .join(" · ")
             : "Ninguna"}
+        </Item>
+        <Item label="WhatsApp automáticos este mes (uso razonable)">
+          {data.communications.whatsappThisMonth === null
+            ? "—"
+            : `${data.communications.whatsappThisMonth} de ${WA_MONTHLY_CAP}`}
         </Item>
         <Item label="Correos guardados en el historial">{data.communications.totalEmails}</Item>
         {data.communications.recentEmails.length > 0 && (
