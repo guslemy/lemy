@@ -19,6 +19,36 @@ export function isWhatsAppConfigured(): boolean {
   return Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN);
 }
 
+// Texto libre — SOLO se puede usar como respuesta a un mensaje que la persona
+// mandó en las últimas 24 horas (ventana de conversación de Meta); fuera de
+// esa ventana Meta lo rechaza. Lo usa el webhook (confirmar una baja, respuesta
+// automática). Los avisos proactivos siempre van con sendWhatsAppTemplate.
+export async function sendWhatsAppText(to: string, body: string): Promise<void> {
+  if (!isWhatsAppConfigured()) throw new WhatsAppNotConfiguredError();
+
+  const res = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body, preview_url: false },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Respuesta de WhatsApp falló (→ ${to}): ${err}`);
+  }
+}
+
 // `to` debe ser un número en formato E.164 sin el "+" (ej. 529511234567).
 export async function sendWhatsAppTemplate(
   to: string,

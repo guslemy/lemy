@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { setPushEnabled, setEmailWhatsappEnabled, setWhatsappOptIn } from "@/app/push/actions";
-import { BellIcon, MailIcon, WhatsAppIcon } from "@/components/social-icons";
+import { BellIcon, MailIcon, ChatIcon } from "@/components/social-icons";
 
 // Interruptores de notificaciones a nivel cuenta, visibles siempre en la
 // cabecera de /dashboard (fuera de PanelTabs, mismo patrón que "Ver mi
@@ -92,7 +92,7 @@ export function NotificationsToggles({
       />
       <NotificationToggle
         label="WhatsApp"
-        icon={<WhatsAppIcon />}
+        icon={<ChatIcon />}
         initialEnabled={initialWhatsappOptIn}
         action={setWhatsappOptIn}
       />

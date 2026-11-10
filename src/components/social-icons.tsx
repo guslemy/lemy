@@ -70,6 +70,27 @@ export function MailIcon() {
   );
 }
 
+// Burbuja de chat genérica (contorno, mismo estilo que BellIcon y MailIcon).
+// Se usa en el interruptor de WhatsApp del dashboard, donde el ícono de marca
+// relleno se veía desentonado junto a los otros dos íconos de contorno.
+export function ChatIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  );
+}
+
 export function WhatsAppIcon() {
   return (
     <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">
