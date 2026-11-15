@@ -1,63 +1,43 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { TherapistCard, type TherapistCardData } from "@/components/therapist-card";
 import { QuizFloatingTab } from "@/components/quiz-floating-tab";
-import { getRatingsByTherapistId } from "@/lib/reviews";
+import {
+  getCachedPublishedTherapists,
+  getCachedRatings,
+  getCachedSpecialties,
+  getCachedVideoRows,
+  type PublicTherapist,
+} from "@/lib/catalogo-publico";
 
 // Buscador con filtros — corazón del diferenciador.
 // Filtros (texto libre + especialidad) se resuelven por query params, así el
 // resultado siempre es enlazable y funciona sin JavaScript en el cliente.
 
 type Specialty = { slug: string; nombre_coloquial: string };
-type SpecialtyCatalogEntry = { id: string; slug: string; nombre_coloquial: string };
 
-type RawTherapist = {
-  id: string;
-  slug: string;
-  display_name: string;
-  tagline: string | null;
-  city: string | null;
-  price_min: number | null;
-  price_max: number | null;
-  is_online_available: boolean;
-  is_in_person_available: boolean;
-  photo_url: string | null;
-  verification_status: string;
-  therapist_specialties: { specialty: Specialty | null }[] | null;
-};
+// (2026-11-15) Los datos del directorio (especialidades, terapeutas, reseñas,
+// videos) ahora salen de lib/catalogo-publico.ts, guardados 5 minutos, en vez
+// de consultar Supabase en cada visita — un rastreador llegó a pedir esta
+// página ~465 mil veces en una semana. Ver el comentario de ese archivo.
 
 type EducationalVideo = { id: string; title: string; platform: string; url: string };
 
-// Los videos ahora se relacionan con especialidades vía una tabla puente
-// (un video puede hablar de varios temas), así que la búsqueda va en dos
-// pasos: primero los content_id que tocan esta especialidad, luego los
-// videos en sí, ordenados por más recientes.
-async function getVideosForSpecialties(
-  supabase: SupabaseClient,
-  specialtyIds: string[]
-): Promise<EducationalVideo[]> {
-  const { data: links } = await supabase
-    .from("educational_content_specialties")
-    .select("content_id")
-    .in("specialty_id", specialtyIds);
-
-  const contentIds = [...new Set((links ?? []).map((l) => l.content_id as string))];
-  if (!contentIds.length) return [];
-
-  const { data: rawVideos } = await supabase
-    .from("educational_content")
-    .select("id, title, platform, url")
-    .in("id", contentIds)
-    .order("created_at", { ascending: false })
-    .limit(3);
-
-  return (rawVideos ?? []) as unknown as EducationalVideo[];
+// Los videos se relacionan con especialidades vía una tabla puente (un video
+// puede hablar de varios temas). Se traen todos una vez (cacheados) y aquí se
+// filtran los que tocan las especialidades elegidas, los 3 más recientes.
+async function getVideosForSpecialties(specialtyIds: string[]): Promise<EducationalVideo[]> {
+  const rows = await getCachedVideoRows();
+  return rows
+    .filter((v) =>
+      (v.educational_content_specialties ?? []).some((es) => specialtyIds.includes(es.specialty_id))
+    )
+    .slice(0, 3)
+    .map((v) => ({ id: v.id, title: v.title, platform: v.platform, url: v.url }));
 }
 
 // Las pills ahora son acumulativas (2026-10-09): cada clic suma o quita una
@@ -97,28 +77,20 @@ export async function generateMetadata({
     };
   }
 
-  const supabase = await createClient();
+  const catalog = await getCachedSpecialties();
 
   // Combinaciones de varias especialidades: útiles para la persona, pero no
   // para Google (serían miles de URLs casi idénticas) — noindex, y el título
   // simplemente las nombra.
   if (slugs.length > 1) {
-    const { data: specs } = await supabase
-      .from("specialties")
-      .select("nombre_coloquial")
-      .in("slug", slugs);
-    const names = (specs ?? []).map((x) => x.nombre_coloquial as string);
+    const names = catalog.filter((x) => slugs.includes(x.slug)).map((x) => x.nombre_coloquial);
     return {
       title: `Terapeuta para ${names.join(" + ").toLowerCase()} en Oaxaca`,
       robots: { index: false, follow: true },
     };
   }
 
-  const { data: specialty } = await supabase
-    .from("specialties")
-    .select("nombre_coloquial, descripcion_coloquial")
-    .eq("slug", slugs[0])
-    .maybeSingle();
+  const specialty = catalog.find((x) => x.slug === slugs[0]);
 
   if (!specialty) return { title: "Buscar terapeuta en Oaxaca" };
 
@@ -136,31 +108,21 @@ export default async function BuscarPage({
   searchParams: Promise<{ q?: string; especialidad?: string }>;
 }) {
   const { q = "", especialidad = "" } = await searchParams;
-  const supabase = await createClient();
-
-  const [{ data: rawSpecialties }, { data: rawTherapists }] = await Promise.all([
-    supabase.from("specialties").select("id, slug, nombre_coloquial").order("nombre_coloquial"),
-    supabase
-      .from("therapists")
-      .select(
-        "id, slug, display_name, tagline, city, price_min, price_max, is_online_available, is_in_person_available, photo_url, verification_status, therapist_specialties ( specialty:specialties ( slug, nombre_coloquial ) )"
-      )
-      .eq("is_published", true),
+  const [specialties, rawList, ratingsById] = await Promise.all([
+    getCachedSpecialties(),
+    getCachedPublishedTherapists(),
+    getCachedRatings(),
   ]);
 
-  const specialties = (rawSpecialties ?? []) as unknown as SpecialtyCatalogEntry[];
   const selectedSlugs = parseSlugs(especialidad).filter((slug) => specialties.some((s) => s.slug === slug));
   const activeSpecialties = specialties.filter((s) => selectedSlugs.includes(s.slug));
 
   const videos =
     activeSpecialties.length > 0
-      ? await getVideosForSpecialties(supabase, activeSpecialties.map((s) => s.id))
+      ? await getVideosForSpecialties(activeSpecialties.map((s) => s.id))
       : null;
 
-  const rawList = (rawTherapists ?? []) as unknown as RawTherapist[];
-  const ratingsById = await getRatingsByTherapistId(supabase, rawList.map((t) => t.id));
-
-  const therapists = rawList.map((t) => {
+  const therapists = rawList.map((t: PublicTherapist) => {
     const specs = (t.therapist_specialties ?? [])
       .map((ts) => ts.specialty)
       .filter((s): s is Specialty => Boolean(s));

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BibliotecaExplorer, type ExplorerPost, type ExplorerVideo } from "@/components/biblioteca-explorer";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedVideoRows } from "@/lib/catalogo-publico";
 import { BLOG_POSTS } from "@/content/blog-posts";
 import { detectVideoOrientation, resolveVideoThumbnail } from "@/lib/video-utils";
 
@@ -12,25 +12,10 @@ export const metadata: Metadata = {
     "Artículos y videos sobre terapia y salud mental, en lenguaje claro y sin jerga clínica.",
 };
 
-type VideoRow = {
-  id: string;
-  title: string;
-  platform: string;
-  url: string;
-  thumbnail_url: string | null;
-  educational_content_specialties: { specialty: { nombre_coloquial: string } | null }[] | null;
-};
-
+// (2026-11-15) Los videos salen de lib/catalogo-publico.ts (guardados 5
+// minutos) en vez de consultar Supabase en cada visita — ver ese archivo.
 async function getVideos(): Promise<ExplorerVideo[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("educational_content")
-    .select(
-      "id, title, platform, url, thumbnail_url, educational_content_specialties ( specialty:specialties ( nombre_coloquial ) )"
-    )
-    .order("created_at", { ascending: false });
-
-  const rows = (data ?? []) as unknown as VideoRow[];
+  const rows = await getCachedVideoRows();
 
   return rows.map((v) => ({
     id: v.id,

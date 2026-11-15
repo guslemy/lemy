@@ -705,7 +705,7 @@ function perfilGuardadoNotice(perfil_guardado?: string) {
   if (perfil_guardado !== "1") return null;
   return (
     <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
-      Guardamos tus cambios.
+      Guardamos tus cambios. Los cambios podrían tardar unos minutos en reflejarse en tu perfil.
     </p>
   );
 }
