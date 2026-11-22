@@ -63,6 +63,12 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   // No-show: igual que una cancelación, el paciente necesita enterarse de
   // que su cita quedó marcada así sí o sí (2026-09-27).
   "appointment_no_show",
+  // Pagos con tarjeta: el recibo del paciente y el aviso de cobro al
+  // terapeuta son comprobantes, no recordatorios — no se pueden apagar
+  // (2026-11-22).
+  "card_payment_receipt_patient",
+  "card_payment_received_therapist",
+  "card_payout_failed_therapist",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {

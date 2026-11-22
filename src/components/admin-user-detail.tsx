@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { UserDetail } from "@/lib/admin-user-detail";
 import { WA_MONTHLY_CAP } from "@/lib/whatsapp-templates";
+import { cardPaymentStatusLabelAdmin } from "@/lib/card-payment-status";
 
 // Ficha de un usuario en el panel de admin. Solo lectura. No muestra nada
 // clínico (notas, expediente, evaluaciones): ver comentario en
@@ -222,6 +223,44 @@ export function AdminUserDetail({ data, backHref }: { data: UserDetail; backHref
           <Item label="Reseñas que dejó">{pt.reviewsWritten}</Item>
         </Card>
       )}
+
+      <Card title="Pagos con tarjeta">
+        {data.cardPayments === null ? (
+          <Item label="Pagos">— (falta correr la migración 0047)</Item>
+        ) : data.cardPayments.length === 0 ? (
+          <Item label="Pagos">Sin pagos con tarjeta registrados</Item>
+        ) : (
+          <div className="sm:col-span-2">
+            <ul className="space-y-3">
+              {data.cardPayments.map((c) => (
+                <li key={c.appointmentId} className="rounded-xl border border-line bg-sage-white px-4 py-3 text-[0.85rem] text-[#3E4B44]">
+                  <p className="font-medium text-forest">
+                    {c.direction === "received" ? "Cobró a" : "Pagó a"} {c.otherName} · {money(c.amountCents / 100)} ·{" "}
+                    {cardPaymentStatusLabelAdmin(c.status)}
+                  </p>
+                  <p className="mt-1 text-[0.8rem] text-[#5A665F]">
+                    Pagado el {fmtDateTime(c.paidAt)}
+                    {c.cardLabel ? ` · ${c.cardLabel}` : ""}
+                    {c.direction === "received" &&
+                      ` · Comisión Lemy ${money(c.lemyFeeCents / 100)}` +
+                        (c.stripeFeeCents !== null ? ` · Comisión Stripe ${money(c.stripeFeeCents / 100)}` : "") +
+                        ` · Neto ${c.netCents !== null ? money(c.netCents / 100) : "por confirmar"}`}
+                  </p>
+                  <p className="mt-1 text-[0.75rem] text-[#8B978F]">
+                    {c.status === "deposited" && c.depositedAt
+                      ? `Depositado el ${fmtDate(c.depositedAt)}`
+                      : c.expectedAvailableOn
+                        ? `Disponible estimado: ${c.expectedAvailableOn}`
+                        : ""}
+                    {c.stripeChargeId ? ` · Cobro ${c.stripeChargeId}` : ""}
+                    {c.stripePayoutId ? ` · Depósito ${c.stripePayoutId}` : ""} · Cita {c.appointmentId.slice(0, 8)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Card>
 
       <Card title="Comunicaciones recibidas">
         <Item label="Por canal">

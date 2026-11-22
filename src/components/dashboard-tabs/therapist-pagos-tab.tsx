@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { connectStripeAccount, syncStripeConnectStatus, updatePaymentMethods } from "@/app/dashboard/pagos/actions";
 import { hasGestionaPlan } from "@/lib/plan-features";
+import { TherapistCardPayments } from "@/components/dashboard-tabs/therapist-card-payments";
 
 // Estado de la cuenta de Stripe Connect del terapeuta — de aquí depende si
 // puede cobrar sus sesiones con tarjeta a través de Lemy (ver /[slug]: sin
@@ -98,6 +99,8 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
           )}
         </div>
       )}
+
+      <TherapistCardPayments therapistId={user.id} />
 
       <div className="mt-6 rounded-2xl border border-line bg-card p-6">
         <h2 className="mb-1 font-mono text-[0.75rem] uppercase tracking-[0.1em] text-rose-deep">

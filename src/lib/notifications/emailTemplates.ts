@@ -18,7 +18,7 @@ const LOGO_URL = "https://lemy.mx/brand/LemyLogoHoriz_White.png";
 // Outlook de escritorio renderiza de forma confiable — el resto de clientes
 // de correo (Gmail, Apple Mail, etc.) también lo soportan sin problema, así
 // que tablas es la opción segura para los tres.
-function wrap(bodyHtml: string) {
+export function wrap(bodyHtml: string) {
   return `<div style="background: #f2f5ef; padding: 32px 16px; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #E4E9DF;">
       <tr>

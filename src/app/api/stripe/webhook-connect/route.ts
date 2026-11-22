@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
+import { recordCardPayment, markPayoutPaid, markPayoutFailed } from "@/lib/card-payments";
 
 // Endpoint APARTE del webhook normal (api/stripe/webhook) porque los
 // eventos que ocurren DENTRO de una cuenta conectada (Direct charges de
@@ -62,6 +63,22 @@ export async function POST(req: Request) {
 
         await supabase.from("appointments").update({ payment_status: "paid" }).eq("id", appointmentId);
         await confirmAppointmentAndCreateEvent(appointmentId);
+        // Registra el cobro (desglose, fecha estimada de depósito) y manda el
+        // recibo al paciente y el aviso al terapeuta. Nunca lanza: si algo
+        // falla ahí, la cita ya quedó pagada y confirmada.
+        await recordCardPayment({ appointmentId, session, connectedAccountId: event.account });
+        break;
+      }
+
+      // Stripe depositó el dinero en el banco del terapeuta (o no pudo).
+      // Estos eventos llegan por este mismo endpoint de Connect, siempre que
+      // estén marcados en el Dashboard de Stripe (payout.paid y payout.failed).
+      case "payout.paid": {
+        if (event.account) await markPayoutPaid(event.data.object as Stripe.Payout, event.account);
+        break;
+      }
+      case "payout.failed": {
+        if (event.account) await markPayoutFailed(event.data.object as Stripe.Payout, event.account);
         break;
       }
 

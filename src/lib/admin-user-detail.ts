@@ -107,6 +107,28 @@ export type UserDetail = {
     totalEmails: number;
     recentEmails: { subject: string; type: string; sentAt: string }[];
   };
+
+  // Pagos con tarjeta de esta persona (como terapeuta que cobró o como
+  // paciente que pagó). null = tabla card_payments aún no existe (migración
+  // 0047 sin correr).
+  cardPayments:
+    | null
+    | {
+        appointmentId: string;
+        direction: "received" | "paid";
+        otherName: string;
+        amountCents: number;
+        lemyFeeCents: number;
+        stripeFeeCents: number | null;
+        netCents: number | null;
+        status: string;
+        paidAt: string;
+        expectedAvailableOn: string | null;
+        depositedAt: string | null;
+        cardLabel: string | null;
+        stripeChargeId: string | null;
+        stripePayoutId: string | null;
+      }[];
 };
 
 export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Promise<UserDetail | null> {
@@ -298,6 +320,47 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
       ? "Correo y contraseña"
       : "—";
 
+  // Pagos con tarjeta (consulta aparte y tolerante: si la migración 0047 aún
+  // no está corrida, solo esta sección queda vacía).
+  let cardPayments: UserDetail["cardPayments"] = null;
+  {
+    const { data: cpRows, error: cpErr } = await s
+      .from("card_payments")
+      .select("*")
+      .or(`therapist_id.eq.${id},patient_id.eq.${id}`)
+      .order("paid_at", { ascending: false })
+      .limit(100);
+    if (!cpErr) {
+      const otherIds = Array.from(
+        new Set((cpRows ?? []).map((r) => String(r.therapist_id === id ? r.patient_id : r.therapist_id)))
+      );
+      const { data: others } = otherIds.length
+        ? await s.from("profiles").select("id, full_name").in("id", otherIds)
+        : { data: [] as Row[] };
+      const nameOf = new Map((others ?? []).map((o) => [String((o as Row).id), ((o as Row).full_name as string | null) ?? "—"]));
+      cardPayments = (cpRows ?? []).map((r) => {
+        const received = r.therapist_id === id;
+        const brand = r.card_brand ? String(r.card_brand) : null;
+        return {
+          appointmentId: String(r.appointment_id),
+          direction: received ? ("received" as const) : ("paid" as const),
+          otherName: nameOf.get(String(received ? r.patient_id : r.therapist_id)) ?? "—",
+          amountCents: Number(r.amount_cents),
+          lemyFeeCents: Number(r.lemy_fee_cents ?? 0),
+          stripeFeeCents: r.stripe_fee_cents === null ? null : Number(r.stripe_fee_cents),
+          netCents: r.net_cents === null ? null : Number(r.net_cents),
+          status: String(r.status),
+          paidAt: String(r.paid_at),
+          expectedAvailableOn: (r.expected_available_on as string | null) ?? null,
+          depositedAt: (r.deposited_at as string | null) ?? null,
+          cardLabel: r.card_last4 ? `${brand ?? "Tarjeta"} •••• ${r.card_last4}` : null,
+          stripeChargeId: (r.stripe_charge_id as string | null) ?? null,
+          stripePayoutId: (r.stripe_payout_id as string | null) ?? null,
+        };
+      });
+    }
+  }
+
   return {
     id,
     role,
@@ -356,5 +419,7 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
         sentAt: String((e as Row).sent_at),
       })),
     },
+
+    cardPayments,
   };
 }

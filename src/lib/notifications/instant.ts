@@ -24,7 +24,7 @@ import {
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
-function whenLabelFor(iso: string) {
+export function whenLabelFor(iso: string) {
   const local = new Date(new Date(iso).getTime() - OAXACA_UTC_OFFSET_MIN * 60 * 1000);
   const weekday = WEEKDAY_LABELS[local.getUTCDay()];
   const d = local.getUTCDate();

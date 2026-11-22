@@ -226,6 +226,7 @@ export async function PatientMisCitasTab({
                     {a.status === "pending_payment" && a.payment_status === "pending"
                       ? "Pago no completado"
                       : (STATUS_LABEL[a.status] ?? a.status)}
+                    {a.payment_status === "paid" && " · Pago con tarjeta recibido ✓"}
                     {a.modality && ` · ${a.modality === "online" ? "En línea" : "Presencial"}`}
                     {a.therapist_service?.service?.nombre && ` · ${a.therapist_service.service.nombre}`}
                   </p>
