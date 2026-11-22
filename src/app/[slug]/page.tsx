@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -259,7 +260,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
   // pasada ya resuelta como "sí se llevó a cabo" migra de "confirmed" a
   // "completed", así que hay que contar ambas para no des-contar sesiones
   // reales de este número de cara al público.
-  const { count: sessionsCount } = await supabase
+  // OJO: se cuenta con el cliente de servicio (solo devuelve un número). Con el
+  // cliente normal, la política de seguridad de `appointments` solo deja ver
+  // las citas al terapeuta o al paciente de cada cita, así que para cualquier
+  // visitante el contador salía en 0 (y solo la terapeuta logueada veía el
+  // número real).
+  const { count: sessionsCount } = await createServiceClient()
     .from("appointments")
     .select("id", { count: "exact", head: true })
     .eq("therapist_id", therapist.id)
