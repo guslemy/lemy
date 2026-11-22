@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { readOrigenInBrowser } from "@/lib/origen-registro";
 
 // Login alterno para quien no tiene (o no quiere usar) cuenta de Google —
 // funciona con cualquier proveedor de correo (Hotmail, Outlook, Yahoo, etc.).
@@ -96,6 +97,11 @@ export function EmailAuthForm({ next }: { next?: string }) {
       // un "?" para que el "&" siguiente sea válido.
       confirmUrl.searchParams.set("next", next || "/dashboard");
 
+      // Origen de registro (utm_*) — viaja en los datos del signUp para que
+      // sobreviva si la persona confirma su correo desde otro dispositivo
+      // (ahí la cookie ya no estaría). Ver lib/origen-registro.ts.
+      const origen = readOrigenInBrowser();
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -106,6 +112,7 @@ export function EmailAuthForm({ next }: { next?: string }) {
             phone: phone.trim(),
             how_heard_about_lemy: howHeard || null,
             whatsapp_opt_in: whatsappOptIn,
+            ...(origen ? { origen } : {}),
           },
         },
       });

@@ -71,6 +71,14 @@ export default function AvisoPrivacidadPage() {
               terapeutas a través de Stripe; enviarte notificaciones relacionadas con tus citas y tu
               cuenta (por correo y, cuando esté disponible, WhatsApp); y mejorar el servicio.
             </p>
+            <p>
+              <strong className="text-forest">Origen de registro.</strong> Si llegas a Lemy desde
+              un anuncio, un enlace de campaña o una publicación, guardamos en una cookie de tu
+              navegador (por hasta 60 días) de dónde viniste (por ejemplo, la campaña o el sitio de
+              origen). Al crear tu cuenta, ese dato se guarda en tu perfil. Lo usamos solo para
+              medir qué esfuerzos de difusión funcionan y mejorar el servicio; no se usa para
+              publicidad personalizada ni se comparte con terceros con ese fin.
+            </p>
           </Section>
 
           <Section title="4. Transferencia de datos a terceros">

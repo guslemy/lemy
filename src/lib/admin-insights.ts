@@ -104,6 +104,18 @@ export type InsightsData = {
     signups: number[];
     appointments: number[];
   };
+
+  // Registros del periodo agrupados por fuente / medio / campaña (utm_*), ver
+  // lib/origen-registro.ts. null = las columnas aún no existen (migración 0046
+  // sin correr).
+  origins:
+    | null
+    | {
+        label: string;
+        registrations: number;
+        therapists: number;
+        subscribed: number; // terapeutas de ese origen con suscripción activa hoy
+      }[];
 };
 
 type Row = Record<string, unknown>;
@@ -326,6 +338,38 @@ export async function getInsights(params: {
   // criterio que el aviso del panel, ver lib/admin-pending.ts).
   const backlog = (await getPendingVerifications()).filter((p) => keep(p.id));
 
+  // ── Origen de los registros (utm_*) ──────────────────────────────────
+  // Consulta aparte (misma razón que en admin-user-detail.ts): si la migración
+  // 0046 aún no está corrida, solo esta sección queda vacía. Se prueba primero
+  // con una fila porque fetchAll ignora errores y no distinguiría "sin columna"
+  // de "sin datos".
+  let origins: InsightsData["origins"] = null;
+  const originsProbe = await service.from("profiles").select("utm_source").limit(1);
+  if (!originsProbe.error) {
+    const originRows = await fetchAll((a, b) =>
+      service.from("profiles").select("id, role, created_at, utm_source, utm_medium, utm_campaign").range(a, b)
+    );
+    const subscribedIds = new Set(subscribed.map((t) => String(t.id)));
+    const groups = new Map<string, { label: string; registrations: number; therapists: number; subscribed: number }>();
+    for (const r of originRows) {
+      const id = String(r.id);
+      if (!keep(id) || !inCur(ts(r.created_at))) continue;
+      if (r.role !== "patient" && r.role !== "therapist") continue;
+      const hasUtm = Boolean(r.utm_source || r.utm_medium || r.utm_campaign);
+      const label = hasUtm
+        ? [r.utm_source, r.utm_medium, r.utm_campaign].map((x) => (x ? String(x) : "—")).join(" / ")
+        : "Sin campaña (directo, orgánico o anterior al seguimiento)";
+      const g = groups.get(label) ?? { label, registrations: 0, therapists: 0, subscribed: 0 };
+      g.registrations += 1;
+      if (r.role === "therapist") {
+        g.therapists += 1;
+        if (subscribedIds.has(id)) g.subscribed += 1;
+      }
+      groups.set(label, g);
+    }
+    origins = Array.from(groups.values()).sort((a, b) => b.registrations - a.registrations);
+  }
+
   // ── Series diarias (máx. 90 días) ────────────────────────────────────
   const span = Math.min(days ?? 90, 90);
   const labels: string[] = [];
@@ -422,5 +466,7 @@ export async function getInsights(params: {
     },
 
     series: { labels, signups, appointments: apptSeries },
+
+    origins,
   };
 }

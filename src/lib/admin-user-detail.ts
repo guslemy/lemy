@@ -37,6 +37,18 @@ export type UserDetail = {
   whatsappOptIn: boolean | null; // null = columna aún no existe (migración 0045 sin correr)
   whatsappOptInAt: string | null;
   whatsappOptOutAt: string | null;
+  // Origen de registro (migración 0046_origen_de_registro). null = columnas aún
+  // no existen; todo en null dentro = la cuenta se creó sin utm (o antes de 0046).
+  origen: null | {
+    source: string | null;
+    medium: string | null;
+    campaign: string | null;
+    content: string | null;
+    term: string | null;
+    landingPath: string | null;
+    referrer: string | null;
+    capturedAt: string | null;
+  };
 
   appointments: {
     total: number;
@@ -90,7 +102,7 @@ export type UserDetail = {
   communications: {
     byChannel: { channel: string; count: number }[];
     // WhatsApp automáticos de este mes que cubre el plan de esta persona
-    // (null = columna billed_to aún no existe, migración 0046 sin correr)
+    // (null = columna billed_to aún no existe, migración 0045 sin correr)
     whatsappThisMonth: number | null;
     totalEmails: number;
     recentEmails: { subject: string; type: string; sentAt: string }[];
@@ -113,6 +125,16 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
   const { data: wa } = await s
     .from("profiles")
     .select("whatsapp_opt_in, whatsapp_opt_in_at, whatsapp_opt_out_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  // Consulta aparte (misma razón): si la migración 0046 aún no está corrida,
+  // solo "Origen de registro" queda vacío.
+  const { data: og } = await s
+    .from("profiles")
+    .select(
+      "utm_source, utm_medium, utm_campaign, utm_content, utm_term, signup_landing_path, signup_referrer, utm_captured_at"
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -292,6 +314,18 @@ export async function getUserDetail(id: string, auth: AdminAuthInfo | null): Pro
     whatsappOptIn: wa ? Boolean(wa.whatsapp_opt_in) : null,
     whatsappOptInAt: (wa?.whatsapp_opt_in_at as string | null) ?? null,
     whatsappOptOutAt: (wa?.whatsapp_opt_out_at as string | null) ?? null,
+    origen: og
+      ? {
+          source: (og.utm_source as string | null) ?? null,
+          medium: (og.utm_medium as string | null) ?? null,
+          campaign: (og.utm_campaign as string | null) ?? null,
+          content: (og.utm_content as string | null) ?? null,
+          term: (og.utm_term as string | null) ?? null,
+          landingPath: (og.signup_landing_path as string | null) ?? null,
+          referrer: (og.signup_referrer as string | null) ?? null,
+          capturedAt: (og.utm_captured_at as string | null) ?? null,
+        }
+      : null,
 
     appointments: {
       total: mine.length,

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ORIGEN_COOKIE, ORIGEN_MAX_AGE_SECONDS, buildOrigenFromUrl, encodeOrigen } from "@/lib/origen-registro";
 
 // Refresca la sesión de Supabase en cada request (necesario con @supabase/ssr)
 // Renombrado de middleware.ts a proxy.ts: Next.js 16 renombró esta
@@ -14,8 +15,28 @@ export async function proxy(request: NextRequest) {
   const hasSessionCookie = request.cookies
     .getAll()
     .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  // Origen de registro (2026-11-17): si la URL trae utm_* y todavía no hay
+  // cookie de origen, se guarda (primera visita gana). Ver lib/origen-registro.ts.
+  // Se hace aquí, antes del atajo de abajo, porque la gente que llega con un
+  // utm casi nunca tiene sesión todavía.
+  const origen = request.cookies.has(ORIGEN_COOKIE)
+    ? null
+    : buildOrigenFromUrl(request.nextUrl, request.headers.get("referer"));
+  const guardarOrigen = (res: NextResponse) => {
+    if (origen) {
+      res.cookies.set(ORIGEN_COOKIE, encodeOrigen(origen), {
+        maxAge: ORIGEN_MAX_AGE_SECONDS,
+        path: "/",
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:",
+      });
+    }
+    return res;
+  };
+
   if (!hasSessionCookie) {
-    return NextResponse.next({ request });
+    return guardarOrigen(NextResponse.next({ request }));
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -42,7 +63,7 @@ export async function proxy(request: NextRequest) {
   // Importante: no eliminar esta línea, refresca el token si expiró.
   await supabase.auth.getUser();
 
-  return supabaseResponse;
+  return guardarOrigen(supabaseResponse);
 }
 
 export const config = {

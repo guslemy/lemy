@@ -2,6 +2,8 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/service";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
 import { patientWelcome } from "@/lib/notifications/emailTemplates";
+import { cookies } from "next/headers";
+import { ORIGEN_COOKIE, decodeOrigen, origenToProfileColumns, sanitizeOrigen } from "@/lib/origen-registro";
 
 // Crea el registro en `profiles` la primera vez que un usuario entra,
 // sin importar si vino por Google o por correo/contraseña.
@@ -41,6 +43,31 @@ export async function ensureProfile(supabase: SupabaseClient, user: User) {
         .from("profiles")
         .update({ whatsapp_opt_in: true, whatsapp_opt_in_at: new Date().toISOString() })
         .eq("id", user.id);
+    }
+
+    // Origen de registro (utm_*): primero lo que trae el propio registro por
+    // correo (user_metadata.origen — sobrevive si la persona confirma su
+    // correo desde otro dispositivo) y si no, la cookie "lemy_origen" que dejó
+    // src/proxy.ts (caso Google). Aparte del insert de arriba y dentro de
+    // try/catch a propósito: si la migración 0046 aún no está corrida, o
+    // cookies() no está disponible, no debe tumbar el registro.
+    try {
+      let origen = sanitizeOrigen(user.user_metadata?.origen);
+      if (!origen) {
+        const cookieStore = await cookies();
+        origen = decodeOrigen(cookieStore.get(ORIGEN_COOKIE)?.value);
+      }
+      if (origen) {
+        const { error: origenError } = await supabase
+          .from("profiles")
+          .update(origenToProfileColumns(origen))
+          .eq("id", user.id);
+        if (origenError) {
+          console.error("ensureProfile: no se pudo guardar el origen de registro:", origenError.message);
+        }
+      }
+    } catch (err) {
+      console.error("ensureProfile: error leyendo el origen de registro:", err);
     }
 
     // Bienvenida — antes solo existía para terapeutas (therapistWelcome).

@@ -15,7 +15,15 @@ export default function robots(): MetadataRoute.Robots {
         // (2026-10-15) /buscar?q=... genera combinaciones infinitas de URL que
         // no aportan al SEO. /buscar y /buscar?especialidad=... (que están en
         // el sitemap) siguen abiertos.
-        disallow: [...PRIVADO, "/buscar?q="],
+        // (2026-11-16) Se cierran también las combinaciones de VARIAS
+        // especialidades (llevan coma: ?especialidad=ansiedad,duelo) y la
+        // búsqueda por texto aunque venga después de otro filtro (&q=). Esas
+        // URLs ya eran noindex (ver generateMetadata en buscar/page.tsx), así
+        // que a Google no le aportan nada, pero Claude-SearchBot las pedía unas
+        // 86 mil veces al día y cada una cuesta cómputo en Vercel. Las de UNA
+        // sola especialidad (las que sí traen visitas) siguen abiertas.
+        // El * es comodín (lo entienden Google, Bing y los demás grandes).
+        disallow: [...PRIVADO, "/buscar?q=", "/buscar?*&q=", "/buscar?*,", "/buscar?*%2C"],
       },
       {
         // Rastreadores de IA que recolectan contenido para ENTRENAR modelos.

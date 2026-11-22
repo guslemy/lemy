@@ -106,6 +106,26 @@ export function AdminUserDetail({ data, backHref }: { data: UserDetail; backHref
         </Item>
       </Card>
 
+      <Card title="Origen de registro">
+        {data.origen === null ? (
+          <Item label="Origen">— (falta correr la migración 0046)</Item>
+        ) : !data.origen.source && !data.origen.medium && !data.origen.campaign ? (
+          <Item label="Origen">Sin campaña registrada (directo, orgánico o anterior al seguimiento)</Item>
+        ) : (
+          <>
+            <Item label="Fuente">{data.origen.source || "—"}</Item>
+            <Item label="Medio">{data.origen.medium || "—"}</Item>
+            <Item label="Campaña">{data.origen.campaign || "—"}</Item>
+            <Item label="Contenido / término">
+              {data.origen.content || "—"} / {data.origen.term || "—"}
+            </Item>
+            <Item label="Primera página">{data.origen.landingPath || "—"}</Item>
+            <Item label="Venía de">{data.origen.referrer || "—"}</Item>
+            <Item label="Primer clic con campaña">{fmtDateTime(data.origen.capturedAt)}</Item>
+          </>
+        )}
+      </Card>
+
       {t && (
         <>
           <Card title="Suscripción y verificación">

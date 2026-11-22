@@ -215,6 +215,45 @@ export function AdminInsightsTab({ data, periodKey }: { data: InsightsData; peri
         </div>
       </Section>
 
+      {/* Origen de los registros */}
+      <Section
+        title="Origen de los registros"
+        note="De qué campaña (utm_source / utm_medium / utm_campaign) llegó cada cuenta creada en el periodo. Solo cuentas nuevas desde que se activó el seguimiento; las anteriores caen en “Sin campaña”."
+      >
+        {data.origins === null ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-[0.85rem] text-[#7C877F]">
+            Falta correr la migración 0046_origen_de_registro en la base de datos.
+          </p>
+        ) : data.origins.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-[0.85rem] text-[#7C877F]">
+            Sin registros en el periodo.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-line bg-card">
+            <table className="w-full min-w-[520px] text-left text-[0.85rem]">
+              <thead>
+                <tr className="border-b border-line text-[0.72rem] uppercase tracking-[0.06em] text-[#7C877F]">
+                  <th className="px-5 py-2.5 font-medium">Fuente / medio / campaña</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Registros</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Terapeutas</th>
+                  <th className="px-5 py-2.5 text-right font-medium">Con suscripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.origins.map((o) => (
+                  <tr key={o.label} className="border-b border-line/60 last:border-0">
+                    <td className="px-5 py-2.5 text-[#3E4B44]">{o.label}</td>
+                    <td className="px-3 py-2.5 text-right font-medium text-forest">{o.registrations}</td>
+                    <td className="px-3 py-2.5 text-right text-[#3E4B44]">{o.therapists}</td>
+                    <td className="px-5 py-2.5 text-right text-[#3E4B44]">{o.subscribed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
       {/* Suscripciones */}
       <Section title="Suscripciones">
         <Grid>
