@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
-import { recordCardPayment, markPayoutPaid, markPayoutFailed } from "@/lib/card-payments";
+import { recordCardPayment, markPayoutPaid, markPayoutFailed, markChargeRefunded } from "@/lib/card-payments";
 
 // Endpoint APARTE del webhook normal (api/stripe/webhook) porque los
 // eventos que ocurren DENTRO de una cuenta conectada (Direct charges de
@@ -75,6 +75,11 @@ export async function POST(req: Request) {
       // estén marcados en el Dashboard de Stripe (payout.paid y payout.failed).
       case "payout.paid": {
         if (event.account) await markPayoutPaid(event.data.object as Stripe.Payout, event.account);
+        break;
+      }
+      // Reembolso (total o parcial) de un pago de cita.
+      case "charge.refunded": {
+        await markChargeRefunded(event.data.object as Stripe.Charge);
         break;
       }
       case "payout.failed": {

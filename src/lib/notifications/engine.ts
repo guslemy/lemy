@@ -11,6 +11,8 @@ import { hasGestionaPlan } from "@/lib/plan-features";
 import {
   trialEnding,
   trialEnded,
+  profileHidingSoon,
+  profileHiddenUnverified,
   renewalReminder,
   appointmentReminder,
   therapistOnboardingChecklist,
@@ -69,6 +71,8 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "card_payment_receipt_patient",
   "card_payment_received_therapist",
   "card_payout_failed_therapist",
+  "card_refund_patient",
+  "card_refund_therapist",
 ]);
 
 async function emailWhatsappAllowed(supabase: SupabaseClient, type: string, recipientId: string) {
@@ -513,6 +517,118 @@ export async function runNotificationSweep(): Promise<{
         console.error(`Error en barrido (${type} → therapist ${t.id}):`, err);
       }
     }
+  }
+
+  // 2b. (2026-11-22) Perfil público que se va a ocultar en 3 días o menos por
+  // no tener plan (la prueba termina, o la gracia dada a los que ya habían
+  // vencido). Se manda una sola vez por terapeuta (relatedId = id). Cubre
+  // también a quien ya cayó dentro de la ventana de 3 días al desplegarse.
+  try {
+    const { data: hidingSoon } = await supabase
+      .from("therapists")
+      .select("id, display_name, trial_ends_at, visible_until, subscription_status, is_published")
+      .eq("is_published", true)
+      .not("subscription_status", "in", "(active,trialing,past_due)");
+
+    const soonList = (hidingSoon ?? []).filter((t) => {
+      const end = Math.max(
+        t.trial_ends_at ? new Date(t.trial_ends_at as string).getTime() : 0,
+        t.visible_until ? new Date(t.visible_until as string).getTime() : 0
+      );
+      return end > now && end - now <= 3 * DAY_MS;
+    });
+    const alreadyHidingNotified = await alreadySentMany(
+      supabase,
+      "profile_hiding_soon",
+      "email",
+      soonList.map((t) => t.id as string)
+    );
+
+    for (const t of soonList) {
+      if (quietHours) break;
+      if (alreadyHidingNotified.has(t.id as string)) continue;
+      try {
+        const end = Math.max(
+          t.trial_ends_at ? new Date(t.trial_ends_at as string).getTime() : 0,
+          t.visible_until ? new Date(t.visible_until as string).getTime() : 0
+        );
+        const whenLabel = new Date(end).toLocaleDateString("es-MX", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          timeZone: "America/Mexico_City",
+        });
+        const { subject, html } = profileHidingSoon({ name: t.display_name as string, whenLabel });
+        await dispatch({
+          supabase,
+          type: "profile_hiding_soon",
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email: await emailOf(supabase, t.id as string),
+          phone: null,
+          subject,
+          html,
+          emailOnly: true,
+          push: {
+            title: "Tu perfil dejará de ser público",
+            body: `Elige un plan antes del ${whenLabel} para seguir visible.`,
+            url: "/dashboard?tab=suscripcion",
+          },
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(`Error en barrido (profile_hiding_soon → therapist ${t.id}):`, err);
+      }
+    }
+  } catch (err) {
+    // Si la columna visible_until aún no existe (migración 0048 sin correr),
+    // solo se omite este aviso; el resto del barrido sigue.
+    console.error("Error en barrido (perfil se oculta pronto):", err);
+  }
+
+  // 2c. (2026-11-22) Perfil publicado pero SIN verificar: ya no es público
+  // (migración 0050_verificacion_obligatoria). Se avisa una sola vez.
+  try {
+    const { data: unverified } = await supabase
+      .from("therapists")
+      .select("id, display_name")
+      .eq("is_published", true)
+      .neq("verification_status", "verified");
+    const unverifiedList = unverified ?? [];
+    const unverifiedNotified = await alreadySentMany(
+      supabase,
+      "profile_hidden_unverified",
+      "email",
+      unverifiedList.map((t) => t.id as string)
+    );
+    for (const t of unverifiedList) {
+      if (quietHours) break;
+      if (unverifiedNotified.has(t.id as string)) continue;
+      try {
+        const { subject, html } = profileHiddenUnverified({ name: t.display_name as string });
+        await dispatch({
+          supabase,
+          type: "profile_hidden_unverified",
+          relatedId: t.id as string,
+          recipientId: t.id as string,
+          email: await emailOf(supabase, t.id as string),
+          phone: null,
+          subject,
+          html,
+          emailOnly: true,
+          push: {
+            title: "Verifica tu cuenta",
+            body: "Tu perfil no es público hasta que verifiquemos tu cédula.",
+            url: "/dashboard?tab=perfil",
+          },
+        });
+        sent += 1;
+      } catch (err) {
+        console.error(`Error en barrido (profile_hidden_unverified → therapist ${t.id}):`, err);
+      }
+    }
+  } catch (err) {
+    console.error("Error en barrido (perfil sin verificar):", err);
   }
 
   lap("01-02_prueba_gratis");

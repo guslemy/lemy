@@ -15,6 +15,7 @@ import { TherapistPagosTab } from "@/components/dashboard-tabs/therapist-pagos-t
 import { PatientMisCitasTab } from "@/components/dashboard-tabs/patient-mis-citas-tab";
 import { NotificationsToggles } from "@/components/notifications-toggle";
 import { InstallAppButton } from "@/components/install-app-button";
+import { ProfileHiddenDialog } from "@/components/profile-hidden-dialog";
 import { becomeTherapist } from "./actions";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 
@@ -78,12 +79,28 @@ export default async function DashboardPage({
   const { data: therapist } = isTherapist
     ? await supabase
         .from("therapists")
-        .select("slug, display_name, is_published, subscription_status")
+        .select("slug, display_name, is_published, subscription_status, trial_ends_at, verification_status")
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
 
   const sinPlan = isTherapist && therapist?.subscription_status !== "active";
+
+  // (2026-11-22) Perfil oculto por falta de plan: la prueba ya terminó y no hay
+  // suscripción vigente. Se le muestra un aviso emergente al iniciar sesión.
+  // eslint-disable-next-line react-hooks/purity -- se evalúa una vez por petición
+  const nowMs = Date.now();
+  const perfilOcultoPorPlan =
+    isTherapist &&
+    !["active", "trialing", "past_due"].includes(therapist?.subscription_status ?? "inactive") &&
+    Boolean(therapist?.trial_ends_at) &&
+    new Date(therapist!.trial_ends_at as string).getTime() <= nowMs;
+  // (2026-11-22) Un perfil sin verificar tampoco es público (ver migración
+  // 0050_verificacion_obligatoria).
+  const perfilOcultoPorVerificacion = isTherapist && therapist?.verification_status !== "verified";
+  const mostrarAvisoPerfilOculto = perfilOcultoPorPlan || perfilOcultoPorVerificacion;
+  // El link "Ver mi perfil público" solo sirve si la página realmente existe.
+  const perfilVisible = Boolean(therapist?.is_published) && !perfilOcultoPorPlan && !perfilOcultoPorVerificacion;
 
   // (2026-11-03) Un terapeuta también puede reservar con OTRO terapeuta (como
   // paciente), y antes no tenía ninguna pantalla para ver esas citas. Si tiene
@@ -167,6 +184,10 @@ export default async function DashboardPage({
     <>
       <SiteHeader />
 
+      {mostrarAvisoPerfilOculto && (
+        <ProfileHiddenDialog needsPlan={perfilOcultoPorPlan} needsVerification={perfilOcultoPorVerificacion} />
+      )}
+
       <main className="px-6 py-16 sm:px-8 md:py-20">
         <div className="mx-auto max-w-[760px]">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -210,7 +231,7 @@ export default async function DashboardPage({
                   Solo se muestra si el perfil ya está publicado: antes de eso
                   la página /[slug] ni siquiera existe (getTherapist filtra por
                   is_published), así que el link rompería. */}
-              {isTherapist && therapist?.slug && therapist?.is_published && (
+              {isTherapist && therapist?.slug && perfilVisible && (
                 <Button href={`/${therapist.slug}`} variant="ghost" className="shrink-0">
                   Ver mi perfil público →
                 </Button>

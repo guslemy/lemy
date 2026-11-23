@@ -254,6 +254,50 @@ export function AdminInsightsTab({ data, periodKey }: { data: InsightsData; peri
         )}
       </Section>
 
+      {/* Comisiones de Lemy en pagos con tarjeta */}
+      <Section
+        title="Comisiones de Lemy en pagos con tarjeta"
+        note="Lo que Lemy realmente cobró (application fee de Stripe, guardado por cada pago) contra lo que debió cobrar según la fórmula $5 + 3%. Si no coinciden, se listan abajo. No incluye pagos reembolsados."
+      >
+        {data.cardCommissions === null ? (
+          <p className="rounded-2xl border border-line bg-card px-5 py-4 text-[0.85rem] text-[#7C877F]">
+            Falta correr la migración 0047_estado_de_pagos en la base de datos.
+          </p>
+        ) : (
+          <>
+            <Grid>
+              <Kpi label="Pagos con tarjeta" value={int(data.cardCommissions.payments)} />
+              <Kpi label="Cobrado a pacientes" value={money(data.cardCommissions.grossCents / 100)} isMoney />
+              <Kpi label="Comisión cobrada" value={money(data.cardCommissions.collectedCents / 100)} isMoney />
+              <Kpi
+                label="Comisión esperada"
+                value={money(data.cardCommissions.expectedCents / 100)}
+                isMoney
+                hint={
+                  data.cardCommissions.mismatches.length === 0
+                    ? "Todo cuadra."
+                    : `${data.cardCommissions.mismatches.length} pago(s) no cuadran, ver abajo.`
+                }
+              />
+            </Grid>
+            {data.cardCommissions.mismatches.length > 0 && (
+              <ul className="mt-3 space-y-1 rounded-2xl border border-rose-deep/40 bg-rose/10 px-5 py-3 text-[0.85rem] text-rose-deep">
+                {data.cardCommissions.mismatches.map((m) => (
+                  <li key={m.appointmentId}>
+                    Cita {m.appointmentId.slice(0, 8)}: se cobró {money(m.collectedCents / 100)} y debían ser {money(m.expectedCents / 100)}.
+                  </li>
+                ))}
+              </ul>
+            )}
+            {data.cardCommissions.refundedPayments > 0 && (
+              <p className="mt-2 text-[0.8rem] text-[#7C877F]">
+                {data.cardCommissions.refundedPayments} pago(s) reembolsado(s) en el periodo, excluidos de las sumas.
+              </p>
+            )}
+          </>
+        )}
+      </Section>
+
       {/* Suscripciones */}
       <Section title="Suscripciones">
         <Grid>

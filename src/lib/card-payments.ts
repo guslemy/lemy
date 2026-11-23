@@ -7,6 +7,8 @@ import {
   cardPaymentReceiptPatient,
   cardPaymentReceivedTherapist,
   cardPayoutFailedTherapist,
+  cardRefundPatient,
+  cardRefundTherapist,
   formatMxn,
 } from "@/lib/notifications/payment-templates";
 
@@ -217,6 +219,91 @@ async function notifyCardPayment(appointmentId: string) {
     });
   } catch (err) {
     console.error("Error notificando pago con tarjeta:", err);
+  }
+}
+
+// charge.refunded — Stripe devolvió dinero (total o parcial) al paciente, ya
+// sea por un reembolso hecho a mano en Stripe o por Lemy. Actualiza el
+// tablero y avisa por correo a ambos. Idempotente: el aviso se identifica por
+// cita + importe reembolsado, así que un reenvío del evento no duplica correos.
+export async function markChargeRefunded(charge: Stripe.Charge) {
+  try {
+    const supabase = createServiceClient();
+    const { data: payment } = await supabase
+      .from("card_payments")
+      .select("*")
+      .eq("stripe_charge_id", charge.id)
+      .maybeSingle();
+    if (!payment) return;
+
+    const refundedCents = charge.amount_refunded ?? 0;
+    if (refundedCents <= 0) return;
+    const full = Boolean(charge.refunded) || refundedCents >= (payment.amount_cents as number);
+
+    await supabase
+      .from("card_payments")
+      .update({
+        refunded_cents: refundedCents,
+        refunded_at: new Date().toISOString(),
+        ...(full ? { status: "refunded" } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("appointment_id", payment.appointment_id);
+
+    if (full) {
+      await supabase.from("appointments").update({ payment_status: "refunded" }).eq("id", payment.appointment_id);
+    }
+
+    const { data: appointment } = await supabase
+      .from("appointments")
+      .select("scheduled_at")
+      .eq("id", payment.appointment_id)
+      .maybeSingle();
+    if (!appointment) return;
+
+    const [{ data: therapistRow }, { data: patientProfile }, therapistEmail, patientEmail] = await Promise.all([
+      supabase.from("therapists").select("display_name").eq("id", payment.therapist_id).maybeSingle(),
+      supabase.from("profiles").select("full_name").eq("id", payment.patient_id).maybeSingle(),
+      emailOf(supabase, payment.therapist_id as string),
+      emailOf(supabase, payment.patient_id as string),
+    ]);
+    const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
+    const patientName = (patientProfile?.full_name as string | undefined) ?? "tu paciente";
+    const whenLabel = whenLabelFor(appointment.scheduled_at as string);
+    const relatedId = `${payment.appointment_id}-${refundedCents}`;
+
+    const forPatient = cardRefundPatient({ patientName, therapistName, whenLabel, refundedCents, full });
+    await dispatch({
+      supabase,
+      type: "card_refund_patient",
+      relatedId,
+      recipientId: payment.patient_id as string,
+      email: patientEmail,
+      phone: null,
+      subject: forPatient.subject,
+      html: forPatient.html,
+      emailOnly: true,
+    });
+
+    const forTherapist = cardRefundTherapist({ therapistName, patientName, whenLabel, refundedCents, full });
+    await dispatch({
+      supabase,
+      type: "card_refund_therapist",
+      relatedId,
+      recipientId: payment.therapist_id as string,
+      email: therapistEmail,
+      phone: null,
+      subject: forTherapist.subject,
+      html: forTherapist.html,
+      emailOnly: true,
+      push: {
+        title: "Se reembolsó un pago",
+        body: `${patientName}: ${formatMxn(refundedCents)} (cita del ${whenLabel}).`,
+        url: "/dashboard?tab=pagos",
+      },
+    });
+  } catch (err) {
+    console.error("Error procesando reembolso de Stripe:", err);
   }
 }
 

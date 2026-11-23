@@ -111,6 +111,51 @@ export function cardPaymentReceivedTherapist(params: {
   };
 }
 
+// Reembolso (total o parcial) — Stripe devolvió dinero a la tarjeta del paciente.
+export function cardRefundPatient(params: {
+  patientName: string;
+  therapistName: string;
+  whenLabel: string;
+  refundedCents: number;
+  full: boolean;
+}) {
+  const { patientName, therapistName, whenLabel, refundedCents, full } = params;
+  return {
+    subject: `Reembolso de tu pago — consulta con ${therapistName}`,
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${esc(patientName)}</h1>
+      <p>Te reembolsamos ${full ? "el total de" : "una parte de"} tu pago por la consulta con <strong>${esc(therapistName)}</strong> (cita del ${esc(whenLabel)}).</p>
+      ${table([
+        row("Reembolsado", `<strong>${formatMxn(refundedCents)}</strong>`),
+        row("Cita", esc(whenLabel)),
+        row("Terapeuta", esc(therapistName)),
+      ])}
+      <p>El dinero regresa a la misma tarjeta con la que pagaste. Tu banco suele tardar entre 5 y 10 días hábiles en reflejarlo.</p>
+      ${BUTTON("https://lemy.mx/dashboard/mis-citas", "Ver mis citas →")}
+    `),
+  };
+}
+
+export function cardRefundTherapist(params: {
+  therapistName: string;
+  patientName: string;
+  whenLabel: string;
+  refundedCents: number;
+  full: boolean;
+}) {
+  const { therapistName, patientName, whenLabel, refundedCents, full } = params;
+  return {
+    subject: `Se reembolsó un pago — ${patientName}`,
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${esc(therapistName)}</h1>
+      <p>Se reembolsó ${full ? "el total de" : "una parte de"} el pago de <strong>${esc(patientName)}</strong> por la cita del <strong>${esc(whenLabel)}</strong>.</p>
+      ${table([row("Reembolsado al paciente", `<strong>${formatMxn(refundedCents)}</strong>`)])}
+      <p>Ese importe sale de tu saldo en Stripe. Puedes ver el estado en la pestaña <strong>Cobros por consulta</strong>.</p>
+      ${BUTTON("https://lemy.mx/dashboard?tab=pagos", "Ver mis cobros →")}
+    `),
+  };
+}
+
 export function cardPayoutFailedTherapist(params: { therapistName: string; amountCents: number }) {
   const { therapistName, amountCents } = params;
   return {

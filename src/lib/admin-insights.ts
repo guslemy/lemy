@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { getPendingVerifications } from "@/lib/admin-pending";
+import { calculateApplicationFeeCents } from "@/lib/stripe";
 
 // Datos de la pestaña "Insights" del panel de admin (KPIs para dirección).
 // Solo lectura, y solo se llama desde /dashboard/admin después de comprobar
@@ -116,6 +117,20 @@ export type InsightsData = {
         therapists: number;
         subscribed: number; // terapeutas de ese origen con suscripción activa hoy
       }[];
+
+  // Comisiones de Lemy cobradas en pagos con tarjeta del periodo (tabla
+  // card_payments) contra lo que debieron ser según la fórmula ($5 + 3%).
+  // null = tabla aún no existe (migración 0047 sin correr).
+  cardCommissions:
+    | null
+    | {
+        payments: number;
+        grossCents: number;
+        collectedCents: number;
+        expectedCents: number;
+        refundedPayments: number;
+        mismatches: { appointmentId: string; collectedCents: number; expectedCents: number }[];
+      };
 };
 
 type Row = Record<string, unknown>;
@@ -370,6 +385,41 @@ export async function getInsights(params: {
     origins = Array.from(groups.values()).sort((a, b) => b.registrations - a.registrations);
   }
 
+  // ── Comisiones de Lemy en pagos con tarjeta ──────────────────────────
+  let cardCommissions: InsightsData["cardCommissions"] = null;
+  const cpProbe = await service.from("card_payments").select("appointment_id").limit(1);
+  if (!cpProbe.error) {
+    const cpRows = await fetchAll((a, b) =>
+      service
+        .from("card_payments")
+        .select("appointment_id, therapist_id, amount_cents, lemy_fee_cents, status, paid_at")
+        .range(a, b)
+    );
+    const inPeriod = cpRows.filter((r) => keep(String(r.therapist_id)) && inCur(ts(r.paid_at)));
+    const mismatches: NonNullable<InsightsData["cardCommissions"]>["mismatches"] = [];
+    let gross = 0;
+    let collected = 0;
+    let expected = 0;
+    for (const r of inPeriod) {
+      if (r.status === "refunded") continue;
+      const amount = num(r.amount_cents);
+      const exp = calculateApplicationFeeCents(amount / 100);
+      const got = num(r.lemy_fee_cents);
+      gross += amount;
+      collected += got;
+      expected += exp;
+      if (got !== exp) mismatches.push({ appointmentId: String(r.appointment_id), collectedCents: got, expectedCents: exp });
+    }
+    cardCommissions = {
+      payments: inPeriod.filter((r) => r.status !== "refunded").length,
+      grossCents: gross,
+      collectedCents: collected,
+      expectedCents: expected,
+      refundedPayments: inPeriod.filter((r) => r.status === "refunded").length,
+      mismatches: mismatches.slice(0, 10),
+    };
+  }
+
   // ── Series diarias (máx. 90 días) ────────────────────────────────────
   const span = Math.min(days ?? 90, 90);
   const labels: string[] = [];
@@ -468,5 +518,6 @@ export async function getInsights(params: {
     series: { labels, signups, appointments: apptSeries },
 
     origins,
+    cardCommissions,
   };
 }

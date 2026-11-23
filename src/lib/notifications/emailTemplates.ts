@@ -71,7 +71,7 @@ export function trialEnding(params: { name: string; daysLeft: number }) {
       <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
       <p>Tu prueba gratis de 15 días en Lemy ${
         daysLeft === 1 ? "termina mañana" : `termina en ${daysLeft} días`
-      }. Si quieres que tu perfil siga visible para pacientes sin interrupción, suscríbete cuando quieras desde tu panel.</p>
+      }. Al terminar la prueba, tu perfil deja de ser público. Si quieres que siga visible para pacientes sin interrupción, suscríbete desde tu panel.</p>
       <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ir a mi suscripción →</a></p>
     `),
   };
@@ -605,6 +605,37 @@ export function subscriptionPaymentFailed(params: { name: string; nextAttemptLab
   };
 }
 
+// Aviso de que el perfil público se va a ocultar pronto (a 3 días o menos de
+// que termine la prueba o la gracia) por no tener plan. whenLabel ej.
+// "mié 25 de noviembre".
+export function profileHidingSoon(params: { name: string; whenLabel: string }) {
+  const { name, whenLabel } = params;
+  return {
+    subject: "Tu perfil en Lemy dejará de ser público pronto",
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
+      <p>Los perfiles en Lemy son públicos durante la prueba gratis o con un plan activo. Como todavía no tienes un plan, <strong>tu perfil dejará de aparecer en el directorio el ${whenLabel}</strong>, y tus pacientes ya no podrán agendar contigo desde ahí.</p>
+      <p>Si eliges un plan antes, tu perfil se mantiene visible sin interrupciones. Y si ya se ocultó, vuelve a aparecer en cuanto te suscribes. No pierdes nada de lo que ya configuraste.</p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Elegir mi plan →</a></p>
+    `),
+  };
+}
+
+// Aviso de que el perfil no es público porque falta verificar la cédula
+// profesional (los perfiles de Lemy son solo de terapeutas verificados).
+export function profileHiddenUnverified(params: { name: string }) {
+  const { name } = params;
+  return {
+    subject: "Verifica tu cédula para que tu perfil sea público en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
+      <p>En Lemy solo mostramos perfiles de terapeutas <strong>verificados</strong>. Tu perfil todavía no está verificado, así que por ahora <strong>no aparece en el directorio</strong> y tus pacientes no pueden agendar desde ahí.</p>
+      <p>Para verificarlo, sube tus documentos desde tu panel (cédula profesional e identificación). Los revisamos lo antes posible y, en cuanto quedes verificado, tu perfil vuelve a ser público automáticamente.</p>
+      <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=perfil" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Verificar mi cuenta →</a></p>
+    `),
+  };
+}
+
 // Cuando la prueba gratis de 15 días termina sin que el terapeuta se haya
 // suscrito — antes el cron solo mandaba los avisos de 5 y 1 día antes, y
 // una vez que el plazo pasaba, ese terapeuta simplemente se dejaba de
@@ -615,7 +646,7 @@ export function trialEnded(params: { name: string }) {
     subject: "Tu prueba gratis en Lemy ya terminó",
     html: wrap(`
       <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
-      <p>Tus 15 días de prueba gratis en Lemy ya terminaron. Para que tu perfil se mantenga visible en el directorio y sigas recibiendo pacientes, elige un plan cuando quieras — no perdiste nada de lo que ya configuraste.</p>
+      <p>Tus 15 días de prueba gratis en Lemy ya terminaron, así que tu perfil dejó de ser público. Elige un plan para que vuelva a aparecer en el directorio y sigas recibiendo pacientes — no perdiste nada de lo que ya configuraste, todo sigue guardado.</p>
       <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard?tab=suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Elegir mi plan →</a></p>
     `),
   };
