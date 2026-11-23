@@ -558,8 +558,8 @@ export function ImportarClient() {
               className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-forest"
             />
             <span>
-              Confirmo que tengo derecho a tratar estos datos personales de mis pacientes y que ellos fueron informados de su
-              tratamiento (aviso de privacidad). Entiendo que Lemy los resguarda por mi cuenta, y que los datos de menores de edad
+              Confirmo que tengo derecho a guardar estos datos personales de mis pacientes y que ellos fueron informados sobre
+              cómo serán tratados (aviso de privacidad). Entiendo que Lemy los resguarda por mi cuenta, y que los datos de menores de edad
               requieren el consentimiento de su madre, padre o tutor.
             </span>
           </label>

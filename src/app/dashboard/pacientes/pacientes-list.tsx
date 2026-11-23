@@ -115,7 +115,7 @@ export function PatientsList({
           onClick={() => setShowInvite((v) => !v)}
           className="cursor-pointer rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest transition-all duration-150 hover:bg-forest/[0.06]"
         >
-          Invitar a mis pacientes a Lemy{pending.length > 0 ? ` (${pending.length})` : ""}
+          Invitar a mis pacientes a Lemy
         </button>
       </div>
 
