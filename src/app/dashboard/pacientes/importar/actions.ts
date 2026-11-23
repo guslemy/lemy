@@ -291,6 +291,90 @@ export async function finishImportBatch(batchId: string, imported: number, faile
   revalidatePath("/dashboard/pacientes");
 }
 
+// ── Invitación manual por correo ───────────────────────────────────────
+// Un terapeuta invita a alguien que no vino de un archivo: se crea el mismo
+// tipo de registro (cuenta sin acceso, marcada como importada, fuente
+// "manual") y se encola la invitación, así todo el flujo es uno solo.
+const MANUAL_INVITES_PER_DAY = 20;
+
+export async function inviteByEmail(params: {
+  name: string;
+  email: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { supabase, user } = await requireTherapist();
+  const service = createServiceClient();
+
+  const name = String(params.name ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  if (name.length < 2) return { ok: false, error: "Escribe el nombre de tu paciente." };
+  const em = normalizeEmail(String(params.email ?? ""));
+  if (!em.email || em.invalid) return { ok: false, error: "Ese correo no parece válido. Revísalo." };
+
+  // Tope diario para evitar abusos.
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("therapist_patients")
+    .select("patient_id", { count: "exact", head: true })
+    .eq("therapist_id", user.id)
+    .eq("source", "manual")
+    .gte("created_at", since);
+  if ((count ?? 0) >= MANUAL_INVITES_PER_DAY) {
+    return { ok: false, error: "Llegaste al límite de invitaciones manuales de hoy. Intenta mañana." };
+  }
+
+  const { data: exists } = await service.rpc("lemy_existing_emails", { p_emails: [em.email] });
+  if ((exists ?? []).length > 0) {
+    return {
+      ok: false,
+      error: "Esa persona ya tiene cuenta en Lemy. Comparte con ella el enlace de tu perfil para que agende contigo.",
+    };
+  }
+
+  const { data: created, error: createErr } = await service.auth.admin.createUser({
+    email: em.email,
+    email_confirm: true,
+    user_metadata: { full_name: name, imported: true },
+  });
+  if (createErr || !created?.user) return { ok: false, error: "No se pudo crear la invitación. Intenta de nuevo." };
+  const id = created.user.id;
+
+  try {
+    const { error: pErr } = await service.from("profiles").insert({
+      id,
+      role: "patient",
+      full_name: name,
+      is_imported: true,
+      push_enabled: false,
+      email_whatsapp_enabled: false,
+      whatsapp_opt_in: false,
+    });
+    if (pErr) throw pErr;
+    const { error: paErr } = await service.from("patients").insert({ id });
+    if (paErr) throw paErr;
+    const { error: tpErr } = await service
+      .from("therapist_patients")
+      .insert({ therapist_id: user.id, patient_id: id, source: "manual" });
+    if (tpErr) throw tpErr;
+    const { error: invErr } = await service.from("patient_invitations").insert({
+      token: randomBytes(24).toString("hex"),
+      therapist_id: user.id,
+      patient_id: id,
+      email: em.email,
+    });
+    if (invErr) throw invErr;
+  } catch {
+    // Limpieza: sin esto quedarían filas huérfanas (el borrado de la cuenta no las arrastra).
+    await service.from("patient_invitations").delete().eq("patient_id", id);
+    await service.from("therapist_patients").delete().eq("patient_id", id);
+    await service.from("patients").delete().eq("id", id);
+    await service.from("profiles").delete().eq("id", id);
+    await service.auth.admin.deleteUser(id).catch(() => undefined);
+    return { ok: false, error: "No se pudo crear la invitación. Intenta de nuevo." };
+  }
+
+  revalidatePath("/dashboard/pacientes");
+  return { ok: true };
+}
+
 // ── Invitaciones (cola) ────────────────────────────────────────────────
 // Solo se encolan adultos con correo real. Se envían de a poco (tope diario,
 // ver lib/patient-invitations.ts); lo que no cabe hoy sigue pendiente.

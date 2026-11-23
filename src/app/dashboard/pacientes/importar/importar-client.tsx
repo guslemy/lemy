@@ -38,25 +38,25 @@ const STEP_LABEL: Record<Step, string> = {
 
 // Campos agrupados para la pantalla de columnas, con una ayuda corta en lenguaje sencillo.
 const FIELD_GROUPS: { title: string; fields: FieldKey[] }[] = [
-  { title: "Nombre del paciente (obligatorio)", fields: ["firstName", "lastName", "fullName"] },
-  { title: "Cómo contactarlo", fields: ["email", "phone"] },
+  { title: "Nombre del paciente (obligatorio)", fields: ["fullName", "firstName", "lastName"] },
+  { title: "Cómo contactarlo (muy recomendado)", fields: ["email", "phone"] },
   { title: "Edad y fecha de nacimiento (para detectar menores)", fields: ["birthDate", "birthDay", "birthMonth", "birthYear", "age"] },
   { title: "Otros datos (opcional)", fields: ["city", "createdAt"] },
 ];
 
 const FIELD_HELP: Record<FieldKey, string> = {
-  firstName: "Solo el nombre de pila. Si tu archivo trae nombre y apellido separados, usa esta y la de Apellidos.",
-  lastName: "Los apellidos, si están en otra columna.",
-  fullName: "Úsala solo si el nombre y los apellidos vienen juntos en una sola columna.",
-  email: "Para poder invitarlo después a crear su cuenta en Lemy.",
+  firstName: 'Solo el nombre de pila. Si tu archivo trae el nombre y los apellidos en la misma celda, selecciona "No incluir".',
+  lastName: 'Los apellidos, si están en una columna independiente. De lo contrario, selecciona "No incluir".',
+  fullName: 'Si el nombre y apellidos están en columnas separadas, selecciona "No incluir".',
+  email: "Correo principal.",
   phone: "Teléfono de contacto.",
   birthDate: "Úsala solo si la fecha viene completa en una columna (ej. 12/05/1992).",
   birthDay: "Úsala si el día viene en su propia columna.",
   birthMonth: "Úsala si el mes viene en su propia columna.",
   birthYear: "Úsala si el año viene en su propia columna.",
-  age: "Si no hay fecha de nacimiento, Lemy usa la edad para detectar menores.",
+  age: "Edad del paciente",
   city: "Ciudad donde vive.",
-  createdAt: "Cuándo se dio de alta en tu agenda anterior. Sirve para invitar solo a los más recientes.",
+  createdAt: "Cuándo se dio de alta en tu agenda anterior.",
 };
 
 // CSV sencillo (comas o punto y coma, con comillas).
@@ -270,7 +270,7 @@ export function ImportarClient() {
     setBusy(false);
     setInviteMsg(
       `Listo: ${res.queued} invitación(es) en cola${res.skipped ? ` (${res.skipped} no se pudieron encolar)` : ""}. ` +
-        "Se envían de a poco para no saturar el correo; lo que no salga hoy sigue automáticamente mañana."
+        "Las invitaciones podrían tardar un poco en ser enviadas."
     );
     setInviteSel(new Set());
   }
@@ -297,19 +297,15 @@ export function ImportarClient() {
 
       {step === "archivo" && (
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
-          <p className="text-[0.95rem] text-[#3E4B44]">
-            Sube aquí el archivo de tus pacientes (.xlsx o .csv). Compatible con archivos de AgendaPro, u otras apps.
-          </p>
-          <p className="mt-2 text-[0.85rem] text-[#7C877F]">
-            El archivo se lee en tu navegador; no se sube a ningún lado hasta que tú confirmes.
-          </p>
+          <p className="text-[0.95rem] text-[#3E4B44]">Sube aquí el archivo de tus pacientes (.xlsx o .csv).</p>
+          <p className="mt-2 text-[0.85rem] text-[#7C877F]">Compatible con archivos de AgendaPro, u otras apps.</p>
           <label
-            className={`mt-5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-forest/30 bg-forest/[0.03] px-6 py-10 text-center transition-colors hover:bg-forest/[0.07] ${
+            className={`press mt-5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-forest/30 bg-forest/[0.03] px-6 py-10 text-center transition-all duration-150 hover:bg-forest/[0.07] ${
               busy ? "pointer-events-none opacity-60" : ""
             }`}
           >
             <span className="inline-block rounded-full bg-forest px-6 py-2.5 text-[0.95rem] font-semibold text-white">
-              Elegir archivo de mi computadora
+              {busy ? "Leyendo archivo…" : "Elegir archivo de mi computadora"}
             </span>
             <span className="text-[0.82rem] text-[#7C877F]">Excel (.xlsx) o CSV</span>
             <input
@@ -326,18 +322,18 @@ export function ImportarClient() {
 
       {step === "columnas" && (
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
-          <h2 className="font-display text-[1.2rem] text-forest">Revisa que Lemy entendió tu archivo</h2>
+          <h2 className="font-display text-[1.2rem] text-forest">Revisa los datos de tu archivo</h2>
           <p className="mt-2 text-[0.92rem] text-[#3E4B44]">
-            Tu archivo <strong>{filename}</strong> tiene {table.length - 1} filas. Abajo, para cada dato que Lemy guarda de tus
-            pacientes, te mostramos de qué columna de tu archivo lo va a tomar, con un ejemplo real.
+            Tu archivo <strong>{filename}</strong> tiene registrados {table.length - 1} pacientes.
           </p>
-          <ol className="mt-3 list-decimal space-y-1 pl-5 text-[0.88rem] text-[#3E4B44]">
-            <li>
-              Si el ejemplo se ve bien (por ejemplo, un nombre en &ldquo;Nombre&rdquo;), <strong>no tienes que tocar nada</strong>.
-            </li>
-            <li>Si el ejemplo es incorrecto, abre la lista y elige la columna correcta de tu archivo.</li>
-            <li>Si tu archivo no trae ese dato, deja &ldquo;No incluir&rdquo;. Solo el nombre es obligatorio.</li>
-          </ol>
+          <p className="mt-2 text-[0.92rem] text-[#3E4B44]">
+            Confirmemos que los datos que subiste se registren en Lemy de manera correcta.
+          </p>
+          <p className="mt-3 text-[0.88rem] text-[#3E4B44]">
+            Comprueba que los datos que importaste coincidan con la propiedad que quedará registrada en Lemy. Por ejemplo, si el
+            Nombre en Lemy está relacionándose con el Apellido de tu archivo, selecciona la columna correspondiente para
+            corregirlo.
+          </p>
 
           {FIELD_GROUPS.map((group) => (
             <div key={group.title} className="mt-6">
@@ -397,9 +393,7 @@ export function ImportarClient() {
             </div>
           ))}
 
-          <p className="mt-4 text-[0.8rem] text-[#7C877F]">
-            En este paso todavía no se guarda nada. Primero vas a revisar la lista de pacientes completa.
-          </p>
+          <p className="mt-4 text-[0.8rem] text-[#7C877F]">Asegúrate de revisar bien todo para evitar errores.</p>
           <div className="mt-4 flex gap-3">
             <Button type="button" variant="ghost" onClick={() => setStep("archivo")}>
               Atrás: cambiar archivo
@@ -552,8 +546,9 @@ export function ImportarClient() {
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
           <h2 className="font-display text-[1.2rem] text-forest">Antes de importar</h2>
           <p className="mt-3 text-[0.9rem] text-[#3E4B44]">
-            Vas a cargar datos personales de {stats.sel} pacientes. Cada uno quedará como un registro en tu lista, sin acceso a Lemy
-            y <strong>sin recibir ningún aviso</strong> hasta que active su cuenta. Solo puedes invitar a quien tú elijas.
+            Vas a cargar datos personales de {stats.sel} pacientes. Cada uno quedará como un registro en tu lista de pacientes, y
+            tendrás la oportunidad de invitar a quien tú quieras a crear su cuenta en Lemy para que puedan agendar contigo y tener
+            su propio perfil.
           </p>
           <label className="mt-4 flex items-start gap-2.5 text-[0.88rem] text-[#3E4B44]">
             <input
@@ -619,7 +614,7 @@ export function ImportarClient() {
             <h2 className="font-display text-[1.2rem] text-forest">Invitar a tus pacientes activos</h2>
             <p className="mt-2 text-[0.88rem] text-[#3E4B44]">
               Elige solo a quienes quieras invitar a crear su cuenta en Lemy (por correo). No se invita a menores ni a quien no tiene
-              correo. Las invitaciones salen de a poco; lo pendiente sigue solo al día siguiente.
+              correo. Las invitaciones podrían tardar un poco en ser enviadas.
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-[0.8rem]">
               <button type="button" className="cursor-pointer underline" onClick={() => setInviteSel(new Set(invitable.map((p) => p.patientId)))}>
@@ -673,7 +668,7 @@ export function ImportarClient() {
             <p className="text-[0.88rem] text-[#3E4B44]">¿Terminaste de invitar? Ya puedes ir a tu lista de pacientes.</p>
             <Link
               href="/dashboard/pacientes"
-              className="mt-3 inline-block rounded-full bg-forest px-6 py-2.5 text-[0.9rem] font-semibold text-white"
+              className="press mt-3 inline-block rounded-full bg-forest px-6 py-2.5 text-[0.9rem] font-semibold text-white transition-all duration-150 hover:bg-forest-deep"
             >
               Ver mi lista de pacientes →
             </Link>

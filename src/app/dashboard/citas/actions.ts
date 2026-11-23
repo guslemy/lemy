@@ -190,10 +190,14 @@ export async function createAppointmentForPatient(formData: FormData) {
   // a un paciente real antes de insertar la cita.
   const { data: patientProfile } = await serviceClient
     .from("profiles")
-    .select("role")
+    .select("role, account_closed_at")
     .eq("id", patientId)
     .maybeSingle();
   if (patientProfile?.role !== "patient") {
+    redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
+  }
+  // Cuenta cerrada: la ficha es solo de consulta, no se agendan citas nuevas.
+  if (patientProfile.account_closed_at) {
     redirect(`/dashboard/pacientes/${patientId}?agendar_error=1`);
   }
 

@@ -75,6 +75,15 @@ button:disabled,
   cursor: not-allowed;
 }
 
+/* Efecto de "clic" homologado: todo botón (y cualquier enlace/etiqueta con la
+   clase .press) se encoge un poco al presionarlo, para que se sienta que
+   respondió. Usa la propiedad `scale` para no chocar con otros transform. */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+.press:active {
+  scale: 0.96;
+}
+
 :focus-visible {
   outline: 2.5px solid var(--rose-deep);
   outline-offset: 3px;

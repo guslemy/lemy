@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { queueInvitations } from "./importar/actions";
+import { inviteByEmail, queueInvitations } from "./importar/actions";
 
 export type PatientListItem = {
   id: string;
@@ -48,6 +48,23 @@ export function PatientsList({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [manualName, setManualName] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualMsg, setManualMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function onManualInvite() {
+    setBusy(true);
+    setManualMsg(null);
+    const res = await inviteByEmail({ name: manualName, email: manualEmail });
+    setBusy(false);
+    if (res.ok) {
+      setManualMsg({ ok: true, text: `Listo: invitamos a ${manualEmail.trim()}. Podrías verlo en tu lista al recargar la página.` });
+      setManualName("");
+      setManualEmail("");
+    } else {
+      setManualMsg({ ok: false, text: res.error });
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = norm(query.trim());
@@ -73,7 +90,7 @@ export function PatientsList({
     setSel(new Set());
     setMsg(
       `Listo: ${res.queued} invitación(es) en cola${res.skipped ? ` (${res.skipped} no se pudieron encolar)` : ""}. ` +
-        "Se envían de a poco para no saturar el correo; lo que no salga hoy sigue automáticamente mañana."
+        "Las invitaciones podrían tardar un poco en ser enviadas."
     );
   }
 
@@ -87,20 +104,48 @@ export function PatientsList({
           placeholder="Buscar por nombre, teléfono, correo o palabras de tus notas…"
           className="input-lemy min-w-[260px] flex-1"
         />
-        {inviteCandidates.length > 0 || alreadyInvited > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowInvite((v) => !v)}
-            className="cursor-pointer rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest hover:bg-forest/[0.06]"
-          >
-            Invitar a mis pacientes a Lemy{pending.length > 0 ? ` (${pending.length})` : ""}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => setShowInvite((v) => !v)}
+          className="cursor-pointer rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest transition-all duration-150 hover:bg-forest/[0.06]"
+        >
+          Invitar a mis pacientes a Lemy{pending.length > 0 ? ` (${pending.length})` : ""}
+        </button>
       </div>
 
       {showInvite && (
         <div className="mt-4 rounded-2xl border border-line bg-card p-5">
-          <h2 className="font-display text-[1.1rem] text-forest">Invitar a mis pacientes a registrarse en Lemy</h2>
+          <h2 className="font-display text-[1.1rem] text-forest">Invitar a un paciente por correo</h2>
+          <p className="mt-1.5 text-[0.85rem] text-[#3E4B44]">
+            Escribe su nombre y correo. Le llegará una invitación para que cree su cuenta y pueda agendar una sesión contigo.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              value={manualName}
+              onChange={(e) => setManualName(e.target.value)}
+              placeholder="Nombre del paciente"
+              className="input-lemy"
+            />
+            <input
+              type="email"
+              value={manualEmail}
+              onChange={(e) => setManualEmail(e.target.value)}
+              placeholder="Correo"
+              className="input-lemy"
+            />
+            <Button type="button" variant="primary" disabled={busy || !manualName.trim() || !manualEmail.trim()} onClick={onManualInvite}>
+              {busy ? "Enviando…" : "Invitar"}
+            </Button>
+          </div>
+          {manualMsg && (
+            <p className={`mt-3 rounded-xl px-3 py-2 text-[0.85rem] ${manualMsg.ok ? "bg-forest/[0.06] text-forest" : "bg-rose/10 text-rose-deep"}`}>
+              {manualMsg.text}
+            </p>
+          )}
+
+          <h2 className="mt-6 border-t border-line pt-5 font-display text-[1.1rem] text-forest">
+            Invitar a mis pacientes importados
+          </h2>
           <p className="mt-1.5 text-[0.85rem] text-[#3E4B44]">
             Marca a quienes quieras invitar. Les llegará un correo para que creen su cuenta y puedan agendar contigo. Solo aparecen
             pacientes importados con correo, que no son menores de edad y a quienes aún no invitaste.

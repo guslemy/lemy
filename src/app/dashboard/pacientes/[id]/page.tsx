@@ -221,6 +221,7 @@ export default async function PatientDetailPage({
           </p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
             {info?.fullName ?? "Paciente"}
+            {info?.accountClosed && info.fullName !== "Usuario eliminado" ? " (eliminado)" : ""}
           </h1>
 
           {agendar_ok === "1" && (
@@ -250,16 +251,23 @@ export default async function PatientDetailPage({
               saveNotesAction={savePatientNotes}
             />
 
-            <TherapistBookForPatient
-              patientId={patientId}
-              patientName={info?.fullName ?? "tu paciente"}
-              daysByDuration={bookDaysByDuration}
-              legacyDurationMin={legacyDurationMin}
-              services={bookServices}
-              onlineAvailable={therapistRow?.is_online_available !== false}
-              inPersonAvailable={therapistRow?.is_in_person_available === true}
-              createAppointmentAction={createAppointmentForPatient}
-            />
+            {info?.accountClosed ? (
+              <p className="mt-6 rounded-2xl border border-line bg-sage-white px-4 py-3 text-[0.85rem] text-[#5A665F]">
+                Este paciente cerró su cuenta de Lemy. Su ficha queda <strong>solo para consulta</strong>: puedes ver su
+                historial y exportar sus notas, pero ya no es posible agendarle nuevas consultas.
+              </p>
+            ) : (
+              <TherapistBookForPatient
+                patientId={patientId}
+                patientName={info?.fullName ?? "tu paciente"}
+                daysByDuration={bookDaysByDuration}
+                legacyDurationMin={legacyDurationMin}
+                services={bookServices}
+                onlineAvailable={therapistRow?.is_online_available !== false}
+                inPersonAvailable={therapistRow?.is_in_person_available === true}
+                createAppointmentAction={createAppointmentForPatient}
+              />
+            )}
           </div>
 
           {isGestiona && fichaData && (

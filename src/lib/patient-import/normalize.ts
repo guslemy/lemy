@@ -260,14 +260,19 @@ export function buildRows(table: unknown[][], mapping: Mapping): ImportRow[] {
       }
     }
 
-    const ageRaw = Number(cellString(get(r, "age")));
+    // La edad puede venir como "3", "3 años", "3 años 4 meses" o "8 meses":
+    // se toma el primer número; si solo hay meses, cuenta como 0 años.
+    const ageText = cellString(get(r, "age")).toLowerCase();
+    const ageMatch = /\d+(?:[.,]\d+)?/.exec(ageText);
+    let ageRaw = ageMatch ? Number(ageMatch[0].replace(",", ".")) : NaN;
+    if (Number.isFinite(ageRaw) && /mes/.test(ageText) && !/a(ñ|n)o/.test(ageText)) ageRaw = 0;
     rows.push({
       rowNumber: i + 1,
       fullName,
       email: cellString(get(r, "email")) || null,
       phone: cellString(get(r, "phone")) || null,
       birthDate,
-      age: Number.isFinite(ageRaw) && ageRaw > 0 && ageRaw < 120 ? Math.round(ageRaw) : null,
+      age: Number.isFinite(ageRaw) && ageRaw >= 0 && ageRaw < 120 ? Math.round(ageRaw) : null,
       city: cellString(get(r, "city")) || null,
       sourceCreatedAt: parseDateLoose(get(r, "createdAt")),
     });
