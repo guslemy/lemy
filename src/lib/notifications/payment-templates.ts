@@ -53,8 +53,11 @@ export function cardPaymentReceiptPatient(params: {
   paidAtIso: string;
   cardLabel: string | null;
   reference: string;
+  // Texto de la política de cancelación aplicable (de Lemy) o null si el
+  // terapeuta tiene la suya (entonces se remite a su perfil).
+  policyText: string | null;
 }) {
-  const { patientName, therapistName, whenLabel, amountCents, paidAtIso, cardLabel, reference } = params;
+  const { patientName, therapistName, whenLabel, amountCents, paidAtIso, cardLabel, reference, policyText } = params;
   return {
     subject: `Recibo de tu pago — consulta con ${therapistName}`,
     html: wrap(`
@@ -70,6 +73,11 @@ export function cardPaymentReceiptPatient(params: {
         row("Referencia", esc(reference)),
       ])}
       <p>El pago se hace directo a ${esc(therapistName)} a través de Stripe. Ya salió de tu tarjeta; el dinero llega a la cuenta bancaria del terapeuta en unos días, por eso puede que no lo veas reflejado en su lado todavía. No es un cobro doble ni pendiente.</p>
+      <p style="font-size: 13px; color: #7C877F;">${
+        policyText
+          ? esc(policyText)
+          : `Las cancelaciones y reembolsos de esta cita se rigen por la política de ${esc(therapistName)}, que puedes ver en su perfil.`
+      }</p>
       <p style="font-size: 13px; color: #7C877F;">Este es un comprobante de pago, no una factura fiscal. Si necesitas factura, solicítala directamente a tu terapeuta.</p>
       ${BUTTON("https://lemy.mx/dashboard/mis-citas", "Ver mis citas →")}
     `),

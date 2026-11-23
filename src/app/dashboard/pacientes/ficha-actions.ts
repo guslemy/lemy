@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { hasGestionaPlan } from "@/lib/plan-features";
+import { therapistHasPatient } from "@/lib/patient-access";
 import { encryptClinicalRecord, decryptClinicalRecord } from "@/lib/clinical-record-crypto";
 import type {
   ClinicalHistoryContent,
@@ -46,12 +47,7 @@ async function verifyRelationship(
   therapistId: string,
   patientId: string
 ) {
-  const { count } = await supabase
-    .from("appointments")
-    .select("id", { count: "exact", head: true })
-    .eq("therapist_id", therapistId)
-    .eq("patient_id", patientId);
-  return Boolean(count);
+  return therapistHasPatient(supabase, therapistId, patientId);
 }
 
 function fichaPath(patientId: string) {

@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { formatDateOnly, formatMxn } from "@/lib/notifications/payment-templates";
 import { cardPaymentStatusClasses, cardPaymentStatusLabel } from "@/lib/card-payment-status";
+import { MANUAL_REFUND_AFTER_SESSION_DAYS } from "@/lib/cancellation-policy";
+import { RefundButton } from "./refund-button";
 
 // Tablero "Pagos con tarjeta" del terapeuta (dentro de Cobros por consulta):
 // qué se le ha cobrado, cuánto le queda y en qué punto va el dinero (cobrado,
@@ -23,13 +25,14 @@ type PaymentRow = {
   paid_at: string;
   expected_available_on: string | null;
   deposited_at: string | null;
+  stripe_payment_intent_id: string | null;
 };
 
 export async function TherapistCardPayments({ therapistId }: { therapistId: string }) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("card_payments")
-    .select("appointment_id, patient_id, amount_cents, lemy_fee_cents, net_cents, status, paid_at, expected_available_on, deposited_at")
+    .select("appointment_id, patient_id, amount_cents, lemy_fee_cents, net_cents, status, paid_at, expected_available_on, deposited_at, stripe_payment_intent_id")
     .eq("therapist_id", therapistId)
     .order("paid_at", { ascending: false })
     .limit(50);
@@ -107,6 +110,12 @@ export async function TherapistCardPayments({ therapistId }: { therapistId: stri
             {rows.map((r) => {
               const expected = r.status === "paid" ? formatDateOnly(r.expected_available_on) : null;
               const when = whenById.get(r.appointment_id);
+              // Reembolsar: pago vigente, con id de Stripe, hasta 1 semana después de la consulta.
+              const canRefund =
+                (r.status === "paid" || r.status === "deposited") &&
+                !!r.stripe_payment_intent_id &&
+                !!when &&
+                Date.now() - new Date(when).getTime() <= MANUAL_REFUND_AFTER_SESSION_DAYS * 24 * 60 * 60 * 1000;
               return (
                 <tr key={r.appointment_id} className="border-b border-line/60 align-top last:border-0">
                   <td className="py-2.5 pr-3 text-[#3E4B44]">{fmtDate(r.paid_at)}</td>
@@ -129,6 +138,7 @@ export async function TherapistCardPayments({ therapistId }: { therapistId: stri
                     {r.status === "payout_failed" && (
                       <span className="mt-0.5 block text-[0.75rem] text-rose-deep">Revisa tus datos bancarios en Stripe.</span>
                     )}
+                    {canRefund && <RefundButton appointmentId={r.appointment_id} patientName={nameById.get(r.patient_id) ?? "el paciente"} />}
                   </td>
                 </tr>
               );

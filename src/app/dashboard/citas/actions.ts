@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessToken, updateCalendarEvent } from "@/lib/google-calendar";
 import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
+import { maybeAutoRefundOnCancel } from "@/lib/auto-refund";
 import {
   notifyAppointmentCancelled,
   notifyAppointmentRescheduled,
@@ -86,6 +87,9 @@ export async function cancelAppointmentTherapist(formData: FormData) {
       patientId: result.appointment.patient_id,
       scheduledAtIso: result.appointment.scheduled_at,
     });
+    // Si estaba pagada con tarjeta y aplica la política de Lemy, se reembolsa
+    // completo y de forma automática (cancela el terapeuta).
+    await maybeAutoRefundOnCancel({ appointmentId, cancelledBy: "therapist" });
   }
 
   revalidatePath("/dashboard");

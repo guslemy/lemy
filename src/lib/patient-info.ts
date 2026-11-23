@@ -61,12 +61,22 @@ export async function getPatientInfoMap(
     (notesRows ?? []).map((n) => [n.patient_id as string, n.notes as string | null])
   );
 
+  // (2026-11-22) En paralelo y por tandas: con cientos de pacientes importados,
+  // una consulta de correo por paciente una tras otra tardaba demasiado.
+  const authById = new Map<string, string | null>();
+  for (let i = 0; i < patientIds.length; i += 25) {
+    const chunk = patientIds.slice(i, i + 25);
+    const users = await Promise.all(chunk.map((id) => serviceClient.auth.admin.getUserById(id)));
+    chunk.forEach((id, idx) => authById.set(id, users[idx].data?.user?.email ?? null));
+  }
+
   for (const id of patientIds) {
     const profile = (profiles ?? []).find((p) => p.id === id);
-    const { data: authUser } = await serviceClient.auth.admin.getUserById(id);
+    const authUser = { user: { email: authById.get(id) ?? undefined } };
     map.set(id, {
       fullName: (profile?.full_name as string | null) ?? null,
-      email: authUser?.user?.email ?? null,
+      // Los importados sin correo llevan uno interno de relleno: no se muestra.
+      email: authUser?.user?.email?.endsWith("@importados.lemy.mx") ? null : (authUser?.user?.email ?? null),
       phone: (profile?.phone as string | null) ?? null,
       lastAppointmentIso: lastApptByPatient.get(id) ?? null,
       notes: notesByPatient.get(id) ?? null,

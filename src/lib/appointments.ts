@@ -205,6 +205,13 @@ export async function cancelAppointmentAsParticipant(
     return { ok: false };
   }
 
+  // Una consulta que ya comenzó no se puede cancelar (ni se reembolsa sola):
+  // si hubo inasistencia se marca como tal; si hay que devolver el dinero,
+  // el terapeuta usa el botón "Reembolsar" del tablero de pagos.
+  if (new Date(appointment.scheduled_at as string).getTime() <= Date.now()) {
+    return { ok: false };
+  }
+
   const { error } = await supabase
     .from("appointments")
     .update({

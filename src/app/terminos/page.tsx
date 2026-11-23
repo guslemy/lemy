@@ -78,6 +78,17 @@ export default function TerminosPage() {
               Lemy puede mostrar las reseñas y calificaciones que los pacientes dejan sobre él, con
               fines de transparencia dentro del directorio.
             </p>
+            <p>
+              <strong className="text-forest">Política de cancelación y reembolsos.</strong> Cada
+              terapeuta puede publicar su propia política de cancelación en su perfil; en ese caso
+              aplica esa política y cualquier reembolso lo gestiona directamente el terapeuta. Si el
+              terapeuta no publica una política propia, aplica la de Lemy para los pagos con
+              tarjeta: si el terapeuta cancela, el reembolso es completo y automático; si el paciente
+              cancela con 24 horas o más de anticipación, el reembolso es completo; con menos de 24
+              horas, o si no se presenta, no hay reembolso. Los reembolsos se devuelven a la misma
+              tarjeta y el banco puede tardar entre 5 y 10 días hábiles en reflejarlos. Los pagos
+              acordados en efectivo se rigen por lo que paciente y terapeuta convengan directamente.
+            </p>
           </Section>
 
           <Section title="5. Pagos">
@@ -89,8 +100,8 @@ export default function TerminosPage() {
               Los pagos de las sesiones entre paciente y terapeuta se procesan a través de Stripe
               Connect: el pago del paciente se deposita directamente en la cuenta del terapeuta, quien
               es el responsable ante la ley de emitir el comprobante fiscal correspondiente por su
-              servicio. Lemy cobra una comisión (fija más un porcentaje) sobre cada sesión pagada a
-              través de la plataforma, que se descuenta automáticamente al momento del cobro.
+              servicio. Lemy cobra una comisión de $5 MXN más 3 % del monto de cada sesión pagada con
+              tarjeta a través de la plataforma, que se descuenta automáticamente al momento del cobro.
             </p>
           </Section>
 

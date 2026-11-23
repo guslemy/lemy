@@ -19,6 +19,7 @@ import {
   type BookForPatientService,
 } from "@/components/therapist-book-for-patient";
 import { hasGestionaPlan } from "@/lib/plan-features";
+import { therapistHasPatient } from "@/lib/patient-access";
 import {
   getClinicalProfile,
   getClinicalHistory,
@@ -78,7 +79,8 @@ export default async function PatientDetailPage({
     .eq("patient_id", patientId)
     .order("scheduled_at", { ascending: false });
 
-  if (!history || history.length === 0) notFound();
+  // Sin citas todavía solo se entra si lo importó (therapist_patients).
+  if ((!history || history.length === 0) && !(await therapistHasPatient(supabase, user.id, patientId))) notFound();
 
   const infoMap = await getPatientInfoMap(supabase, user.id, [patientId]);
   const info = infoMap.get(patientId);
@@ -350,7 +352,7 @@ export default async function PatientDetailPage({
               Historial de sesiones
             </h2>
             <div className="space-y-2.5">
-              {history.map((a) => {
+              {(history ?? []).map((a) => {
                 // Solo tiene sentido ofrecer "marcar no asistió" sobre una
                 // sesión que ya se confirmó y que ya pasó — no sobre citas
                 // futuras ni sobre las que nunca llegaron a confirmarse.

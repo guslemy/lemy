@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -51,8 +52,28 @@ export default async function MisPacientesPage() {
     .select("patient_id")
     .eq("therapist_id", user.id);
 
-  const patientIds = Array.from(new Set((rawAppointments ?? []).map((a) => a.patient_id as string)));
+  // (2026-11-22) También cuentan los pacientes importados (therapist_patients,
+  // migración 0051): aún no tienen citas. Si la tabla no existe, solo se omite.
+  const { data: importedRows } = await supabase
+    .from("therapist_patients")
+    .select("patient_id")
+    .eq("therapist_id", user.id);
+  const importedIds = new Set((importedRows ?? []).map((r) => r.patient_id as string));
+
+  const patientIds = Array.from(
+    new Set([...(rawAppointments ?? []).map((a) => a.patient_id as string), ...importedIds])
+  );
   const infoMap = await getPatientInfoMap(supabase, user.id, patientIds);
+
+  // Estado de activación de los importados (¿ya entraron a su cuenta?).
+  const activatedIds = new Set<string>();
+  if (importedIds.size > 0) {
+    const { data: claims } = await createServiceClient()
+      .from("profiles")
+      .select("id, imported_claimed_at")
+      .in("id", [...importedIds]);
+    for (const c of claims ?? []) if (c.imported_claimed_at) activatedIds.add(c.id as string);
+  }
 
   const patients = patientIds
     .map((id) => ({ id, ...infoMap.get(id)! }))
@@ -69,14 +90,23 @@ export default async function MisPacientesPage() {
           </p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
             {patients.length > 0
-              ? `${patients.length} persona${patients.length === 1 ? "" : "s"} han agendado contigo`
+              ? `${patients.length} paciente${patients.length === 1 ? "" : "s"}`
               : "Aún no tienes pacientes"}
           </h1>
 
+          <div className="mt-4">
+            <Link
+              href="/dashboard/pacientes/importar"
+              className="inline-block rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest hover:bg-forest/[0.06]"
+            >
+              Importar pacientes de otra agenda
+            </Link>
+          </div>
+
           {patients.length === 0 ? (
-            <p className="mx-auto mt-3.5 max-w-[440px] text-[0.95rem] text-[#3E4B44]">
+            <p className="mt-3.5 max-w-[440px] text-[0.95rem] text-[#3E4B44]">
               En cuanto alguien agende una consulta contigo, va a aparecer aquí con su ficha e
-              historial de sesiones.
+              historial de sesiones. También puedes traer a tus pacientes de otra agenda.
             </p>
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -105,6 +135,12 @@ export default async function MisPacientesPage() {
                       {p.lastAppointmentIso
                         ? `Última cita: ${formatOaxaca(p.lastAppointmentIso)}`
                         : "Sin citas confirmadas"}
+                      {importedIds.has(p.id) && (
+                        <span className="text-[#8B978F]">
+                          {" · "}
+                          Importado · {activatedIds.has(p.id) ? "cuenta activa" : "sin cuenta activa"}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <span className="flex-none text-[0.82rem] font-semibold text-rose-deep">Ver ficha →</span>

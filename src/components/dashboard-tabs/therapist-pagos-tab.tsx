@@ -68,9 +68,8 @@ export async function TherapistPagosTab({ params }: { params: PagosTabParams }) 
   return (
     <div>
       <p className="mt-3 text-[0.95rem] text-[#3E4B44]">
-        Cuando un paciente reserva contigo, paga la consulta directo en tu cuenta de Stripe — Lemy
-        solo se queda con una comisión pequeña por cita. Tú eres quien recibe el dinero y quien
-        factura, no nosotros.
+        Cuando un paciente reserva contigo, paga la consulta directo en tu cuenta de Stripe. Lemy
+        descuenta $5 + 3 % de cada pago con tarjeta; el resto es para ti, y tú eres quien factura.
       </p>
 
       {!isGestiona && (

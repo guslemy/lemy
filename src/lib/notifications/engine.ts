@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { verifyCheckoutSessionPaid } from "@/lib/appointment-checkout";
 import { confirmAppointmentAndCreateEvent } from "@/lib/appointment-confirm";
 import { getResendClient, NOTIFICATIONS_FROM_EMAIL, isResendConfigured } from "@/lib/resend";
+import { processPatientInvitations } from "@/lib/patient-invitations";
 import { sendWhatsAppTemplate, isWhatsAppConfigured, WhatsAppNotConfiguredError } from "@/lib/whatsapp";
 import { sendPushToUser } from "@/lib/webpush";
 import { WA_TEMPLATES, WA_MONTHLY_CAP } from "@/lib/whatsapp-templates";
@@ -288,8 +289,25 @@ type DispatchInput = {
   push?: { title: string; body: string; url?: string };
 };
 
+// Paciente importado que todavía no activó su cuenta: no se le manda NINGÚN
+// aviso (ni correo, ni WhatsApp, ni push) hasta que la reclame — no dio su
+// consentimiento todavía. Las invitaciones salen por otro camino
+// (lib/patient-invitations.ts). Si las columnas aún no existen (migración 0051
+// sin correr), no bloquea nada.
+async function isUnclaimedImported(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_imported, imported_claimed_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return false;
+  return Boolean(data.is_imported) && !data.imported_claimed_at;
+}
+
 export async function dispatch(input: DispatchInput) {
   const { supabase, type, relatedId, recipientId, email, phone, subject, html } = input;
+
+  if (await isUnclaimedImported(supabase, recipientId)) return;
 
   // La notificación dentro del dashboard (campanita) se registra siempre,
   // sin importar si el correo se manda o falla — antes solo se creaba como
@@ -629,6 +647,17 @@ export async function runNotificationSweep(): Promise<{
     }
   } catch (err) {
     console.error("Error en barrido (perfil sin verificar):", err);
+  }
+
+  // 2d. (2026-11-22) Invitaciones a pacientes importados: se mandan en tandas
+  // con tope diario (ver lib/patient-invitations.ts). Lo pendiente de hoy
+  // sigue mañana.
+  if (!quietHours) {
+    try {
+      sent += await processPatientInvitations(supabase);
+    } catch (err) {
+      console.error("Error en barrido (invitaciones a pacientes importados):", err);
+    }
   }
 
   lap("01-02_prueba_gratis");

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import PDFDocument from "pdfkit";
 import { createClient } from "@/lib/supabase/server";
+import { therapistHasPatient } from "@/lib/patient-access";
 import {
   getClinicalProfile,
   getClinicalHistory,
@@ -28,12 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (profileRow?.role !== "therapist") return new Response("No autorizado", { status: 403 });
 
-  const { count } = await supabase
-    .from("appointments")
-    .select("id", { count: "exact", head: true })
-    .eq("therapist_id", user.id)
-    .eq("patient_id", patientId);
-  if (!count) return new Response("No encontrado", { status: 404 });
+  if (!(await therapistHasPatient(supabase, user.id, patientId))) return new Response("No encontrado", { status: 404 });
 
   const [profile, history, sessionNotes, evaluations, therapistRow] = await Promise.all([
     getClinicalProfile(supabase, user.id, patientId),

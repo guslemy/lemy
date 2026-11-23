@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
+import { LEMY_POLICY_SHORT, lemyPolicyApplies } from "@/lib/cancellation-policy";
 import { createServiceClient } from "@/lib/supabase/service";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
 import { whenLabelFor } from "@/lib/notifications/instant";
@@ -158,7 +159,7 @@ async function notifyCardPayment(appointmentId: string) {
     if (!appointment) return;
 
     const [{ data: therapistRow }, { data: patientProfile }, therapistEmail, patientEmail] = await Promise.all([
-      supabase.from("therapists").select("display_name").eq("id", payment.therapist_id).maybeSingle(),
+      supabase.from("therapists").select("display_name, booking_policy_url").eq("id", payment.therapist_id).maybeSingle(),
       supabase.from("profiles").select("full_name").eq("id", payment.patient_id).maybeSingle(),
       emailOf(supabase, payment.therapist_id as string),
       emailOf(supabase, payment.patient_id as string),
@@ -167,6 +168,7 @@ async function notifyCardPayment(appointmentId: string) {
     const therapistName = (therapistRow?.display_name as string | undefined) ?? "tu terapeuta";
     const patientName = (patientProfile?.full_name as string | undefined) ?? "tu paciente";
     const whenLabel = whenLabelFor(appointment.scheduled_at as string);
+    const policyText = lemyPolicyApplies(therapistRow?.booking_policy_url as string | null) ? LEMY_POLICY_SHORT : null;
     const brand = payment.card_brand ? (BRAND_LABEL[payment.card_brand as string] ?? String(payment.card_brand)) : null;
     const cardLabel = payment.card_last4 ? `${brand ?? "Tarjeta"} •••• ${payment.card_last4}` : null;
 
@@ -178,6 +180,7 @@ async function notifyCardPayment(appointmentId: string) {
       paidAtIso: payment.paid_at as string,
       cardLabel,
       reference: appointmentId.slice(0, 8).toUpperCase(),
+      policyText,
     });
     await dispatch({
       supabase,

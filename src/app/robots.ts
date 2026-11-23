@@ -4,7 +4,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lemy.mx";
 
 // Nada de esto le sirve a un buscador y algunos son privados por
 // naturaleza (dashboard, auth, endpoints internos).
-const PRIVADO = ["/dashboard", "/dashboard/", "/api/", "/auth/", "/login"];
+const PRIVADO = ["/dashboard", "/dashboard/", "/api/", "/auth/", "/login", "/invitacion/"];
 
 export default function robots(): MetadataRoute.Robots {
   return {

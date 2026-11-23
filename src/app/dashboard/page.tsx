@@ -69,6 +69,18 @@ export default async function DashboardPage({
     .maybeSingle();
   const whatsappOptIn = Boolean(waRow?.whatsapp_opt_in);
 
+  // (2026-11-22) Paciente importado que entra por primera vez = reclamó su
+  // cuenta: a partir de aquí sí recibe avisos. Consulta aparte y tolerante
+  // (migración 0051).
+  const { data: importedRow } = await supabase
+    .from("profiles")
+    .select("is_imported, imported_claimed_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (importedRow?.is_imported && !importedRow.imported_claimed_at) {
+    await supabase.from("profiles").update({ imported_claimed_at: new Date().toISOString() }).eq("id", user.id);
+  }
+
   // Admin no tiene nada que hacer en esta pantalla intermedia — su panel
   // real (contenido, verificaciones, usuarios) siempre es /dashboard/admin.
   // Antes había una tarjeta con un botón para llegar ahí; Gustavo pidió

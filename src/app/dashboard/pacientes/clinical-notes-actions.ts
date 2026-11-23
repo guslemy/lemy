@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { encryptClinicalNote } from "@/lib/clinical-notes-crypto";
+import { therapistHasPatient } from "@/lib/patient-access";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -31,12 +32,7 @@ export async function createClinicalNote(formData: FormData) {
   const content = String(formData.get("content") || "").trim();
   if (!patientId || !content) return;
 
-  const { count } = await supabase
-    .from("appointments")
-    .select("id", { count: "exact", head: true })
-    .eq("therapist_id", user.id)
-    .eq("patient_id", patientId);
-  if (!count) return;
+  if (!(await therapistHasPatient(supabase, user.id, patientId))) return;
 
   const { ciphertext, iv, authTag } = encryptClinicalNote(content);
 

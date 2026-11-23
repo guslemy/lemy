@@ -15,6 +15,7 @@ import { ShareProfileButton } from "@/components/share-profile-button";
 import { VerificationBadge, VerificationSeal } from "@/components/verification-badge";
 import { getAvailableSlots } from "@/lib/availability";
 import { hasGestionaPlan } from "@/lib/plan-features";
+import { LEMY_POLICY_SHORT } from "@/lib/cancellation-policy";
 import { BookingCalendar, type DaySlots } from "./booking-calendar";
 import { requestAppointment } from "./actions";
 
@@ -707,7 +708,7 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                   Elige un horario disponible
                 </h2>
 
-                {therapist.booking_policy_url && (
+                {therapist.booking_policy_url ? (
                   <p className="mt-2 text-[0.85rem] text-[#7C877F]">
                     Revisa mi política de reservas aquí:{" "}
                     <a
@@ -719,6 +720,12 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       {therapist.booking_policy_url}
                     </a>
                   </p>
+                ) : (
+                  // Sin política propia: aplica la de Lemy (con reembolso
+                  // automático en pagos con tarjeta), ver lib/cancellation-policy.ts.
+                  cardAvailable && (
+                    <p className="mt-2 text-[0.85rem] text-[#7C877F]">{LEMY_POLICY_SHORT}</p>
+                  )
                 )}
 
                 {solicitado === "1" && (

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cancelAppointmentAsParticipant } from "@/lib/appointments";
 import { notifyAppointmentCancelled, notifyAppointmentAccepted } from "@/lib/notifications/instant";
 import { startAppointmentCheckout } from "@/lib/appointment-checkout";
+import { maybeAutoRefundOnCancel } from "@/lib/auto-refund";
 import { hasGestionaPlan } from "@/lib/plan-features";
 
 async function requireUser() {
@@ -104,6 +105,9 @@ export async function cancelAppointmentPatient(formData: FormData) {
       patientId: result.appointment.patient_id,
       scheduledAtIso: result.appointment.scheduled_at,
     });
+    // Pagada con tarjeta y cancelada con 24 h o más de anticipación (y sin
+    // política propia del terapeuta): reembolso completo automático.
+    await maybeAutoRefundOnCancel({ appointmentId, cancelledBy: "patient" });
   }
 
   revalidatePath("/dashboard");
