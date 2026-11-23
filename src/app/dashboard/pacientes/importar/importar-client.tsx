@@ -88,8 +88,9 @@ function parseCsv(text: string): string[][] {
 
 async function readFileTable(file: File): Promise<unknown[][]> {
   if (file.name.toLowerCase().endsWith(".csv")) return parseCsv(await file.text());
-  const { default: readXlsxFile } = await import("read-excel-file");
-  return (await readXlsxFile(file)) as unknown[][];
+  // v9 del paquete: no hay entrada raíz, se usa /browser; readSheet = primera hoja.
+  const { readSheet } = await import("read-excel-file/browser");
+  return (await readSheet(file)) as unknown[][];
 }
 
 export function ImportarClient() {
