@@ -15,6 +15,8 @@ export type PatientListItem = {
   imported: boolean;
   activated: boolean;
   closed: boolean;
+  // El terapeuta lo quitó de su lista (no se muestra salvo que pida verlos).
+  hidden: boolean;
 };
 
 export type InviteCandidate = { id: string; name: string; email: string };
@@ -66,18 +68,22 @@ export function PatientsList({
     }
   }
 
+  const [showHidden, setShowHidden] = useState(false);
+  const hiddenCount = patients.filter((p) => p.hidden).length;
+  const visible = useMemo(() => patients.filter((p) => (showHidden ? p.hidden : !p.hidden)), [patients, showHidden]);
+
   const filtered = useMemo(() => {
     const q = norm(query.trim());
-    if (!q) return patients;
+    if (!q) return visible;
     const qDigits = q.replace(/\D/g, "");
-    return patients.filter((p) => {
+    return visible.filter((p) => {
       if (norm(p.fullName).includes(q)) return true;
       if (p.email && norm(p.email).includes(q)) return true;
       if (p.notes && norm(p.notes).includes(q)) return true;
       if (qDigits.length >= 3 && p.phone && p.phone.replace(/\D/g, "").includes(qDigits)) return true;
       return false;
     });
-  }, [patients, query]);
+  }, [visible, query]);
 
   const pending = inviteCandidates.filter((c) => !sentIds.has(c.id));
 
@@ -195,9 +201,20 @@ export function PatientsList({
         </div>
       )}
 
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowHidden((v) => !v)}
+          className="mt-3 text-[0.8rem] text-[#7C877F] underline"
+        >
+          {showHidden ? "← Volver a mi lista" : `Ver pacientes quitados de mi lista (${hiddenCount})`}
+        </button>
+      )}
+      {showHidden && <p className="mt-2 text-[0.82rem] text-[#7C877F]">Estos pacientes no aparecen en tu lista. Abre su ficha para restaurarlos.</p>}
+
       {query.trim() && (
         <p className="mt-3 text-[0.82rem] text-[#7C877F]">
-          {filtered.length} resultado(s) de {patients.length}.
+          {filtered.length} resultado(s) de {visible.length}.
         </p>
       )}
 

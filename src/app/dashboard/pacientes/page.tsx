@@ -101,7 +101,15 @@ export default async function MisPacientesPage() {
       return byDate !== 0 ? byDate : a.displayName.localeCompare(b.displayName, "es");
     });
 
+  // Pacientes que el terapeuta quitó de su lista (si la tabla aún no existe, ninguno).
+  const { data: hiddenRows } = await supabase
+    .from("therapist_hidden_patients")
+    .select("patient_id")
+    .eq("therapist_id", user.id);
+  const hiddenIds = new Set((hiddenRows ?? []).map((r) => r.patient_id as string));
+
   const listItems: PatientListItem[] = patients.map((p) => ({
+    hidden: hiddenIds.has(p.id),
     id: p.id,
     fullName: p.displayName,
     email: p.info.email,
@@ -119,6 +127,7 @@ export default async function MisPacientesPage() {
         importedIds.has(p.id) &&
         !activatedIds.has(p.id) &&
         !p.closed &&
+        !hiddenIds.has(p.id) &&
         !minorIds.has(p.id) &&
         !invitedIds.has(p.id) &&
         Boolean(p.info.email)
@@ -136,7 +145,9 @@ export default async function MisPacientesPage() {
           </p>
           <h1 className="mt-2.5 font-display text-[1.9rem] font-medium text-forest sm:text-[2.3rem]">
             {patients.length > 0
-              ? `${patients.length} paciente${patients.length === 1 ? "" : "s"}`
+              ? `${listItems.filter((i) => !i.hidden).length} paciente${
+                  listItems.filter((i) => !i.hidden).length === 1 ? "" : "s"
+                }`
               : "Aún no tienes pacientes"}
           </h1>
 

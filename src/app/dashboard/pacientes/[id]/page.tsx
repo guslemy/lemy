@@ -30,6 +30,8 @@ import {
   getHistoryLink,
 } from "@/lib/clinical-record";
 import { PatientFichaTabs } from "@/components/patient-ficha/ficha-tabs";
+import { createServiceClient } from "@/lib/supabase/service";
+import { PatientAdminPanel } from "./patient-admin-panel";
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -84,6 +86,22 @@ export default async function PatientDetailPage({
 
   const infoMap = await getPatientInfoMap(supabase, user.id, [patientId]);
   const info = infoMap.get(patientId);
+
+  // ¿Se pueden editar sus datos? Solo si es un paciente importado que aún no
+  // activa su cuenta. ¿Está quitado de mi lista?
+  const { data: claim } = await createServiceClient()
+    .from("profiles")
+    .select("is_imported, imported_claimed_at, account_closed_at")
+    .eq("id", patientId)
+    .maybeSingle();
+  const canEditData = Boolean(claim?.is_imported && !claim.imported_claimed_at && !claim.account_closed_at);
+  const { data: hiddenRow } = await supabase
+    .from("therapist_hidden_patients")
+    .select("patient_id")
+    .eq("therapist_id", user.id)
+    .eq("patient_id", patientId)
+    .maybeSingle();
+  const isHidden = Boolean(hiddenRow);
 
   // Datos para el botón "Agendar consulta con este paciente" (a petición de
   // Gustavo, 2026-09-21) — mismo cálculo de horarios disponibles que ya usa
@@ -244,6 +262,13 @@ export default async function PatientDetailPage({
             <p className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">Contacto</p>
             <p className="mt-2 text-[0.92rem] text-[#3E4B44]">{info?.email ?? "—"}</p>
             <p className="text-[0.92rem] text-[#3E4B44]">{info?.phone ?? "—"}</p>
+
+            <PatientAdminPanel
+              patientId={patientId}
+              canEdit={canEditData}
+              hidden={isHidden}
+              initial={{ name: info?.fullName ?? "", email: info?.email ?? "", phone: info?.phone ?? "" }}
+            />
 
             <SaveNotesForm
               patientId={patientId}
