@@ -127,6 +127,46 @@ export async function closePatientAccount(formData: FormData) {
     console.error("Error mandando correo de cierre de cuenta (paciente):", err);
   }
 
+  // (2026-11-22) Antes de anonimizar, cada terapeuta que ya conocía a este
+  // paciente conserva SU copia de nombre, correo y teléfono en su expediente
+  // (patient_clinical_profile, que es del terapeuta y no se toca al cerrar la
+  // cuenta). Así puede identificarlo ("Nombre (eliminado)"), buscarlo y
+  // exportar sus notas (NOM-004), mientras la cuenta de Lemy queda anonimizada.
+  // Solo se llenan los campos que el terapeuta no tuviera ya capturados.
+  try {
+    const email = await emailOf(serviceClient, user.id);
+    const [{ data: fromAppts }, { data: fromImport }] = await Promise.all([
+      serviceClient.from("appointments").select("therapist_id").eq("patient_id", user.id),
+      serviceClient.from("therapist_patients").select("therapist_id").eq("patient_id", user.id),
+    ]);
+    const therapistIds = Array.from(
+      new Set([...(fromAppts ?? []), ...(fromImport ?? [])].map((r) => r.therapist_id as string))
+    );
+    const { data: prof } = await serviceClient.from("profiles").select("full_name, phone").eq("id", user.id).maybeSingle();
+    for (const therapistId of therapistIds) {
+      const { data: existing } = await serviceClient
+        .from("patient_clinical_profile")
+        .select("full_name, phone, email")
+        .eq("therapist_id", therapistId)
+        .eq("patient_id", user.id)
+        .maybeSingle();
+      const fill = (cur: unknown, val: string | null | undefined) =>
+        typeof cur === "string" && cur.trim() ? cur : (val ?? null);
+      await serviceClient.from("patient_clinical_profile").upsert(
+        {
+          therapist_id: therapistId,
+          patient_id: user.id,
+          full_name: fill(existing?.full_name, prof?.full_name as string | null),
+          phone: fill(existing?.phone, prof?.phone as string | null),
+          email: fill(existing?.email, email),
+        },
+        { onConflict: "therapist_id,patient_id" }
+      );
+    }
+  } catch (err) {
+    console.error("Error copiando los datos de contacto al expediente al cerrar cuenta (paciente):", err);
+  }
+
   // Si este paciente alguna vez conectó Google Calendar, el token se borra
   // junto con la cuenta (ver lib/google-token.ts).
   await purgeGoogleToken(serviceClient, user.id);

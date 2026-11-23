@@ -41,6 +41,10 @@ export default async function CerrarCuentaPage() {
           ) : (
             <div className="mt-5 rounded-2xl border border-line bg-card px-5 py-4 text-[0.9rem] text-[#3E4B44]">
               <p>Al cerrar tu cuenta ya no podrás iniciar sesión con ella. Esta acción no se puede deshacer.</p>
+              <p className="mt-2">
+                Tu cuenta de Lemy se anonimiza. Tus terapeutas conservarán, en su expediente, tu nombre y datos de contacto que
+                ya tenían, porque la ley (NOM-004-SSA3-2012) les exige guardar el expediente clínico por al menos 5 años.
+              </p>
             </div>
           )}
 

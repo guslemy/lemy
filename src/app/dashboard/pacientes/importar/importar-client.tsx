@@ -36,20 +36,28 @@ const STEP_LABEL: Record<Step, string> = {
   listo: "6. Listo",
 };
 
-const MAPPABLE: FieldKey[] = [
-  "fullName",
-  "firstName",
-  "lastName",
-  "email",
-  "phone",
-  "birthDate",
-  "birthDay",
-  "birthMonth",
-  "birthYear",
-  "age",
-  "city",
-  "createdAt",
+// Campos agrupados para la pantalla de columnas, con una ayuda corta en lenguaje sencillo.
+const FIELD_GROUPS: { title: string; fields: FieldKey[] }[] = [
+  { title: "Nombre del paciente (obligatorio)", fields: ["firstName", "lastName", "fullName"] },
+  { title: "Cómo contactarlo", fields: ["email", "phone"] },
+  { title: "Edad y fecha de nacimiento (para detectar menores)", fields: ["birthDate", "birthDay", "birthMonth", "birthYear", "age"] },
+  { title: "Otros datos (opcional)", fields: ["city", "createdAt"] },
 ];
+
+const FIELD_HELP: Record<FieldKey, string> = {
+  firstName: "Solo el nombre de pila. Si tu archivo trae nombre y apellido separados, usa esta y la de Apellidos.",
+  lastName: "Los apellidos, si están en otra columna.",
+  fullName: "Úsala solo si el nombre y los apellidos vienen juntos en una sola columna.",
+  email: "Para poder invitarlo después a crear su cuenta en Lemy.",
+  phone: "Teléfono de contacto.",
+  birthDate: "Úsala solo si la fecha viene completa en una columna (ej. 12/05/1992).",
+  birthDay: "Úsala si el día viene en su propia columna.",
+  birthMonth: "Úsala si el mes viene en su propia columna.",
+  birthYear: "Úsala si el año viene en su propia columna.",
+  age: "Si no hay fecha de nacimiento, Lemy usa la edad para detectar menores.",
+  city: "Ciudad donde vive.",
+  createdAt: "Cuándo se dio de alta en tu agenda anterior. Sirve para invitar solo a los más recientes.",
+};
 
 // CSV sencillo (comas o punto y coma, con comillas).
 function parseCsv(text: string): string[][] {
@@ -116,6 +124,7 @@ export function ImportarClient() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
   const headers = (table[0] ?? []) as unknown[];
+  const autoMapping = useMemo<Mapping>(() => (table.length ? guessMapping(table[0] as unknown[]) : {}), [table]);
 
   // ── Paso 1: archivo ──────────────────────────────────────────────────
   async function onFile(file: File | undefined) {
@@ -289,57 +298,114 @@ export function ImportarClient() {
       {step === "archivo" && (
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
           <p className="text-[0.95rem] text-[#3E4B44]">
-            Sube el Excel (.xlsx) o CSV que te da tu agenda anterior (AgendaPro u otra). Lemy reconoce las columnas solo.
+            Sube aquí el archivo de tus pacientes (.xlsx o .csv). Compatible con archivos de AgendaPro, u otras apps.
+          </p>
+          <p className="mt-2 text-[0.85rem] text-[#7C877F]">
             El archivo se lee en tu navegador; no se sube a ningún lado hasta que tú confirmes.
           </p>
-          <input
-            type="file"
-            accept=".xlsx,.csv"
-            disabled={busy}
-            onChange={(e) => onFile(e.target.files?.[0])}
-            className="mt-4 block w-full cursor-pointer text-[0.9rem]"
-          />
+          <label
+            className={`mt-5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-forest/30 bg-forest/[0.03] px-6 py-10 text-center transition-colors hover:bg-forest/[0.07] ${
+              busy ? "pointer-events-none opacity-60" : ""
+            }`}
+          >
+            <span className="inline-block rounded-full bg-forest px-6 py-2.5 text-[0.95rem] font-semibold text-white">
+              Elegir archivo de mi computadora
+            </span>
+            <span className="text-[0.82rem] text-[#7C877F]">Excel (.xlsx) o CSV</span>
+            <input
+              type="file"
+              accept=".xlsx,.csv"
+              disabled={busy}
+              onChange={(e) => onFile(e.target.files?.[0])}
+              className="sr-only"
+            />
+          </label>
           {busy && <p className="mt-3 text-[0.85rem] text-[#7C877F]">Leyendo archivo…</p>}
         </div>
       )}
 
       {step === "columnas" && (
         <div className="mt-6 rounded-2xl border border-line bg-card p-6">
-          <p className="text-[0.95rem] text-[#3E4B44]">
-            Archivo: <strong>{filename}</strong> · {table.length - 1} filas. Revisa que cada dato esté en la columna correcta.
+          <h2 className="font-display text-[1.2rem] text-forest">Revisa que Lemy entendió tu archivo</h2>
+          <p className="mt-2 text-[0.92rem] text-[#3E4B44]">
+            Tu archivo <strong>{filename}</strong> tiene {table.length - 1} filas. Abajo, para cada dato que Lemy guarda de tus
+            pacientes, te mostramos de qué columna de tu archivo lo va a tomar, con un ejemplo real.
           </p>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {MAPPABLE.map((f) => (
-              <label key={f} className="text-[0.82rem] text-[#5A665F]">
-                {FIELD_LABELS[f]}
-                <select
-                  value={mapping[f] ?? ""}
-                  onChange={(e) =>
-                    setMapping((m) => {
-                      const next = { ...m };
-                      if (e.target.value === "") delete next[f];
-                      else next[f] = Number(e.target.value);
-                      return next;
-                    })
-                  }
-                  className="input-lemy mt-1 w-full"
-                >
-                  <option value="">— no incluir —</option>
-                  {headers.map((h, i) => (
-                    <option key={i} value={i}>
-                      {String(h ?? `Columna ${i + 1}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </div>
-          <div className="mt-5 flex gap-3">
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-[0.88rem] text-[#3E4B44]">
+            <li>
+              Si el ejemplo se ve bien (por ejemplo, un nombre en &ldquo;Nombre&rdquo;), <strong>no tienes que tocar nada</strong>.
+            </li>
+            <li>Si el ejemplo es incorrecto, abre la lista y elige la columna correcta de tu archivo.</li>
+            <li>Si tu archivo no trae ese dato, deja &ldquo;No incluir&rdquo;. Solo el nombre es obligatorio.</li>
+          </ol>
+
+          {FIELD_GROUPS.map((group) => (
+            <div key={group.title} className="mt-6">
+              <h3 className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-rose-deep">{group.title}</h3>
+              <div className="mt-2 divide-y divide-line/70 rounded-xl border border-line">
+                {group.fields.map((f) => {
+                  const col = mapping[f];
+                  const detected = col !== undefined && autoMapping[f] === col;
+                  const examples =
+                    col === undefined
+                      ? []
+                      : table
+                          .slice(1)
+                          .map((r) => String((r as unknown[])[col] ?? "").trim())
+                          .filter(Boolean)
+                          .slice(0, 3);
+                  return (
+                    <div key={f} className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[1fr_1fr] sm:items-center">
+                      <div>
+                        <p className="text-[0.9rem] font-medium text-forest">
+                          {FIELD_LABELS[f]}
+                          {f === "firstName" || f === "fullName" ? <span className="text-rose-deep"> *</span> : null}
+                        </p>
+                        <p className="text-[0.78rem] text-[#7C877F]">{FIELD_HELP[f]}</p>
+                      </div>
+                      <div>
+                        <select
+                          value={col ?? ""}
+                          onChange={(e) =>
+                            setMapping((m) => {
+                              const next = { ...m };
+                              if (e.target.value === "") delete next[f];
+                              else next[f] = Number(e.target.value);
+                              return next;
+                            })
+                          }
+                          className="input-lemy w-full"
+                        >
+                          <option value="">No incluir</option>
+                          {headers.map((h, i) => (
+                            <option key={i} value={i}>
+                              Columna: {String(h ?? `Columna ${i + 1}`)}
+                            </option>
+                          ))}
+                        </select>
+                        {col !== undefined && (
+                          <p className="mt-1 text-[0.76rem] text-[#5A665F]">
+                            {detected && <span className="font-semibold text-forest">✓ Detectada automáticamente · </span>}
+                            Ejemplo: {examples.length ? examples.join("  ·  ") : "(vacío en las primeras filas)"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <p className="mt-4 text-[0.8rem] text-[#7C877F]">
+            En este paso todavía no se guarda nada. Primero vas a revisar la lista de pacientes completa.
+          </p>
+          <div className="mt-4 flex gap-3">
             <Button type="button" variant="ghost" onClick={() => setStep("archivo")}>
-              Atrás
+              Atrás: cambiar archivo
             </Button>
             <Button type="button" variant="primary" disabled={busy} onClick={onAnalyze}>
-              {busy ? "Revisando…" : "Revisar pacientes"}
+              {busy ? "Revisando…" : "Listo, ver mis pacientes"}
             </Button>
           </div>
         </div>
@@ -347,8 +413,27 @@ export function ImportarClient() {
 
       {step === "revision" && (
         <div className="mt-6">
-          <div className="rounded-2xl border border-line bg-card p-5 text-[0.88rem] text-[#3E4B44]">
-            <p>
+          <div className="rounded-2xl border border-forest/20 bg-forest/[0.04] p-5 text-[0.9rem] text-[#3E4B44]">
+            <h2 className="font-display text-[1.2rem] text-forest">Estos son los pacientes que encontramos</h2>
+            <p className="mt-1.5">
+              Asegúrate de revisar los datos, y corregir los posibles errores y duplicados antes de continuar.
+            </p>
+            <ol className="mt-3 list-decimal space-y-1 pl-5 text-[0.85rem]">
+              <li>
+                Cada fila con la casilla <strong>marcada</strong> se va a importar. <strong>Desmarca</strong> las que no quieras (por
+                ejemplo, una persona repetida).
+              </li>
+              <li>
+                En la columna <strong>Notas</strong> te avisamos si algo se ve raro: un posible duplicado, un correo con error
+                (lo corregimos solo si es un typo evidente) o un menor de edad.
+              </li>
+              <li>
+                Si hay un <strong>menor de edad</strong>, escribe los datos de su mamá, papá o tutor en el recuadro rosa que
+                aparece.
+              </li>
+              <li>Cuando todo se vea bien, pulsa el botón &ldquo;Continuar&rdquo; al final de la lista.</li>
+            </ol>
+            <p className="mt-3 border-t border-line pt-3">
               <strong>{rows.length}</strong> filas en el archivo · <strong>{stats.sel}</strong> se van a importar.
             </p>
             <ul className="mt-2 space-y-1 text-[0.82rem] text-[#5A665F]">
@@ -524,9 +609,10 @@ export function ImportarClient() {
                 </ul>
               </div>
             )}
-            <Link href="/dashboard/pacientes" className="mt-4 inline-block text-[0.9rem] font-semibold text-rose-deep underline">
-              Ver mi lista de pacientes →
-            </Link>
+            <p className="mt-2 text-[0.88rem] text-[#3E4B44]">
+              Sigue con el recuadro de abajo para invitar a tus pacientes a Lemy. Si prefieres hacerlo después, siempre puedes
+              hacerlo desde <strong>Mis pacientes → Invitar a mis pacientes a Lemy</strong>.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-line bg-card p-6">
@@ -581,6 +667,16 @@ export function ImportarClient() {
             <Button type="button" variant="primary" className="mt-4" disabled={busy || inviteSel.size === 0} onClick={onInvite}>
               Enviar invitación a {inviteSel.size} paciente(s)
             </Button>
+          </div>
+
+          <div className="rounded-2xl border border-line bg-card p-6 text-center">
+            <p className="text-[0.88rem] text-[#3E4B44]">¿Terminaste de invitar? Ya puedes ir a tu lista de pacientes.</p>
+            <Link
+              href="/dashboard/pacientes"
+              className="mt-3 inline-block rounded-full bg-forest px-6 py-2.5 text-[0.9rem] font-semibold text-white"
+            >
+              Ver mi lista de pacientes →
+            </Link>
           </div>
         </div>
       )}

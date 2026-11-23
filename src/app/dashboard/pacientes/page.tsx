@@ -5,6 +5,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getPatientInfoMap } from "@/lib/patient-info";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isMinorRow } from "@/lib/patient-import/normalize";
+import { PatientsList, type InviteCandidate, type PatientListItem } from "./pacientes-list";
 
 const WEEKDAY_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const OAXACA_UTC_OFFSET_MIN = 6 * 60;
@@ -16,15 +18,6 @@ function formatOaxaca(iso: string) {
   const d = local.getUTCDate();
   const m = local.getUTCMonth() + 1;
   return `${weekday} ${d}/${m}`;
-}
-
-function initialsFrom(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
 }
 
 // Lista real de "Mis pacientes" — antes era un placeholder. Se deriva de
@@ -65,19 +58,72 @@ export default async function MisPacientesPage() {
   );
   const infoMap = await getPatientInfoMap(supabase, user.id, patientIds);
 
-  // Estado de activación de los importados (¿ya entraron a su cuenta?).
+  // Estado de activación de los importados (¿ya entraron a su cuenta?), menores
+  // de edad e invitaciones ya hechas: todo por tandas de 100 ids.
+  const service = createServiceClient();
+  const importedList = [...importedIds];
   const activatedIds = new Set<string>();
-  if (importedIds.size > 0) {
-    const { data: claims } = await createServiceClient()
-      .from("profiles")
-      .select("id, imported_claimed_at")
-      .in("id", [...importedIds]);
-    for (const c of claims ?? []) if (c.imported_claimed_at) activatedIds.add(c.id as string);
+  const minorIds = new Set<string>();
+  const invitedIds = new Set<string>();
+  for (let i = 0; i < importedList.length; i += 100) {
+    const ids = importedList.slice(i, i + 100);
+    const [claims, pats, invs] = await Promise.all([
+      service.from("profiles").select("id, imported_claimed_at").in("id", ids),
+      service.from("patients").select("id, birth_date, guardian_name").in("id", ids),
+      supabase.from("patient_invitations").select("patient_id").eq("therapist_id", user.id).in("patient_id", ids),
+    ]);
+    for (const c of claims.data ?? []) if (c.imported_claimed_at) activatedIds.add(c.id as string);
+    for (const p of pats.data ?? []) {
+      const minor = p.birth_date
+        ? isMinorRow({ birthDate: p.birth_date as string, age: null })
+        : Boolean(p.guardian_name);
+      if (minor) minorIds.add(p.id as string);
+    }
+    for (const v of invs.data ?? []) invitedIds.add(v.patient_id as string);
   }
 
+  // Nombre a mostrar: las cuentas cerradas llevan "(eliminado)" y van al final.
   const patients = patientIds
-    .map((id) => ({ id, ...infoMap.get(id)! }))
-    .sort((a, b) => (b.lastAppointmentIso ?? "").localeCompare(a.lastAppointmentIso ?? ""));
+    .map((id) => {
+      const info = infoMap.get(id)!;
+      const base = info.fullName ?? "Paciente";
+      const closed = info.accountClosed;
+      return {
+        id,
+        info,
+        closed,
+        displayName: closed && base !== "Usuario eliminado" ? `${base} (eliminado)` : base,
+      };
+    })
+    .sort((a, b) => {
+      if (a.closed !== b.closed) return a.closed ? 1 : -1;
+      const byDate = (b.info.lastAppointmentIso ?? "").localeCompare(a.info.lastAppointmentIso ?? "");
+      return byDate !== 0 ? byDate : a.displayName.localeCompare(b.displayName, "es");
+    });
+
+  const listItems: PatientListItem[] = patients.map((p) => ({
+    id: p.id,
+    fullName: p.displayName,
+    email: p.info.email,
+    phone: p.info.phone,
+    notes: p.info.notes,
+    lastAppointmentLabel: p.info.lastAppointmentIso ? formatOaxaca(p.info.lastAppointmentIso) : null,
+    imported: importedIds.has(p.id),
+    activated: activatedIds.has(p.id),
+    closed: p.closed,
+  }));
+
+  const inviteCandidates: InviteCandidate[] = patients
+    .filter(
+      (p) =>
+        importedIds.has(p.id) &&
+        !activatedIds.has(p.id) &&
+        !p.closed &&
+        !minorIds.has(p.id) &&
+        !invitedIds.has(p.id) &&
+        Boolean(p.info.email)
+    )
+    .map((p) => ({ id: p.id, name: p.displayName, email: p.info.email as string }));
 
   return (
     <>
@@ -109,44 +155,11 @@ export default async function MisPacientesPage() {
               historial de sesiones. También puedes traer a tus pacientes de otra agenda.
             </p>
           ) : (
-            <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {patients.map((p, i) => (
-                <Link
-                  key={p.id}
-                  href={`/dashboard/pacientes/${p.id}`}
-                  className="signature-corner flex items-center gap-4 rounded-[22px] border border-line bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-signature)]"
-                >
-                  <div
-                    className="flex h-11 w-11 flex-none items-center justify-center rounded-full font-display text-[0.95rem] font-semibold text-white"
-                    style={{
-                      background:
-                        i % 3 === 0
-                          ? "linear-gradient(135deg,#3E6B54,var(--forest))"
-                          : i % 3 === 1
-                            ? "linear-gradient(135deg,var(--rose),var(--rose-deep))"
-                            : "linear-gradient(135deg,#B99433,#8E7124)",
-                    }}
-                  >
-                    {initialsFrom(p.fullName ?? "Paciente")}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-forest">{p.fullName ?? "Paciente"}</p>
-                    <p className="text-[0.8rem] text-[#7C877F]">
-                      {p.lastAppointmentIso
-                        ? `Última cita: ${formatOaxaca(p.lastAppointmentIso)}`
-                        : "Sin citas confirmadas"}
-                      {importedIds.has(p.id) && (
-                        <span className="text-[#8B978F]">
-                          {" · "}
-                          Importado · {activatedIds.has(p.id) ? "cuenta activa" : "sin cuenta activa"}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <span className="flex-none text-[0.82rem] font-semibold text-rose-deep">Ver ficha →</span>
-                </Link>
-              ))}
-            </div>
+            <PatientsList
+              patients={listItems}
+              inviteCandidates={inviteCandidates}
+              alreadyInvited={invitedIds.size}
+            />
           )}
         </div>
       </main>
