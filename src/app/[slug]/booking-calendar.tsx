@@ -50,6 +50,8 @@ export function BookingCalendar({
   cardAvailable,
   cashAvailable,
   requestAppointment,
+  policyUrl,
+  lemyPolicyText,
 }: {
   daysByDuration: Record<number, DaySlots[]>;
   legacyDurationMin: number;
@@ -62,6 +64,10 @@ export function BookingCalendar({
   cardAvailable: boolean;
   cashAvailable: boolean;
   requestAppointment: (formData: FormData) => void;
+  // Política propia del terapeuta (link) o, si no tiene, el texto de la de Lemy
+  // (solo cuando hay cobro con tarjeta). Se muestra en el popup de confirmación.
+  policyUrl?: string | null;
+  lemyPolicyText?: string | null;
 }) {
   const hasServices = services.length > 0;
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
@@ -293,6 +299,27 @@ export function BookingCalendar({
                 Esta sesión se paga con tarjeta al confirmar tu solicitud.
               </p>
             )}
+
+            {policyUrl ? (
+              <p className="mt-4 text-[0.8rem] text-[#7C877F]">
+                <a href={policyUrl} target="_blank" rel="noreferrer" className="text-forest underline">
+                  Conoce la política de cancelación
+                </a>{" "}
+                de {therapistName.split(" ")[0]}.
+              </p>
+            ) : (cardAvailable && cashAvailable ? paymentMethod === "cash" : !cardAvailable) ? (
+              // Efectivo: Lemy no reembolsa nada (el dinero no pasa por la plataforma),
+              // solo se pide avisar con tiempo.
+              <p className="mt-4 text-[0.8rem] text-[#7C877F]">
+                Pagas en efectivo directamente con {therapistName.split(" ")[0]}. Si necesitas cancelar, avisa con al menos
+                24 horas de anticipación.
+              </p>
+            ) : lemyPolicyText ? (
+              <details className="mt-4 text-[0.8rem] text-[#7C877F]">
+                <summary className="cursor-pointer text-forest underline">Conoce la política de cancelación</summary>
+                <p className="mt-1.5">{lemyPolicyText}</p>
+              </details>
+            ) : null}
 
             <form
               action={requestAppointment}

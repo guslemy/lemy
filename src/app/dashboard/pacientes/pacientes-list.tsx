@@ -87,6 +87,34 @@ export function PatientsList({
 
   const pending = inviteCandidates.filter((c) => !sentIds.has(c.id));
 
+  // Exporta a un CSV (se abre directo en Excel) lo que se ve en pantalla: toda
+  // la lista, o solo los resultados si hay una búsqueda activa.
+  function onExport() {
+    const esc = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
+    const header = ["Nombre", "Correo", "Teléfono", "Última cita", "Estado", "Notas privadas"];
+    const lines = filtered.map((p) =>
+      [
+        p.fullName,
+        p.email,
+        p.phone,
+        p.lastAppointmentLabel,
+        p.closed ? "Cuenta eliminada" : p.imported ? (p.activated ? "Importado · cuenta activa" : "Importado · sin cuenta activa") : "Con cuenta en Lemy",
+        p.notes,
+      ]
+        .map(esc)
+        .join(",")
+    );
+    const csv = "﻿" + [header.map(esc).join(","), ...lines].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mis-pacientes-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function onInvite() {
     setBusy(true);
     const ids = [...sel];
@@ -116,6 +144,14 @@ export function PatientsList({
           className="cursor-pointer rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest transition-all duration-150 hover:bg-forest/[0.06]"
         >
           Invitar a mis pacientes a Lemy
+        </button>
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={filtered.length === 0}
+          className="cursor-pointer rounded-full border border-forest/30 px-4 py-1.5 text-[0.85rem] font-medium text-forest transition-all duration-150 hover:bg-forest/[0.06]"
+        >
+          {query.trim() ? `Exportar ${filtered.length} resultado(s)` : "Exportar lista"}
         </button>
       </div>
 

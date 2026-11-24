@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { runNotificationSweep } from "@/lib/notifications/engine";
+
+// Tiempo máximo que puede seguir corriendo el barrido después de responder.
+export const maxDuration = 300;
 
 // IMPORTANTE: sin esto, Next.js cachea la respuesta GET de esta ruta de
 // forma estática (no detecta req.headers.get(...) como señal dinámica) y
@@ -22,11 +25,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401, ...noStore });
   }
 
-  try {
-    const result = await runNotificationSweep();
-    return NextResponse.json({ ok: true, ...result }, noStore);
-  } catch (err) {
-    console.error("Error en el barrido de notificaciones:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500, ...noStore });
-  }
+  // (2026-11-24) El barrido se corre DESPUÉS de responder: cron-job.org corta
+  // a los 30 s y reportaba "Timeout" cuando una corrida cargada tardaba más
+  // (p. ej. a las 8:00 CDMX, cuando termina el horario de silencio y se
+  // procesa lo acumulado), aunque el barrido sí terminaba en Vercel. Así el
+  // cron recibe un 200 al instante y el trabajo sigue hasta maxDuration.
+  // Los errores y tiempos quedan en los logs de Vercel.
+  after(async () => {
+    try {
+      const result = await runNotificationSweep();
+      console.log("Barrido de notificaciones terminado:", JSON.stringify(result));
+    } catch (err) {
+      console.error("Error en el barrido de notificaciones:", err);
+    }
+  });
+  return NextResponse.json({ ok: true, started: true }, noStore);
 }

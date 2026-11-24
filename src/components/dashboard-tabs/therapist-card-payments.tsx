@@ -4,6 +4,7 @@ import { formatDateOnly, formatMxn } from "@/lib/notifications/payment-templates
 import { cardPaymentStatusClasses, cardPaymentStatusLabel } from "@/lib/card-payment-status";
 import { MANUAL_REFUND_AFTER_SESSION_DAYS } from "@/lib/cancellation-policy";
 import { RefundButton } from "./refund-button";
+import { refreshCardPaymentBreakdown } from "@/lib/card-payments";
 
 // Tablero "Pagos con tarjeta" del terapeuta (dentro de Cobros por consulta):
 // qué se le ha cobrado, cuánto le queda y en qué punto va el dinero (cobrado,
@@ -30,16 +31,34 @@ type PaymentRow = {
 
 export async function TherapistCardPayments({ therapistId }: { therapistId: string }) {
   const supabase = await createClient();
+  const columns =
+    "appointment_id, patient_id, amount_cents, lemy_fee_cents, net_cents, status, paid_at, expected_available_on, deposited_at, stripe_payment_intent_id, stripe_charge_id";
   const { data, error } = await supabase
     .from("card_payments")
-    .select("appointment_id, patient_id, amount_cents, lemy_fee_cents, net_cents, status, paid_at, expected_available_on, deposited_at, stripe_payment_intent_id")
+    .select(columns)
     .eq("therapist_id", therapistId)
     .order("paid_at", { ascending: false })
     .limit(50);
 
   // Tabla aún no creada (antes de correr la migración 0047): no mostramos nada.
   if (error) return null;
-  const rows = (data ?? []) as PaymentRow[];
+  let rows = (data ?? []) as (PaymentRow & { stripe_charge_id: string | null })[];
+
+  // Pagos sin importe neto (p. ej. registrados a mano): se completan desde Stripe,
+  // máximo 5 por visita, y se vuelve a leer la tabla si algo cambió.
+  const missing = rows.filter((r) => r.net_cents === null && r.stripe_charge_id && r.status !== "refunded").slice(0, 5);
+  if (missing.length > 0) {
+    const results = await Promise.all(missing.map((r) => refreshCardPaymentBreakdown(r.appointment_id)));
+    if (results.some(Boolean)) {
+      const { data: fresh } = await supabase
+        .from("card_payments")
+        .select(columns)
+        .eq("therapist_id", therapistId)
+        .order("paid_at", { ascending: false })
+        .limit(50);
+      if (fresh) rows = fresh as typeof rows;
+    }
+  }
 
   const header = (
     <>
@@ -71,7 +90,10 @@ export async function TherapistCardPayments({ therapistId }: { therapistId: stri
   const whenById = new Map((appts ?? []).map((a) => [a.id as string, a.scheduled_at as string]));
 
   const live = rows.filter((r) => r.status !== "refunded");
-  const sum = (xs: PaymentRow[]) => xs.reduce((s, r) => s + (r.net_cents ?? r.amount_cents - r.lemy_fee_cents), 0);
+  // Solo se suman pagos con neto confirmado: sin él no sabemos cuánto cobró Stripe
+  // y mostrar un importe inventado engañaría.
+  const sum = (xs: PaymentRow[]) => xs.reduce((s, r) => s + (r.net_cents ?? 0), 0);
+  const unconfirmed = live.filter((r) => r.net_cents === null).length;
   const pending = live.filter((r) => r.status === "paid" || r.status === "payout_failed");
   const deposited = live.filter((r) => r.status === "deposited");
 
@@ -93,7 +115,10 @@ export async function TherapistCardPayments({ therapistId }: { therapistId: stri
           <p className="font-display text-[1.25rem] text-forest">{live.length}</p>
         </div>
       </div>
-      <p className="mt-2 text-[0.75rem] text-[#8B978F]">Los importes son lo que te queda después de las comisiones de Lemy y de Stripe.</p>
+      <p className="mt-2 text-[0.75rem] text-[#8B978F]">
+        Los importes son lo que te queda después de las comisiones de Lemy y de Stripe.
+        {unconfirmed > 0 && ` No incluyen ${unconfirmed} pago(s) cuyo importe aún está por confirmar.`}
+      </p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-[0.85rem]">

@@ -785,6 +785,8 @@ export default async function TherapistProfilePage({ params, searchParams }: Pro
                       cardAvailable={cardAvailable}
                       cashAvailable={cashAvailable}
                       requestAppointment={requestAppointment}
+                      policyUrl={therapist.booking_policy_url?.trim() || null}
+                      lemyPolicyText={cardAvailable ? LEMY_POLICY_SHORT : null}
                     />
                   </div>
                 )}

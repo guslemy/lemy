@@ -24,6 +24,61 @@ const BRAND_LABEL: Record<string, string> = {
   amex: "American Express",
 };
 
+// Completa el desglose real (comisión de Stripe, neto, fecha estimada y id del
+// pago) de un cobro que quedó sin él — por ejemplo uno registrado a mano antes
+// de existir el webhook. Lo consulta a Stripe por el id del cargo. Mejor
+// esfuerzo: si falla devuelve false y no cambia nada.
+export async function refreshCardPaymentBreakdown(appointmentId: string): Promise<boolean> {
+  try {
+    const supabase = createServiceClient();
+    const { data: p } = await supabase
+      .from("card_payments")
+      .select("therapist_id, stripe_charge_id, stripe_payment_intent_id, net_cents")
+      .eq("appointment_id", appointmentId)
+      .maybeSingle();
+    if (!p?.stripe_charge_id) return false;
+
+    const { data: t } = await supabase
+      .from("therapists")
+      .select("stripe_connect_account_id")
+      .eq("id", p.therapist_id)
+      .maybeSingle();
+    const accountId = t?.stripe_connect_account_id as string | null | undefined;
+    if (!accountId) return false;
+
+    const charge = await getStripe().charges.retrieve(
+      p.stripe_charge_id as string,
+      { expand: ["balance_transaction"] },
+      { stripeAccount: accountId }
+    );
+    const bt = charge.balance_transaction && typeof charge.balance_transaction === "object" ? charge.balance_transaction : null;
+    if (!bt) return false;
+
+    const details = bt.fee_details ?? [];
+    const stripePart = details.filter((d) => d.type === "stripe_fee").reduce((s, d) => s + d.amount, 0);
+    const appPart = details.filter((d) => d.type === "application_fee").reduce((s, d) => s + d.amount, 0);
+    const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null;
+    const card = charge.payment_method_details?.card;
+
+    const update: Record<string, unknown> = {
+      stripe_fee_cents: stripePart,
+      net_cents: bt.net,
+      expected_available_on: new Date(bt.available_on * 1000).toISOString().slice(0, 10),
+      updated_at: new Date().toISOString(),
+    };
+    if (appPart > 0) update.lemy_fee_cents = appPart;
+    if (!p.stripe_payment_intent_id && piId) update.stripe_payment_intent_id = piId;
+    if (card?.brand) update.card_brand = card.brand;
+    if (card?.last4) update.card_last4 = card.last4;
+
+    const { error } = await supabase.from("card_payments").update(update).eq("appointment_id", appointmentId);
+    return !error;
+  } catch (err) {
+    console.error(`No se pudo completar el desglose del pago de la cita ${appointmentId}:`, err);
+    return false;
+  }
+}
+
 // Guarda el cobro de una cita pagada (checkout.session.completed) con el
 // desglose real de Stripe, y manda el recibo al paciente y el aviso al
 // terapeuta. Es idempotente: si Stripe reenvía el evento, no se duplica nada.

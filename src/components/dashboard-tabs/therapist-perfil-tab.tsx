@@ -421,7 +421,7 @@ export async function TherapistPerfilTab({ params }: { params: PerfilTabParams }
           <div className="mt-6 border-t border-line pt-5">
             <Field
               label="Política de reservas (opcional)"
-              hint={'Si tienes tu propia política (cancelaciones, retrasos, etc.), pega aquí el link — en tu perfil público se muestra como "Revisa mi política de reservas aquí:".'}
+              hint={'Si tienes tu propia política (cancelaciones, retrasos, etc.), pega aquí el link — en tu perfil público se muestra como "Revisa mi política de reservas aquí:" y al confirmar una reserva. Si no subes una, se aplicará la política de cancelación de Lemy: reembolso completo si cancelas tú o si el paciente cancela con 24 horas o más de anticipación (pagos con tarjeta). Si subes la tuya, los reembolsos automáticos se desactivan y los haces tú.'}
             >
               <input
                 name="booking_policy_url"
