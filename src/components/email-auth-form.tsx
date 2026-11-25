@@ -178,8 +178,8 @@ export function EmailAuthForm({ next }: { next?: string }) {
               className="mt-0.5 h-4 w-4 shrink-0 accent-forest"
             />
             <span>
-              Acepto recibir avisos de mis citas por WhatsApp en ese número. Puedo darme de baja
-              cuando quiera.
+              Acepto recibir avisos de mis citas por WhatsApp en ese número cuando este servicio esté disponible
+              (próximamente). Puedo darme de baja cuando quiera.
             </span>
           </label>
           <select

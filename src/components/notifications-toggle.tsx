@@ -91,7 +91,7 @@ export function NotificationsToggles({
         action={setEmailWhatsappEnabled}
       />
       <NotificationToggle
-        label="WhatsApp"
+        label="WhatsApp (próximamente)"
         icon={<ChatIcon />}
         initialEnabled={initialWhatsappOptIn}
         action={setWhatsappOptIn}

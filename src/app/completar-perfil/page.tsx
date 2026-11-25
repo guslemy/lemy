@@ -114,8 +114,8 @@ export default async function CompletarPerfilPage({
             <label className="flex items-start gap-2.5 text-[0.85rem] text-[#3E4B44]">
               <input type="checkbox" name="whatsapp_opt_in" className="mt-0.5 h-4 w-4 shrink-0 accent-forest" />
               <span>
-                Acepto recibir avisos de mis citas por WhatsApp en este número. Puedo darme de baja
-                cuando quiera.
+                Acepto recibir avisos de mis citas por WhatsApp en este número cuando este servicio esté disponible
+                (próximamente). Puedo darme de baja cuando quiera.
               </span>
             </label>
 

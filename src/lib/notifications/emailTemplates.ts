@@ -444,7 +444,7 @@ export function subscriptionWelcome(params: { name: string; plan: "base" | "plus
       </ul>
       ${
         plan === "base"
-          ? `<p>Cuando quieras más control — expediente clínico completo, cobros en línea y recordatorios por
+          ? `<p>Cuando quieras más control — expediente clínico completo, cobros en línea y, muy pronto, recordatorios por
              WhatsApp — puedes hacer upgrade a Gestiona cuando gustes, sin perder nada de lo que ya tienes.</p>
              <p style="margin: 24px 0 0;"><a href="https://lemy.mx/dashboard/suscripcion" style="display: inline-block; background: #21382b; color: #ffffff; padding: 11px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px;">Ver el plan Gestiona →</a></p>`
           : `<p>Gracias por confiar en Lemy para hacer crecer tu práctica.</p>`

@@ -174,7 +174,7 @@ export async function PatientMisCitasTab({
       >
         <label className="block">
           <span className="mb-1.5 block text-[0.85rem] font-medium text-forest">
-            Tu WhatsApp (para recordatorios de tus citas)
+            Tu WhatsApp (para recordatorios de tus citas, próximamente)
           </span>
           <input
             type="tel"

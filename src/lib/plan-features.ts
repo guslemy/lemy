@@ -99,8 +99,8 @@ export const PLAN_FEATURES_PLUS: PlanFeature[] = [
       "Conecta tu cuenta de Stripe y tus pacientes pueden pagar la consulta con tarjeta al agendar — el dinero llega directo a ti, Lemy solo cobra una comisión pequeña por transacción.",
   },
   {
-    label: "Recordatorios de citas por WhatsApp",
+    label: "Recordatorios de citas por WhatsApp (próximamente)",
     detail:
-      "Además del correo, tú y tu paciente reciben un recordatorio por WhatsApp antes de cada sesión.",
+      "Próximamente: además del correo, tú y tu paciente recibirán un recordatorio por WhatsApp antes de cada sesión. Mientras tanto, los recordatorios llegan por correo.",
   },
 ];
