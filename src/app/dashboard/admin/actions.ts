@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getStripe } from "@/lib/stripe";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
 import { verificationRejected, verificationApproved } from "@/lib/notifications/emailTemplates";
 
@@ -40,8 +41,42 @@ export async function deactivateUser(formData: FormData) {
     .update({ deactivated_at: new Date().toISOString() })
     .eq("id", targetId);
 
+  // (2026-11-26) Si es un terapeuta con suscripción, también se cancela en
+  // Stripe (de inmediato, sin reembolso) y su perfil deja de ser público; antes
+  // solo se bloqueaba el acceso y Stripe seguía cobrándole cada mes. No toca
+  // Stripe Connect (lo que cobra a sus pacientes). Reactivar la cuenta NO
+  // reactiva la suscripción: tendría que contratar el plan de nuevo.
+  let stripeResult: "none" | "canceled" | "failed" = "none";
+  const { data: therapist } = await serviceClient
+    .from("therapists")
+    .select("stripe_billing_subscription_id")
+    .eq("id", targetId)
+    .maybeSingle();
+  const subscriptionId = therapist?.stripe_billing_subscription_id as string | null | undefined;
+  if (therapist) {
+    await serviceClient.from("therapists").update({ is_published: false }).eq("id", targetId);
+  }
+  if (subscriptionId) {
+    try {
+      await getStripe().subscriptions.cancel(subscriptionId);
+      await serviceClient.from("therapists").update({ subscription_status: "canceled" }).eq("id", targetId);
+      stripeResult = "canceled";
+    } catch (err) {
+      // Si ya estaba cancelada en Stripe, no es un problema.
+      const code = (err as { code?: string; statusCode?: number })?.code;
+      const status = (err as { statusCode?: number })?.statusCode;
+      if (code === "resource_missing" || status === 404) {
+        stripeResult = "canceled";
+      } else {
+        console.error(`Error cancelando la suscripción ${subscriptionId} al desactivar ${targetId}:`, err);
+        stripeResult = "failed";
+      }
+    }
+  }
+
   revalidatePath("/dashboard/admin");
-  redirect("/dashboard/admin?tab=usuarios&desactivado=1");
+  if (stripeResult === "failed") redirect("/dashboard/admin?tab=usuarios&error=stripe");
+  redirect(`/dashboard/admin?tab=usuarios&desactivado=${stripeResult === "canceled" ? "2" : "1"}`);
 }
 
 export async function reactivateUser(formData: FormData) {

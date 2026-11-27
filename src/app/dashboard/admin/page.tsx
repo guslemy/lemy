@@ -659,6 +659,18 @@ function UsuariosTab({
       </p>
 
       {desactivado === "1" && <Banner>Cuenta desactivada. Puede reactivarse cuando quieras.</Banner>}
+      {desactivado === "2" && (
+        <Banner>
+          Cuenta desactivada y suscripción cancelada en Stripe (sin más cobros). Si la reactivas, tendrá que contratar el plan de
+          nuevo.
+        </Banner>
+      )}
+      {error === "stripe" && (
+        <Banner tone="error">
+          La cuenta se desactivó, pero NO se pudo cancelar la suscripción en Stripe. Cancélala a mano en el panel de Stripe para
+          que no se le siga cobrando.
+        </Banner>
+      )}
       {reactivado === "1" && <Banner>Cuenta reactivada.</Banner>}
       {error === "self" && (
         <Banner tone="error">No puedes desactivar tu propia cuenta de admin desde aquí.</Banner>
