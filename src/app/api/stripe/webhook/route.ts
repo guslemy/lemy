@@ -97,6 +97,12 @@ export async function POST(req: Request) {
               stripe_billing_subscription_id: subscription.id,
               subscription_status: mapStripeStatus(subscription.status),
               subscription_current_period_end: currentPeriodEndIso(subscription),
+              // Cancelación programada (al final del periodo): fecha de corte,
+              // o null si no hay / ya terminó / se reanudó.
+              subscription_cancel_at:
+                subscription.cancel_at && subscription.status !== "canceled"
+                  ? new Date(subscription.cancel_at * 1000).toISOString()
+                  : null,
               ...(plan ? { subscription_plan: plan } : {}),
             })
             .eq("id", userId);

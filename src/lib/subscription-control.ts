@@ -29,7 +29,13 @@ export async function scheduleCancelAtPeriodEnd(therapistId: string): Promise<Su
   let endLabel: string | null = null;
   try {
     const sub = await getStripe().subscriptions.update(subscriptionId, { cancel_at_period_end: true });
-    if (sub.cancel_at) endLabel = fmtDay(new Date(sub.cancel_at * 1000));
+    if (sub.cancel_at) {
+      endLabel = fmtDay(new Date(sub.cancel_at * 1000));
+      await service
+        .from("therapists")
+        .update({ subscription_cancel_at: new Date(sub.cancel_at * 1000).toISOString() })
+        .eq("id", therapistId);
+    }
   } catch (err) {
     console.error(`Error programando la cancelación de la suscripción ${subscriptionId}:`, err);
     return { ok: false, error: "stripe" };
@@ -75,6 +81,7 @@ export async function resumeSubscription(therapistId: string): Promise<Subscript
   if (!subscriptionId) return { ok: false, error: "sin_suscripcion" };
   try {
     await getStripe().subscriptions.update(subscriptionId, { cancel_at_period_end: false });
+    await service.from("therapists").update({ subscription_cancel_at: null }).eq("id", therapistId);
     return { ok: true, endLabel: null };
   } catch (err) {
     console.error(`Error reanudando la suscripción ${subscriptionId}:`, err);

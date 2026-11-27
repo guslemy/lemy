@@ -125,7 +125,7 @@ export default async function AdminPage({
     serviceClient
       .from("therapists")
       .select(
-        "id, slug, display_name, subscription_status, subscription_plan, stripe_connect_charges_enabled, is_published, verification_status, verified_by, verified_at"
+        "id, slug, display_name, subscription_status, subscription_plan, stripe_connect_charges_enabled, is_published, verification_status, verified_by, verified_at, subscription_cancel_at"
       ),
     // listUsers pagina de a 1000 por default — de sobra para el tamaño
     // actual de Lemy. Si algún día se acerca a ese límite, hay que paginar.
@@ -664,6 +664,7 @@ function UsuariosTab({
     therapist: {
       subscription_status: string | null;
       subscription_plan: string | null;
+      subscription_cancel_at?: string | null;
       stripe_connect_charges_enabled: boolean;
       verification_status: string;
     } | null;
@@ -785,6 +786,11 @@ function UsuariosTab({
                       {r.therapist.subscription_plan ? ` (${r.therapist.subscription_plan})` : ""}
                       {" · Stripe Connect: "}
                       {r.therapist.stripe_connect_charges_enabled ? "conectado" : "no conectado"}
+                      {r.therapist.subscription_cancel_at && r.therapist.subscription_status === "active" && (
+                        <span className="mt-0.5 block text-[0.72rem] font-medium text-rose-deep">
+                          Cancelación programada: termina el {formatRetentionDate(new Date(r.therapist.subscription_cancel_at))}
+                        </span>
+                      )}
                     </>
                   ) : (
                     "—"
@@ -822,7 +828,7 @@ function UsuariosTab({
                     </form>
                   ) : (
                     <>
-                      {r.therapist?.subscription_status === "active" && (
+                      {r.therapist?.subscription_status === "active" && !r.therapist.subscription_cancel_at && (
                         <form action={cancelUserSubscription}>
                           <input type="hidden" name="user_id" value={r.id} />
                           <ConfirmSubmitButton
