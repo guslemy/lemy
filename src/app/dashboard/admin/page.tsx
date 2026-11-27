@@ -15,6 +15,7 @@ import { AdminUserDetail } from "@/components/admin-user-detail";
 import { AdminWhatsappTool } from "@/components/admin-whatsapp-tool";
 import { getUserDetail, type UserDetail } from "@/lib/admin-user-detail";
 import { deactivateUser, reactivateUser, cancelUserSubscription } from "./actions";
+import { computeRetention, formatRetentionDate, type RetentionInfo } from "@/lib/account-retention";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
 
 // Panel de administración unificado — antes eran 2 páginas separadas
@@ -229,11 +230,37 @@ export default async function AdminPage({
 
   // ── Pestaña: Gestión de usuarios ─────────────────────────────────────
   const query = (q ?? "").trim().toLowerCase();
+
+  // Cuentas archivadas: fecha en que serían elegibles para revisión de
+  // eliminación (ver lib/account-retention). Solo se consulta para las
+  // desactivadas, en la pestaña de usuarios.
+  const archivedIds = (profiles ?? []).filter((p) => p.deactivated_at).map((p) => p.id);
+  const lastApptByUser = new Map<string, string>();
+  if (tab === "usuarios" && archivedIds.length) {
+    const [{ data: asTherapist }, { data: asPatient }] = await Promise.all([
+      serviceClient.from("appointments").select("therapist_id, scheduled_at").in("therapist_id", archivedIds),
+      serviceClient.from("appointments").select("patient_id, scheduled_at").in("patient_id", archivedIds),
+    ]);
+    const bump = (id: string | null, at: string | null) => {
+      if (!id || !at) return;
+      const prev = lastApptByUser.get(id);
+      if (!prev || at > prev) lastApptByUser.set(id, at);
+    };
+    (asTherapist ?? []).forEach((r) => bump(r.therapist_id as string, r.scheduled_at as string));
+    (asPatient ?? []).forEach((r) => bump(r.patient_id as string, r.scheduled_at as string));
+  }
+  const lastSignInById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null]));
+  // eslint-disable-next-line react-hooks/purity
+  const nowMsAdmin = Date.now();
+
   const userRows = (profiles ?? [])
     .map((p) => ({
       ...p,
       email: emailById.get(p.id) ?? "",
       therapist: therapistById.get(p.id) ?? null,
+      retention: p.deactivated_at
+        ? computeRetention([p.deactivated_at, lastSignInById.get(p.id), lastApptByUser.get(p.id)], nowMsAdmin)
+        : null,
     }))
     .filter((r) => {
       if (!query) return true;
@@ -632,6 +659,7 @@ function UsuariosTab({
     role: string;
     full_name: string | null;
     deactivated_at: string | null;
+    retention: RetentionInfo | null;
     email: string;
     therapist: {
       subscription_status: string | null;
@@ -658,11 +686,13 @@ function UsuariosTab({
         {query && ` que coinciden con "${query}"`}
       </p>
 
-      {desactivado === "1" && <Banner>Cuenta desactivada. Puede reactivarse cuando quieras.</Banner>}
+      {desactivado === "1" && (
+        <Banner>Cuenta archivada. Sus datos y expedientes se conservan; puedes reactivarla cuando quieras.</Banner>
+      )}
       {desactivado === "2" && (
         <Banner>
-          Cuenta desactivada y suscripción cancelada en Stripe (sin más cobros). Si la reactivas, tendrá que contratar el plan de
-          nuevo.
+          Cuenta archivada y suscripción cancelada en Stripe (sin más cobros). Sus datos y expedientes se conservan; si la
+          reactivas, tendrá que contratar el plan de nuevo.
         </Banner>
       )}
       {desactivado === "3" && (
@@ -734,7 +764,16 @@ function UsuariosTab({
                 <td className="px-4 py-3">{ROLE_LABEL[r.role] ?? r.role}</td>
                 <td className="px-4 py-3">
                   {r.deactivated_at ? (
-                    <span className="text-rose-deep">Desactivada</span>
+                    <>
+                      <span className="text-rose-deep">Archivada</span>
+                      {r.retention && (
+                        <span className="mt-0.5 block text-[0.72rem] text-[#8B978F]">
+                          {r.retention.readyForReview
+                            ? "Lista para revisión de eliminación"
+                            : `Revisión de eliminación: ${formatRetentionDate(r.retention.reviewOn)}`}
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span className="text-forest">Activa</span>
                   )}
@@ -797,10 +836,10 @@ function UsuariosTab({
                       <form action={deactivateUser}>
                         <input type="hidden" name="user_id" value={r.id} />
                         <ConfirmSubmitButton
-                          confirmMessage={`¿Seguro que quieres retirar el acceso a ${r.full_name || r.email}? No podrá iniciar sesión hasta que la reactives, y si tiene una suscripción se cancela de inmediato.`}
+                          confirmMessage={`¿Archivar la cuenta de ${r.full_name || r.email}? No podrá iniciar sesión, su perfil se oculta y si tiene una suscripción se cancela de inmediato. Sus datos y expedientes se conservan y tú puedes reactivarla cuando quieras.`}
                           className="rounded-full border border-rose-deep/30 px-4 py-1.5 text-[0.8rem] font-medium text-rose-deep hover:bg-rose/10"
                         >
-                          Desactivar (retirar acceso)
+                          Desactivar (archivar)
                         </ConfirmSubmitButton>
                       </form>
                     </>
