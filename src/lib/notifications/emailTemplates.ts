@@ -346,6 +346,35 @@ export function therapistAccountClosed(params: { name: string }) {
   };
 }
 
+// Aviso de que la suscripción quedó cancelada al final del periodo ya pagado
+// (la cuenta y el acceso siguen igual).
+export function subscriptionCancelScheduled(params: { name: string; endLabel: string | null }) {
+  const { name, endLabel } = params;
+  return {
+    subject: "Cancelamos tu suscripción en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
+      <p>Cancelamos tu suscripción a Lemy. ${
+        endLabel ? `Conservas tu plan hasta el <strong>${endLabel}</strong>, y` : "Conservas tu plan hasta el final del periodo ya pagado, y"
+      } no se te volverá a cobrar.</p>
+      <p>Tu cuenta sigue activa: puedes entrar cuando quieras y volver a suscribirte desde la pestaña Suscripción. Si crees que es un error, contáctanos en <a href="mailto:hola@lemy.mx" style="color: #21382b;">hola@lemy.mx</a>.</p>
+    `),
+  };
+}
+
+// Aviso cuando el equipo de Lemy desactiva una cuenta desde el panel de admin.
+export function accountDeactivated(params: { name: string; isTherapist: boolean }) {
+  const { name, isTherapist } = params;
+  const what = isTherapist ? "tu plan" : "tu cuenta";
+  return {
+    subject: isTherapist ? "Hemos desactivado tu plan en Lemy" : "Hemos desactivado tu cuenta en Lemy",
+    html: wrap(`
+      <h1 style="font-size: 21px; margin: 0 0 14px; color: #21382b; font-weight: 600;">Hola, ${name}</h1>
+      <p>Hemos desactivado ${what}. Si crees que es un error, contáctanos en <a href="mailto:hola@lemy.mx" style="color: #21382b;">hola@lemy.mx</a>.</p>
+    `),
+  };
+}
+
 export function patientAccountClosed(params: { name: string }) {
   const { name } = params;
   return {

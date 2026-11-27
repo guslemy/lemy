@@ -10,6 +10,7 @@ import {
   STRIPE_COUPON_FOUNDER,
   STRIPE_COUPON_REFERRAL_NEW_USER,
 } from "@/lib/stripe";
+import { scheduleCancelAtPeriodEnd, resumeSubscription } from "@/lib/subscription-control";
 
 async function requireTherapist() {
   const supabase = await createClient();
@@ -89,6 +90,24 @@ export async function createSubscriptionCheckout(formData: FormData) {
 
   if (!session.url) redirect("/dashboard?tab=suscripcion&sus_error=1");
   redirect(session.url);
+}
+
+// El terapeuta cancela su propia suscripción desde Lemy: queda activa hasta el
+// final del periodo ya pagado y no se le vuelve a cobrar. No pierde el acceso a
+// su cuenta ni a sus datos. (2026-11-26)
+export async function cancelMySubscription() {
+  const { user } = await requireTherapist();
+  const res = await scheduleCancelAtPeriodEnd(user.id);
+  if (!res.ok) redirect(`/dashboard?tab=suscripcion&sus_error=${res.error === "sin_suscripcion" ? "sin_suscripcion" : "1"}`);
+  redirect("/dashboard?tab=suscripcion&sus_ok=baja");
+}
+
+// Deshace la cancelación programada antes de la fecha de corte.
+export async function resumeMySubscription() {
+  const { user } = await requireTherapist();
+  const res = await resumeSubscription(user.id);
+  if (!res.ok) redirect("/dashboard?tab=suscripcion&sus_error=1");
+  redirect("/dashboard?tab=suscripcion&sus_ok=reanudada");
 }
 
 // Manda al terapeuta al Billing Portal de Stripe (hospedado por ellos) para

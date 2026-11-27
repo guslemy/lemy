@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getStripe } from "@/lib/stripe";
+import { scheduleCancelAtPeriodEnd } from "@/lib/subscription-control";
 import { dispatch, emailOf } from "@/lib/notifications/engine";
-import { verificationRejected, verificationApproved } from "@/lib/notifications/emailTemplates";
+import { verificationRejected, verificationApproved, accountDeactivated } from "@/lib/notifications/emailTemplates";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -74,9 +75,49 @@ export async function deactivateUser(formData: FormData) {
     }
   }
 
+  // Aviso por correo a la persona (siempre, sea terapeuta o paciente). Mejor
+  // esfuerzo: si falla, la desactivación ya quedó hecha. relatedId aleatorio para
+  // que se avise cada vez que se desactive (el registro de envíos evita repetir
+  // por tipo + id).
+  try {
+    const { data: target } = await serviceClient.from("profiles").select("role, full_name").eq("id", targetId).maybeSingle();
+    const { data: t } = await serviceClient.from("therapists").select("display_name").eq("id", targetId).maybeSingle();
+    const email = await emailOf(serviceClient, targetId);
+    const { subject, html } = accountDeactivated({
+      name: (t?.display_name as string | undefined) ?? (target?.full_name as string | undefined) ?? "",
+      isTherapist: target?.role === "therapist",
+    });
+    await dispatch({
+      supabase: serviceClient,
+      type: "account_deactivated",
+      relatedId: randomUUID(),
+      recipientId: targetId,
+      email,
+      phone: null,
+      subject,
+      html,
+      emailOnly: true,
+    });
+  } catch (err) {
+    console.error(`Error mandando el aviso de desactivación a ${targetId}:`, err);
+  }
+
   revalidatePath("/dashboard/admin");
   if (stripeResult === "failed") redirect("/dashboard/admin?tab=usuarios&error=stripe");
   redirect(`/dashboard/admin?tab=usuarios&desactivado=${stripeResult === "canceled" ? "2" : "1"}`);
+}
+
+// Cancela SOLO la suscripción de un terapeuta, al final del periodo ya pagado.
+// Conserva el acceso a su cuenta (puede volver a suscribirse). Le avisa por correo.
+export async function cancelUserSubscription(formData: FormData) {
+  await requireAdmin();
+  const targetId = String(formData.get("user_id") || "");
+  if (!targetId) redirect("/dashboard/admin?tab=usuarios&error=1");
+
+  const res = await scheduleCancelAtPeriodEnd(targetId);
+  revalidatePath("/dashboard/admin");
+  if (!res.ok) redirect(`/dashboard/admin?tab=usuarios&error=${res.error === "stripe" ? "stripecancel" : "sinsub"}`);
+  redirect("/dashboard/admin?tab=usuarios&desactivado=3");
 }
 
 export async function reactivateUser(formData: FormData) {

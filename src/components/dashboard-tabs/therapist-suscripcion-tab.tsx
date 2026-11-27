@@ -2,7 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { createSubscriptionCheckout, openBillingPortal } from "@/app/dashboard/suscripcion/actions";
+import {
+  createSubscriptionCheckout,
+  openBillingPortal,
+  cancelMySubscription,
+  resumeMySubscription,
+} from "@/app/dashboard/suscripcion/actions";
+import { getScheduledCancellation } from "@/lib/subscription-control";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { PLAN_FEATURES_BASE, PLAN_FEATURES_PLUS } from "@/lib/plan-features";
 import { PlanFeatureItem } from "@/components/plan-feature-item";
 
@@ -35,10 +42,16 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
   const { data: therapist } = await supabase
     .from("therapists")
     .select(
-      "trial_ends_at, is_founding_member, subscription_status, subscription_plan, stripe_billing_customer_id"
+      "trial_ends_at, is_founding_member, subscription_status, subscription_plan, stripe_billing_customer_id, stripe_billing_subscription_id"
     )
     .eq("id", user.id)
     .maybeSingle();
+
+  // ¿Ya pidió cancelar? (queda activa hasta el final del periodo pagado)
+  const cancelEndLabel =
+    therapist?.subscription_status === "active" && therapist.stripe_billing_subscription_id
+      ? await getScheduledCancellation(therapist.stripe_billing_subscription_id as string)
+      : null;
 
   // Componente de servidor: se ejecuta una sola vez por request, no hay
   // re-render en el que Date.now() pueda dar un resultado inconsistente.
@@ -56,6 +69,17 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
       {ok === "1" && (
         <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
           Listo, tu suscripción quedó activa.
+        </p>
+      )}
+      {ok === "baja" && (
+        <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+          Listo, cancelamos tu suscripción. Conservas tu plan hasta el final del periodo que ya pagaste y no se te volverá a
+          cobrar. Te enviamos un correo de confirmación.
+        </p>
+      )}
+      {ok === "reanudada" && (
+        <p className="mt-4 rounded-2xl border border-line bg-forest/[0.06] px-5 py-3 text-[0.9rem] text-forest">
+          Listo, tu suscripción sigue activa y se renovará con normalidad.
         </p>
       )}
       {cancelado === "1" && (
@@ -92,12 +116,36 @@ export async function TherapistSuscripcionTab({ params }: { params: SuscripcionT
 
       <div className="mt-6 rounded-2xl border border-line bg-card p-6">
         {subscriptionActive ? (
-          <p className="text-[0.95rem] text-forest">
-            Tu suscripción está <strong>activa</strong>
-            {therapist?.subscription_plan &&
-              ` — plan ${PLAN_LABELS[therapist.subscription_plan] ?? therapist.subscription_plan}`}
-            .
-          </p>
+          <>
+            <p className="text-[0.95rem] text-forest">
+              Tu suscripción está <strong>activa</strong>
+              {therapist?.subscription_plan &&
+                ` — plan ${PLAN_LABELS[therapist.subscription_plan] ?? therapist.subscription_plan}`}
+              .
+            </p>
+            {cancelEndLabel ? (
+              <>
+                <p className="mt-2 text-[0.88rem] text-rose-deep">
+                  Pediste cancelarla: conservas tu plan hasta el <strong>{cancelEndLabel}</strong> y no se te volverá a cobrar.
+                  Pasada esa fecha tu perfil dejará de aparecer en el buscador.
+                </p>
+                <form action={resumeMySubscription} className="mt-3">
+                  <Button type="submit" variant="ghost">
+                    Reanudar mi suscripción
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <form action={cancelMySubscription} className="mt-3">
+                <ConfirmSubmitButton
+                  confirmMessage="¿Cancelar tu suscripción? Conservas tu plan hasta el final del periodo que ya pagaste y no se te volverá a cobrar. Tu cuenta y tus datos se quedan; podrás volver a suscribirte cuando quieras."
+                  className="rounded-full border border-rose-deep/40 px-5 py-2 text-[0.85rem] font-medium text-rose-deep hover:bg-rose/10"
+                >
+                  Cancelar mi suscripción
+                </ConfirmSubmitButton>
+              </form>
+            )}
+          </>
         ) : trialActive ? (
           <p className="text-[0.95rem] text-[#3E4B44]">
             Estás en tu prueba gratis: te quedan <strong>{trialDaysLeft} días</strong>. Tu perfil

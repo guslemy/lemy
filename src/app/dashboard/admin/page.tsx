@@ -14,7 +14,7 @@ import { getInsights } from "@/lib/admin-insights";
 import { AdminUserDetail } from "@/components/admin-user-detail";
 import { AdminWhatsappTool } from "@/components/admin-whatsapp-tool";
 import { getUserDetail, type UserDetail } from "@/lib/admin-user-detail";
-import { deactivateUser, reactivateUser } from "./actions";
+import { deactivateUser, reactivateUser, cancelUserSubscription } from "./actions";
 import { addEducationalContent, deleteEducationalContent } from "../contenido/actions";
 
 // Panel de administración unificado — antes eran 2 páginas separadas
@@ -665,6 +665,15 @@ function UsuariosTab({
           nuevo.
         </Banner>
       )}
+      {desactivado === "3" && (
+        <Banner>
+          Suscripción cancelada al final del periodo pagado. La cuenta sigue activa y la persona recibió un correo.
+        </Banner>
+      )}
+      {error === "stripecancel" && (
+        <Banner tone="error">No se pudo programar la cancelación en Stripe. Intenta de nuevo o cancélala a mano en Stripe.</Banner>
+      )}
+      {error === "sinsub" &&<Banner tone="error">Esa persona no tiene una suscripción que cancelar.</Banner>}
       {error === "stripe" && (
         <Banner tone="error">
           La cuenta se desactivó, pero NO se pudo cancelar la suscripción en Stripe. Cancélala a mano en el panel de Stripe para
@@ -773,15 +782,28 @@ function UsuariosTab({
                       </button>
                     </form>
                   ) : (
-                    <form action={deactivateUser}>
-                      <input type="hidden" name="user_id" value={r.id} />
-                      <ConfirmSubmitButton
-                        confirmMessage={`¿Seguro que quieres desactivar la cuenta de ${r.full_name || r.email}? No podrá iniciar sesión hasta que la reactives.`}
-                        className="rounded-full border border-rose-deep/30 px-4 py-1.5 text-[0.8rem] font-medium text-rose-deep hover:bg-rose/10"
-                      >
-                        Desactivar
-                      </ConfirmSubmitButton>
-                    </form>
+                    <>
+                      {r.therapist?.subscription_status === "active" && (
+                        <form action={cancelUserSubscription}>
+                          <input type="hidden" name="user_id" value={r.id} />
+                          <ConfirmSubmitButton
+                            confirmMessage={`¿Cancelar la suscripción de ${r.full_name || r.email} al final de su periodo pagado? Conserva el acceso a su cuenta y se le avisa por correo.`}
+                            className="rounded-full border border-forest/30 px-4 py-1.5 text-[0.8rem] font-medium text-forest hover:bg-forest/[0.06]"
+                          >
+                            Cancelar suscripción
+                          </ConfirmSubmitButton>
+                        </form>
+                      )}
+                      <form action={deactivateUser}>
+                        <input type="hidden" name="user_id" value={r.id} />
+                        <ConfirmSubmitButton
+                          confirmMessage={`¿Seguro que quieres retirar el acceso a ${r.full_name || r.email}? No podrá iniciar sesión hasta que la reactives, y si tiene una suscripción se cancela de inmediato.`}
+                          className="rounded-full border border-rose-deep/30 px-4 py-1.5 text-[0.8rem] font-medium text-rose-deep hover:bg-rose/10"
+                        >
+                          Desactivar (retirar acceso)
+                        </ConfirmSubmitButton>
+                      </form>
+                    </>
                   )}
                 </td>
               </tr>

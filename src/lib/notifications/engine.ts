@@ -63,6 +63,8 @@ const ESSENTIAL_EMAIL_WHATSAPP_TYPES = new Set([
   "appointment_payment_abandoned_patient",
   "account_closed_therapist",
   "account_closed_patient",
+  "account_deactivated",
+  "subscription_cancel_scheduled",
   // No-show: igual que una cancelación, el paciente necesita enterarse de
   // que su cita quedó marcada así sí o sí (2026-09-27).
   "appointment_no_show",
